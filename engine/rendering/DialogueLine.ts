@@ -15,8 +15,6 @@ export class DialogueLine {
             showPortrait: options.showPortrait !== false,
             showName: options.showName !== false,
             animate: options.animate !== false,
-            // FIX: options.style is 'string | TextStyleConfig | undefined'
-            // Using '|| null' was assigning an incorrect type.
             style: options.style,
             ...options
         };

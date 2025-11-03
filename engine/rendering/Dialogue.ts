@@ -23,8 +23,6 @@ export class Dialogue {
      * Get the next line
      */
     next(): DialogueLine | undefined {
-        // FIX: The array accessor returns 'DialogueLine | undefined',
-        // so the return type must be '... | undefined', not '... | null'.
         if (this.hasNext()) {
             return this.lines[this.currentIndex++];
         }
