@@ -8,10 +8,11 @@ import { LocalStorageAdapter } from './LocalStorageAdapter';
 export interface SaveData {
     timestamp: number;
     currentSceneId: string;
-    context: {
-        flags: string[];
-        variables: [string, any][];
-        player?: any;
+    /**
+     * Contains saved data from all registered ISerializable systems.
+     * The key is the system's unique key (e.g., 'player', 'clock', '_core')
+     */
+    systems: {
         [key: string]: any;
     };
     metadata?: {
@@ -88,40 +89,65 @@ export class SaveManager {
     }
 
     /**
-     * Serialize current game state
+     * Serialize current game state by iterating over registered systems
      */
     private serializeGameState(metadata?: any): SaveData {
         const currentScene = this.engine.sceneManager.getCurrentScene();
+        const systemsData: { [key: string]: any } = {};
+
+        // Iterate over all registered systems and serialize them
+        for (const [key, system] of this.engine.serializableSystems.entries()) {
+            try {
+                systemsData[key] = system.serialize();
+            } catch (error) {
+                console.error(`[SaveManager] Failed to serialize system '${key}':`, error);
+            }
+        }
 
         return {
             timestamp: Date.now(),
             currentSceneId: currentScene?.id || '',
-            context: {
-                flags: Array.from(this.engine.context.flags),
-                variables: Array.from(this.engine.context.variables.entries()),
-                player: this.engine.context.player,
-            },
+            systems: systemsData, // Store the dynamic systems data
             metadata: metadata || {}
         };
     }
 
     /**
-     * Restore game state from save data
+     * Restore game state by iterating over saved system data
      */
     private restoreGameState(saveData: SaveData): void {
-        // Restore flags
-        this.engine.context.flags = new Set(saveData.context.flags);
+        // Restore all registered systems
+        if (saveData.systems) {
+            for (const [key, data] of Object.entries(saveData.systems)) {
+                const system = this.engine.serializableSystems.get(key);
+                if (system) {
+                    try {
+                        system.deserialize(data);
+                    } catch (error) {
+                        console.error(`[SaveManager] Failed to deserialize system '${key}':`, error);
+                    }
+                } else {
+                    console.warn(`[SaveManager] Found save data for unknown system '${key}'. Skipping.`);
+                }
+            }
+        }
 
-        // Restore variables
-        this.engine.context.variables = new Map(saveData.context.variables);
+        // Restore player object reference in context
+        // This assumes the player has been registered with the key 'player'
+        // and that its deserialize method updates the instance in place.
+        const playerSystem = this.engine.serializableSystems.get('player');
+        if (playerSystem) {
+             this.engine.context.player = playerSystem;
+        }
 
-        // Restore player (game is responsible for proper deserialization)
-        this.engine.context.player = saveData.context.player;
-
-        // Restore any custom context properties
-        for (const [key, value] of Object.entries(saveData.context)) {
-            if (key !== 'flags' && key !== 'variables' && key !== 'player') {
-                this.engine.context[key] = value;
+        // Restore any custom context properties (if any - this is now legacy)
+        // This loop can likely be removed if all data is in serializable systems
+        if ((saveData as any).context) {
+            const legacyContext = (saveData as any).context;
+            for (const [key, value] of Object.entries(legacyContext)) {
+                if (key !== 'flags' && key !== 'variables' && key !== 'player') {
+                    this.engine.context[key] = value;
+                }
             }
         }
 

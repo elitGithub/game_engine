@@ -1,7 +1,6 @@
 /**
  * SpriteRenderer - Handles static images, portraits, and clickable areas
- * 
- * For point-and-click games:
+ * * For point-and-click games:
  * - Background scenes
  * - Character portraits
  * - Clickable objects/hotspots
@@ -17,7 +16,6 @@ export interface SpriteConfig {
     height?: number;
     zIndex?: number;
     className?: string;
-    onClick?: () => void;
     onHover?: () => void;
 }
 
@@ -77,18 +75,12 @@ export class SpriteRenderer extends BaseRenderer {
         img.src = config.src;
         img.className = `sprite ${config.className || ''}`;
         img.style.position = 'absolute';
-        
+
         if (config.x !== undefined) img.style.left = `${config.x}px`;
         if (config.y !== undefined) img.style.top = `${config.y}px`;
         if (config.width !== undefined) img.style.width = `${config.width}px`;
         if (config.height !== undefined) img.style.height = `${config.height}px`;
         if (config.zIndex !== undefined) img.style.zIndex = String(config.zIndex);
-
-        // Add click handler
-        if (config.onClick) {
-            img.style.cursor = 'pointer';
-            img.addEventListener('click', config.onClick);
-        }
 
         // Add hover handler
         if (config.onHover) {
@@ -134,11 +126,11 @@ export class SpriteRenderer extends BaseRenderer {
      * Add a clickable hotspot (invisible clickable area)
      */
     addHotspot(
-        id: string, 
-        x: number, 
-        y: number, 
-        width: number, 
-        height: number, 
+        id: string,
+        x: number,
+        y: number,
+        width: number,
+        height: number,
         onClick: () => void
     ): HTMLElement {
         const hotspot = document.createElement('div');
@@ -150,13 +142,13 @@ export class SpriteRenderer extends BaseRenderer {
         hotspot.style.height = `${height}px`;
         hotspot.style.cursor = 'pointer';
         hotspot.style.zIndex = '10';
-        
+
         // Debug: uncomment to see hotspots
         // hotspot.style.border = '2px solid red';
         // hotspot.style.backgroundColor = 'rgba(255, 0, 0, 0.2)';
 
         hotspot.addEventListener('click', onClick);
-        
+
         this.container.appendChild(hotspot);
         return hotspot;
     }

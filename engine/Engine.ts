@@ -1,7 +1,7 @@
 /**
  * Engine - The main game engine
  */
-import type { GameConfig, GameContext, GameData, StateData } from '@types/index';
+import type { GameConfig, GameContext, GameData, StateData, ISerializable } from '@types/index';
 import { EventBus, eventBus } from './core/EventBus';
 import { GameStateManager } from './core/GameStateManager';
 import { SceneManager } from './systems/SceneManager';
@@ -33,6 +33,12 @@ export class Engine {
     public audioManager: AudioManager;
     public context: GameContext;
 
+    /**
+     * A registry of all systems that must be saved.
+     * The key is a unique ID for the save data.
+     */
+    public serializableSystems: Map<string, ISerializable>;
+
     public isRunning: boolean;
     public isPaused: boolean;
 
@@ -56,6 +62,7 @@ export class Engine {
         this.stateManager = new GameStateManager();
         this.sceneManager = new SceneManager();
         this.actionRegistry = new ActionRegistry();
+        this.serializableSystems = new Map(); // Initialize the new registry
 
         // Game state
         this.isRunning = false;
@@ -79,6 +86,19 @@ export class Engine {
         // Add to context for easy access from Actions/Scenes
         this.context.saveManager = this.saveManager;
 
+        // Register a "core" serializable system for flags and variables
+        // so the SaveManager can handle them automatically.
+        this.registerSerializableSystem('_core', {
+            serialize: () => ({
+                flags: Array.from(this.context.flags),
+                variables: Array.from(this.context.variables.entries()),
+            }),
+            deserialize: (data) => {
+                this.context.flags = new Set(data.flags || []);
+                this.context.variables = new Map(data.variables || []);
+            },
+        });
+
         // Initialize AudioManager with optional custom audio source adapter
         this.audioManager = new AudioManager(this.eventBus, audioSourceAdapter, this.config.audioAssets);
 
@@ -91,6 +111,18 @@ export class Engine {
         }
 
         this.log('Engine initialized');
+    }
+
+    /**
+     * Registers a system (like Player, Inventory, Clock) with the SaveManager
+     * @param key A unique string key to identify this system's data (e.g., 'player', 'clock')
+     * @param system The system instance that implements ISerializable
+     */
+    public registerSerializableSystem(key: string, system: ISerializable): void {
+        if (this.serializableSystems.has(key)) {
+            console.warn(`[Engine] Serializable system key '${key}' already registered. Overwriting.`);
+        }
+        this.serializableSystems.set(key, system);
     }
 
     /**
@@ -206,7 +238,7 @@ export class Engine {
         this.eventBus.emit('engine.unpaused', {});
     }
 
-    /**
+/**
      * Handle user input
      */
     handleInput(input: string): void {

@@ -25,6 +25,21 @@ export interface StateData {
     [key: string]: any;
 }
 
+/**
+ * Interface for systems that need to be saved and loaded
+ */
+export interface ISerializable {
+    /**
+     * Generates a serializable JSON-compatible object of the system's state
+     */
+    serialize(): any;
+
+    /**
+     * Restores the system's state from a JSON object
+     */
+    deserialize(data: any): void;
+}
+
 export interface RenderOptions {
     style?: string | TextStyleConfig;
     animate?: boolean;
