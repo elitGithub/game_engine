@@ -1,18 +1,17 @@
 /**
- * GameStateManager - Manages game states and transitions
+ * GameStateManager - Manages game states and transitions using a stack.
  */
-import type { StateData } from '@types/index';
-import { GameState } from './GameState';
+import type {StateData} from '@types/index';
+import {GameState} from './GameState';
+import type {EngineInputEvent} from './Inputevents';
 
 export class GameStateManager {
     public states: Map<string, GameState>;
-    private currentState: GameState | null;
-    private pendingTransition: string | null;
+    private stateStack: GameState[];
 
     constructor() {
         this.states = new Map();
-        this.currentState = null;
-        this.pendingTransition = null;
+        this.stateStack = [];
     }
 
     /**
@@ -24,48 +23,82 @@ export class GameStateManager {
     }
 
     /**
-     * Switch to a different state
+     * Pushes a new state onto the stack (e.g., opening a pause menu).
+     * The current top state will be paused.
      */
-    changeState(stateName: string, data: StateData = {}): void {
+    pushState(stateName: string, data: StateData = {}): void {
         if (!this.states.has(stateName)) {
             console.error(`[StateManager] State '${stateName}' not found!`);
             return;
         }
 
-        // Exit current state
-        if (this.currentState) {
-            this.currentState.exit();
+        const currentState = this.getCurrentState();
+        if (currentState) {
+            currentState.pause();
         }
 
-        // Enter new state
-        this.currentState = this.states.get(stateName)!;
-        this.currentState.enter(data);
+        const newState = this.states.get(stateName)!;
+        newState.enter(data);
+        this.stateStack.push(newState);
     }
 
     /**
-     * Update the current state
+     * Pops the top state from the stack (e.g., closing a pause menu).
+     * The state below it will be resumed.
+     */
+    popState(): void {
+        if (this.stateStack.length === 0) return;
+
+        const removedState = this.stateStack.pop()!;
+        removedState.exit();
+
+        const newState = this.getCurrentState();
+        if (newState) {
+            newState.resume();
+        }
+    }
+
+    /**
+     * Clears the entire stack and pushes a new state (e.g., main menu -> gameplay).
+     */
+    changeState(stateName: string, data: StateData = {}): void {
+        // Exit all current states
+        while (this.stateStack.length > 0) {
+            this.stateStack.pop()!.exit();
+        }
+
+        // Push the new state
+        this.pushState(stateName, data);
+    }
+
+    /**
+     * Update the top-most state
      */
     update(deltaTime: number): void {
-        if (this.currentState && this.currentState.isActive) {
-            this.currentState.update(deltaTime);
+        const currentState = this.getCurrentState();
+        if (currentState && currentState.isActive) {
+            currentState.update(deltaTime);
         }
     }
 
     /**
-     * Render the current state
+     * Render all states in the stack, from bottom to top.
      */
     render(renderer: any): void {
-        if (this.currentState && this.currentState.isActive) {
-            this.currentState.render(renderer);
+        for (const state of this.stateStack) {
+            if (state.isActive) {
+                state.render(renderer);
+            }
         }
     }
 
     /**
-     * Pass input to the current state
+     * Pass rich event input to the top-most state
      */
-    handleInput(input: string): void {
-        if (this.currentState && this.currentState.isActive) {
-            this.currentState.handleInput(input);
+    handleEvent(event: EngineInputEvent): void {
+        const currentState = this.getCurrentState();
+        if (currentState && currentState.isActive) {
+            currentState.handleEvent(event);
         }
     }
 
@@ -73,13 +106,17 @@ export class GameStateManager {
      * Get the current state name
      */
     getCurrentStateName(): string | null {
-        return this.currentState ? this.currentState.name : null;
+        return this.stateStack.length > 0
+            ? this.stateStack[this.stateStack.length - 1].name
+            : null;
     }
 
     /**
      * Get the current state instance (needed by InputManager)
      */
     getCurrentState(): GameState | null {
-        return this.currentState;
+        return this.stateStack.length > 0
+            ? this.stateStack[this.stateStack.length - 1]
+            : null;
     }
 }

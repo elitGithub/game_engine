@@ -4,7 +4,7 @@
  * This is an EXAMPLE showing how to create a custom storage adapter.
  * Copy and modify this for your own backend implementation.
  */
-import type { StorageAdapter, SaveSlotMetadata } from './StorageAdapter';
+import type { StorageAdapter, SaveSlotMetadata } from '../core/StorageAdapter';
 
 export interface BackendConfig {
     baseUrl: string;

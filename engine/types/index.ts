@@ -6,6 +6,7 @@ import type { EffectManager } from './core/EffectManager';
 export interface GameConfig {
     debug?: boolean;
     targetFPS?: number;
+    gameVersion?: string; // Added for save versioning
 }
 
 export interface GameContext {
@@ -14,7 +15,7 @@ export interface GameContext {
     saveManager?: any;
     audio?: any;
     input?: any;
-    effects?: EffectManager; // Added this line
+    effects?: EffectManager;
     flags: Set<string>;
     variables: Map<string, any>;
     renderer?: any;
@@ -31,6 +32,19 @@ export interface ISerializable {
     serialize(): any;
     deserialize(data: any): void;
 }
+
+/**
+ * A function that migrates save data from one version to another.
+ * It receives the *entire* save data object and must return the *entire* modified object.
+ */
+export type MigrationFunction = (data: any) => any;
+
+/**
+ * A single step in an EffectManager sequence.
+ */
+export type EffectStep =
+    | { name: string; duration: number } // Apply an effect for a duration
+    | { wait: number }; // Wait for a duration
 
 export interface RenderOptions {
     style?: string | TextStyleConfig;
@@ -110,7 +124,7 @@ export interface SceneData {
 }
 
 export interface ScenesDataMap {
-    [sceneId: string]: SceneData;
+    [sceneId: string]: ScenesDataMap;
 }
 
 export interface GameData {
@@ -123,30 +137,16 @@ export interface ActionContext extends GameContext {
     [key: string]: any;
 }
 
-// --- NEW EFFECT INTERFACES ---
+// --- EFFECT INTERFACES ---
 
-/**
- * Interface for "Dynamic Effects" (e.g., heartbeat)
- * Applied to a specific element and updated every frame.
- */
 export interface IDynamicEffect {
-    /** Called once when the effect is applied */
     onStart(element: HTMLElement, context: GameContext): void;
-    /** Called every frame the effect is active */
     onUpdate(element: HTMLElement, context: GameContext, deltaTime: number): void;
-    /** Called when the effect is removed */
     onStop(element: HTMLElement, context: GameContext): void;
 }
 
-/**
- * Interface for "Global Effects" (e.g., x-ray scope)
- * Screen-wide, interactive effects that create their own DOM.
- */
 export interface IGlobalEffect {
-    /** Called once to create DOM elements */
     onCreate(container: HTMLElement, context: GameContext): void;
-    /** Called every frame to update */
     onUpdate(context: GameContext, deltaTime: number): void;
-    /** Called to clean up all DOM elements */
     onDestroy(context: GameContext): void;
 }

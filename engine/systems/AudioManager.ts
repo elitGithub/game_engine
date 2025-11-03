@@ -8,9 +8,9 @@
  * - Mobile audio unlock
  * - Configurable audio source adapter
  */
-import type { AudioSourceAdapter, AudioAssetMap } from './AudioSourceAdapter';
+import type { AudioSourceAdapter, AudioAssetMap } from '../core/AudioSourceAdapter';
 import { LocalAudioSourceAdapter } from './LocalAudioSourceAdapter';
-import type { EventBus } from './EventBus';
+import type { EventBus } from '../core/EventBus';
 
 export type MusicState = 'playing' | 'paused' | 'stopped';
 

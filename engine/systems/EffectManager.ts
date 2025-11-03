@@ -6,7 +6,7 @@
  * 2. Dynamic: Runs code on an element every frame (e.g., 'heartbeat')
  * 3. Global: Runs code globally every frame (e.g., 'x-ray')
  */
-import type { GameContext, IDynamicEffect, IGlobalEffect } from '@types/index';
+import type { GameContext, IDynamicEffect, IGlobalEffect, EffectStep } from '@types/index';
 import type { SpriteRenderer } from '../rendering/SpriteRenderer';
 
 // Helper type for active dynamic effects
@@ -102,9 +102,10 @@ export class EffectManager {
      * @param element The DOM element to affect
      * @param effectName The friendly name of the effect
      * @param duration Optional. If provided, removes effect after X ms.
+     * @returns A promise that resolves when the effect is complete (if duration is provided)
      */
-    apply(element: HTMLElement, effectName: string, duration?: number): void {
-        if (!element) return;
+    apply(element: HTMLElement, effectName: string, duration?: number): Promise<void> {
+        if (!element) return Promise.resolve();
 
         // Try to apply as Dynamic Effect
         if (this.dynamicEffects.has(effectName)) {
@@ -117,7 +118,7 @@ export class EffectManager {
             // Avoid applying the same effect multiple times
             const existing = this.activeDynamicEffects.get(element)!;
             if (existing.some(e => e.name === effectName)) {
-                return;
+                return Promise.resolve(); // Already active
             }
 
             logic.onStart(element, this.context);
@@ -130,20 +131,32 @@ export class EffectManager {
 
         } else {
             console.warn(`[EffectManager] Effect '${effectName}' not registered.`);
-            return;
+            return Promise.resolve();
         }
 
         // Handle timed duration
         if (duration) {
-            const timerId = window.setTimeout(() => {
-                this.remove(element, effectName);
-            }, duration);
+            return new Promise(resolve => {
+                const timerId = window.setTimeout(() => {
+                    this.remove(element, effectName);
 
-            if (!this.timedEffects.has(element)) {
-                this.timedEffects.set(element, []);
-            }
-            this.timedEffects.get(element)!.push(timerId);
+                    // Remove timer from map
+                    const timers = this.timedEffects.get(element);
+                    if (timers) {
+                        const index = timers.indexOf(timerId);
+                        if (index > -1) timers.splice(index, 1);
+                    }
+                    resolve();
+                }, duration);
+
+                if (!this.timedEffects.has(element)) {
+                    this.timedEffects.set(element, []);
+                }
+                this.timedEffects.get(element)!.push(timerId);
+            });
         }
+
+        return Promise.resolve();
     }
 
     /**
@@ -178,17 +191,34 @@ export class EffectManager {
     /**
      * Helper method to find a sprite by ID and apply an effect.
      */
-    applyToSprite(spriteId: string, effectName: string, duration?: number): void {
+    applyToSprite(spriteId: string, effectName: string, duration?: number): Promise<void> {
         const renderer = this.context.renderer as SpriteRenderer;
         if (renderer && typeof renderer.getSprite === 'function') {
             const spriteElement = renderer.getSprite(spriteId);
             if (spriteElement) {
-                this.apply(spriteElement, effectName, duration);
+                return this.apply(spriteElement, effectName, duration);
             } else {
                 console.warn(`[EffectManager] Sprite '${spriteId}' not found in renderer.`);
             }
         } else {
             console.error(`[EffectManager] context.renderer is not a valid SpriteRenderer.`);
+        }
+        return Promise.resolve();
+    }
+
+    /**
+     * Runs a sequence of effects on an element.
+     * @param element The DOM element
+     * @param steps An array of EffectStep objects
+     */
+    async sequence(element: HTMLElement, steps: EffectStep[]): Promise<void> {
+        for (const step of steps) {
+            if ('wait' in step) {
+                await new Promise(r => setTimeout(r, step.wait));
+            } else {
+                // 'name' and 'duration' are in step
+                await this.apply(element, step.name, step.duration);
+            }
         }
     }
 

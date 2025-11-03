@@ -8,7 +8,6 @@
  * - Key rebinding system
  * - Input blocking/enabling
  * - Input modes/contexts
- * - Backward compatibility
  */
 import type { Engine } from '../Engine';
 import type {
@@ -28,7 +27,7 @@ import type {
     InputAction,
     InputBinding,
     InputCombo
-} from './InputEvents';
+} from '../core/InputEvents';
 
 export type InputMode = 'gameplay' | 'menu' | 'cutscene' | 'disabled' | string;
 
@@ -477,14 +476,8 @@ export class InputManager {
     // ============================================================================
 
     private dispatchEvent(event: EngineInputEvent): void {
-        // Dispatch to current game state
-        const currentState = this.engine.stateManager.getCurrentState();
-        if (currentState && currentState.isActive) {
-            // New method: handleEvent (rich event)
-            if (typeof (currentState as any).handleEvent === 'function') {
-                (currentState as any).handleEvent(event);
-            }
-        }
+        // Dispatch to the state manager, which will handle the stack
+        this.engine.stateManager.handleEvent(event);
 
         // Check combos
         this.checkCombos();
@@ -656,29 +649,5 @@ export class InputManager {
 
     getInputMode(): InputMode {
         return this.currentMode;
-    }
-
-    // ============================================================================
-    // BACKWARD COMPATIBILITY
-    // ============================================================================
-
-    /**
-     * Legacy method for backward compatibility
-     * Converts string input to simple event and dispatches
-     */
-    handleInput(input: string): void {
-        // Try to parse as number (choice index)
-        const choiceIndex = parseInt(input);
-        if (!isNaN(choiceIndex)) {
-            this.engine.eventBus.emit('input.choice', { index: choiceIndex });
-        }
-
-        // Dispatch to current state's legacy handleInput
-        const currentState = this.engine.stateManager.getCurrentState();
-        if (currentState && currentState.isActive) {
-            if (typeof (currentState as any).handleInput === 'function') {
-                (currentState as any).handleInput(input);
-            }
-        }
     }
 }

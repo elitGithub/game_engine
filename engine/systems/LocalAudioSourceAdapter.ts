@@ -1,7 +1,7 @@
 /**
  * LocalAudioSourceAdapter - Default adapter for loading audio from local files
  */
-import type { AudioSourceAdapter, AudioAssetMap } from './AudioSourceAdapter';
+import type { AudioSourceAdapter, AudioAssetMap } from '../core/AudioSourceAdapter';
 
 export class LocalAudioSourceAdapter implements AudioSourceAdapter {
     private audioContext: AudioContext;

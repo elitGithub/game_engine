@@ -1,7 +1,7 @@
 /**
  * LocalStorageAdapter - Default storage using browser localStorage
  */
-import type { StorageAdapter, SaveSlotMetadata } from './StorageAdapter';
+import type { StorageAdapter, SaveSlotMetadata } from '../core/StorageAdapter';
 
 export class LocalStorageAdapter implements StorageAdapter {
     private keyPrefix: string;

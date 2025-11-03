@@ -1,7 +1,7 @@
 /**
  * CDNAudioSourceAdapter - Example adapter for loading audio from CDN
  */
-import type { AudioSourceAdapter } from './AudioSourceAdapter';
+import type { AudioSourceAdapter } from '../core/AudioSourceAdapter';
 
 export interface CDNConfig {
     baseUrl: string;

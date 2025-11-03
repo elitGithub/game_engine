@@ -5,7 +5,8 @@ import type { RenderOptions, TypewriterConfig } from '@types/index';
 import { BaseRenderer } from './BaseRenderer';
 import { TypewriterEffect } from './TypewriterEffect';
 import { TextStyle, StylePresets } from './TextStyle';
-import { SpeakerRegistry, Speaker } from './Speaker';
+import { Speaker } from './Speaker';
+import {SpeakerRegistry} from "./SpeakerRegistry";
 
 export class TextRenderer extends BaseRenderer {
     protected config: {

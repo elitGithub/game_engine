@@ -2,7 +2,7 @@
  * SaveManager - Handles game save/load with configurable storage backend
  */
 import type { Engine } from '../Engine';
-import type { StorageAdapter, SaveSlotMetadata } from './StorageAdapter';
+import type { StorageAdapter, SaveSlotMetadata } from '../core/StorageAdapter';
 import { LocalStorageAdapter } from './LocalStorageAdapter';
 
 export interface SaveData {
