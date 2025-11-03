@@ -5,7 +5,7 @@ import type { StateData } from '@types/index';
 import { GameState } from './GameState';
 
 export class GameStateManager {
-    private states: Map<string, GameState>;
+    public states: Map<string, GameState>;
     private currentState: GameState | null;
     private pendingTransition: string | null;
 
@@ -74,5 +74,12 @@ export class GameStateManager {
      */
     getCurrentStateName(): string | null {
         return this.currentState ? this.currentState.name : null;
+    }
+
+    /**
+     * Get the current state instance (needed by InputManager)
+     */
+    getCurrentState(): GameState | null {
+        return this.currentState;
     }
 }

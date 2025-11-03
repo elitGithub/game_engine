@@ -43,9 +43,18 @@ export abstract class GameState {
     }
 
     /**
-     * Handle user input
+     * Handle user input (legacy - simple string)
+     * @deprecated Use handleEvent for rich input events
      */
     handleInput(input: string): void {
+        // Override in subclasses
+    }
+
+    /**
+     * Handle rich input events (new method)
+     * Override this for keyboard, mouse, touch, gamepad events
+     */
+    handleEvent(event: any): void {
         // Override in subclasses
     }
 }
