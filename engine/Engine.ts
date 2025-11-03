@@ -6,6 +6,8 @@ import { EventBus, eventBus } from './core/EventBus';
 import { GameStateManager } from './core/GameStateManager';
 import { SceneManager } from './systems/SceneManager';
 import { ActionRegistry } from './systems/ActionRegistry';
+import { SaveManager } from './core/SaveManager';
+import type { StorageAdapter } from './core/StorageAdapter';
 
 export class Engine {
     public config: Required<GameConfig>;
@@ -13,15 +15,16 @@ export class Engine {
     public stateManager: GameStateManager;
     public sceneManager: SceneManager;
     public actionRegistry: ActionRegistry;
+    public saveManager: SaveManager;
     public context: GameContext;
-    
+
     public isRunning: boolean;
     public isPaused: boolean;
-    
+
     private lastFrameTime: number;
     private frameCount: number;
 
-    constructor(config: GameConfig = {}) {
+    constructor(config: GameConfig = {}, storageAdapter?: StorageAdapter) {
         this.config = {
             debug: config.debug || false,
             targetFPS: config.targetFPS || 60,
@@ -48,6 +51,9 @@ export class Engine {
             flags: new Set<string>(),
             variables: new Map<string, any>(),
         };
+
+        // Initialize SaveManager with optional custom storage adapter
+        this.saveManager = new SaveManager(this, storageAdapter);
 
         this.log('Engine initialized');
     }
