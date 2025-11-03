@@ -1,44 +1,130 @@
-Svelte Gamebook EngineThis is a decoupled, event-driven game engine designed for creating text-based, choice-driven games (like visual novels or "battle-books") in a Svelte + TypeScript environment.The core principle is a 3-layer architecture:Engine Layer (src/engine): Generic, reusable code that knows how to run a game (manage states, scenes, events).Game Layer (src/game): Game-specific code that knows what your game is (rules, story, data, entities).UI Layer (src/components, App.svelte): Svelte components that know how to show the game.This guide explains how to use this engine to build a new game from scratch.How to Create a New GameFollow these steps to build a new game on top of the engine.Step 1: Create the Base Project (Svelte + TS + Tailwind)First, set up a new Vite project with Svelte, TypeScript, and Tailwind CSS.Create the Svelte + TS project:npm create vite@latest my-new-game -- --template svelte-ts
-cd my-new-game
-npm install
-Install Tailwind CSS:npm install -D tailwindcss postcss autoprefixer
+# New Game Project (Svelte + TS + Tailwind Engine)
+
+This is a new game project built on your Svelte + TypeScript game engine. Follow these steps to get a new project up and running from scratch.
+
+## 1. Project Setup (Vite + Svelte + Tailwind)
+
+First, create a new Svelte + TS project and install Tailwind.
+
+```bash
+# 1. Create a new Svelte + TypeScript project with Vite
+npm create vite@latest your-new-game-name -- --template svelte-ts
+
+# 2. Enter the new project directory
+cd your-new-game-name
+
+# 3. Install Tailwind CSS and its dependencies
+npm install -D tailwindcss postcss autoprefixer
+
+# 4. Initialize Tailwind (creates tailwind.config.js and postcss.config.js)
 npx tailwindcss init -p
-Configure tailwind.config.js:Open the newly created tailwind.config.js and tell it which files to scan for classes./** @type {import('tailwindcss').Config} */
+```
+
+---
+
+## 2. Configuration
+
+Next, configure your new project's files to match the engine's requirements for path aliases and styling.
+
+### `tailwind.config.js`
+
+Replace the contents of your new `tailwind.config.js` with this:
+
+```js
+/** @type {import('tailwindcss').Config} */
 export default {
   content: [
     "./index.html",
-    "./src/**/*.{js,ts,svelte}", // Scan all Svelte, TS, and JS files
+    "./src/**/*.{js,ts,svelte}", // Watch all Svelte/TS files for classes
   ],
   theme: {
-    extend: {},
+    extend: {
+      // Add your game-specific theme colors, fonts, etc. here
+      colors: {
+        'game-bg': '#1a1a1a',
+        'game-text': '#e5e7eb',
+        'game-accent': '#646cff',
+      },
+    },
   },
   plugins: [],
 }
-Configure postcss.config.js:This file was also created. It should look like this:export default {
-  plugins: {
-    tailwindcss: {},
-    autoprefixer: {},
-  },
-}
-Add Tailwind to your CSS:Create a main CSS file at src/app.css and add the Tailwind directives./* src/app.css */
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
-Import the CSS:Open src/main.ts and import your new CSS file at the top.// src/main.ts
-import './app.css' // <-- Add this line
-import { mount } from 'svelte'
-import App from './App.svelte'
+```
 
-// ... rest of the file
-Configure TS Paths (Crucial!):Open your tsconfig.json to set up the path aliases. This lets you import @engine and @game cleanly.{
+### `src/app.css`
+
+Replace the contents of `src/app.css` with this to include Tailwind's base styles:
+
+```css
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
+    line-height: 1.5;
+    font-weight: 400;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    min-width: 320px;
+    min-height: 100vh;
+    background-color: #1a1a1a; /* Default game-bg color */
+    color: rgba(255, 255, 255, 0.87); /* Default game-text color */
+  }
+
+  #app {
+    width: 100%;
+  }
+}
+```
+
+### `vite.config.ts`
+
+Update `vite.config.ts` to include the path aliases. This is crucial for clean imports.
+
+```ts
+import { defineConfig } from 'vite'
+import { svelte } from '@sveltejs/vite-plugin-svelte'
+import path from 'path' // You will need to import 'path'
+
+// [https://vitejs.dev/config/](https://vitejs.dev/config/)
+export default defineConfig({
+  plugins: [svelte()],
+  // Add this 'resolve' block
+  resolve: {
+    alias: {
+      '@engine': path.resolve(__dirname, './src/engine'),
+      '@game': path.resolve(__dirname, './src/game'),
+      '@components': path.resolve(__dirname, './src/components'),
+      '@types': path.resolve(__dirname, './src/types')
+    }
+  }
+})
+```
+
+### `tsconfig.json`
+
+Update `tsconfig.json` to tell TypeScript about the path aliases.
+
+```json
+{
   "extends": "@tsconfig/svelte/tsconfig.json",
   "compilerOptions": {
     "target": "ES2022",
     "useDefineForClassFields": true,
     "module": "ESNext",
-    // ... other options
+    "types": ["svelte", "vite/client"],
+    "noEmit": true,
+    "allowJs": true,
+    "checkJs": true,
+    "moduleDetection": "force",
 
-    /* ADD THESE LINES */
+    /* ADD/UPDATE THESE LINES */
     "baseUrl": ".",
     "paths": {
       "@engine/*": ["src/engine/*"],
@@ -46,154 +132,272 @@ Configure TS Paths (Crucial!):Open your tsconfig.json to set up the path aliases
       "@components/*": ["src/components/*"],
       "@types/*": ["src/types/*"]
     }
+    /* END OF ADDED/UPDATED LINES */
   },
   "include": ["src/**/*.ts", "src/**/*.svelte"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }
-Step 2: Copy the Engine FilesFrom your original "Gamebook" project, copy these two folders into your new my-new-game/src/ directory:src/engine/: This is the entire reusable engine.src/types/: This is the "contract" that defines all the shared interfaces.Your new project structure should look like this:my-new-game/
-├── src/
-│   ├── engine/       <-- COPIED
-│   │   ├── core/
-│   │   ├── rendering/
-│   │   ├── systems/
-│   │   └── utils/
-│   ├── types/        <-- COPIED
-│   │   └── index.ts
-│   ├── app.css
-│   ├── App.svelte
-│   └── main.ts
-├── package.json
-└── tailwind.config.js
-Step 3: Define Your New Game (The "Game" Layer)This is where you build your unique game.Create a new folder: src/game/Inside src/game/, create your game-specific files. You can use the "Gamebook" project as a template, but the logic inside is up to you.src/game/entities/Player.ts:Create your Player class. It can have any stats you want (e.g., mana, sanity, hacking).It must implement a getStats() method that returns an object matching the PlayerStats interface in src/types/index.ts (even if you just return stubs).src/game/entities/ItemDatabase.ts / EnemyDatabase.ts:Create these if your game has items or enemies. They should load and register your game's entities.src/game/states/StoryState.ts / BattleState.ts:Create your game states (e.g., StoryState, HackingMinigameState). They must extend the GameState class from @engine/core/GameState.src/game/actions/AttackAction.ts:Create your custom actions (e.g., HackAction, ScanAction). They must extend the Action class from @engine/systems/Action.src/game/data/gameData.ts:This is your story file. Create a GAME_DATA object that defines all your scenes, text, and choices.src/game/main.ts (The "Factory"):This is the most important file. It assembles your engine and your game.Create src/game/main.ts and add a createGame and startGame function.// src/game/main.ts (TEMPLATE)
-import { Engine } from '@engine/Engine';
-import { Player } from '@game/entities/Player';
-import { ItemDatabase } from '@game/entities/ItemDatabase';
-// Import your new states and actions
-import { StoryState } from '@game/states/StoryState';
-import { HackAction } from '@game/actions/HackAction';
-// Import your game data
-import { GAME_DATA } from '@game/data/gameData';
+```
 
-export function createGame(): Engine {
-    const engine = new Engine({ debug: true });
+---
 
-    // 1. Create player and databases
-    const player = new Player();
-    const itemDatabase = new ItemDatabase();
+## 3. Install The Engine
 
-    // 2. Set up shared game context
-    engine.context.player = player;
-    engine.context.itemDatabase = itemDatabase;
+These are the generic, reusable core files. Copy them from your original "Gamebook" project into this new one.
 
-    // 3. Register your game's states
-    engine.stateManager.register('story', new StoryState(engine));
-    // e.g., engine.stateManager.register('hacking', new HackingState(engine));
+1.  **Create** the folder `src/engine`.
+2.  **Copy** the entire `core/`, `systems/`, and `utils/` subfolders into `src/engine`.
+3.  **Copy** `Engine.ts` into `src/engine`.
+    Your `src/engine` folder should now look like this:
+    ```
+    src/
+    └── engine/
+        ├── core/
+        │   ├── EventBus.ts
+        │   ├── GameState.ts
+        │   └── GameStateManager.ts
+        ├── systems/
+        │   ├── Action.ts
+        │   ├── ActionRegistry.ts
+        │   ├── Scene.ts
+        │   └── SceneManager.ts
+        ├── utils/
+        │   └── Dice.ts
+        └── Engine.ts
+    ```
+4.  **Create** the folder `src/types`.
+5.  **Copy** your `index.ts` file into `src/types`.
 
-    // 4. Register your game's actions
-    engine.actionRegistry.register(new HackAction(), 'story');
+---
 
-    // 5. Load all scene data
-    engine.loadGameData(GAME_DATA);
+## 4. Create Your "Game" Stub
 
-    // 6. Give player starting items, etc.
-    player.addItem('datapad', 1);
+These are the *minimal* game-specific files you need to make the project run. You will replace the content of these files with your new game's logic.
 
-    return engine;
-}
+1.  **Create** the folders:
+    * `src/game/`
+    * `src/game/actions/`
+    * `src/game/data/`
+    * `src/game/entities/`
+    * `src/game/states/`
+    * `src/game/ui/`
+    * `src/components/`
 
-export function startGame(engine: Engine, initialState: string = 'story', initialData: any = { sceneId: 'start' }) {
-    engine.start(initialState, initialData);
-}
-Step 4: Wire Up the UI (The "UI" Layer)Now, make Svelte display your game.Create UI State: Create src/game/ui/stores.ts. This file holds the Svelte stores that your components will read from.// src/game/ui/stores.ts (TEMPLATE)
-import { writable } from 'svelte/store';
+2.  **Create** the following "stub" files with minimal content:
 
-export const gameStarted = writable(false);
-export const isInBattle = writable(false); // or e.g., isInHackingMinigame
-export const playerStats = writable<any>(null);
-export const currentSceneText = writable('');
-export const currentChoices = writable<any[]>([]);
-export const gameLogMessages = writable<string[]>([]);
-// ... add any other stores your UI needs
-Create Components: Create your UI components in src/components/ (e.g., PlayerHUD.svelte, SceneDisplay.svelte, ChoiceList.svelte). These components should just import and read from your stores.Configure App.svelte (The "Controller"):Modify src/App.svelte to be the main controller that listens to engine events and updates your Svelte stores.<!-- src/App.svelte (TEMPLATE) -->
-<script lang="ts">
-  import { onMount } from 'svelte';
-  import type { Engine } from '@engine/Engine';
-  import { createGame, startGame } from '@game/main'; // <-- Import from *your* game
-  import type { Scene } from '@engine/systems/Scene';
+    **`src/types/index.ts`** (Make sure it includes these basics)
+    ```ts
+    // This file will grow as you define your game
+    import type { Engine } from '@engine/Engine';
 
-  // Import your stores
-  import {
-    gameStarted,
-    playerStats,
-    currentSceneText,
-    currentChoices
-    // ... etc
-  } from '@game/ui/stores';
-
-  // Import your components
-  import PlayerHUD from '@components/PlayerHUD.svelte';
-  import SceneDisplay from '@components/SceneDisplay.svelte';
-
-  let game: Engine;
-
-  function updatePlayerStats() {
-    if (game && game.context.player) {
-      playerStats.set(game.context.player.getStats());
+    export interface GameContext {
+        engine: Engine;
+        player?: any; // Your future Player class
+        flags: Set<string>;
+        variables: Map<string, any>;
+        [key: string]: any;
     }
-  }
+    
+    export interface StateData { [key: string]: any; }
+    export type EventCallback = (data: any) => void;
+    export interface SceneChoice { text: string; [key: string]: any; }
+    export interface SceneData { text?: string; choices?: SceneChoice[]; [key: string]: any; }
+    export interface ScenesDataMap { [sceneId: string]: SceneData; }
+    export interface GameData { scenes?: ScenesDataMap; }
+    export interface ActionContext extends GameContext { player: any; }
+    export interface PlayerStats { [key: string]: any; } // Your future stats interface
+    ```
 
-  function handleStartClick() {
-    gameStarted.set(true);
+    **`src/game/entities/Player.ts`**
+    ```ts
+    // A minimal Player class to make the game compile
+    export class Player {
+        constructor() {
+            console.log("New Player created!");
+        }
+        getStats(): PlayerStats { return { info: "I am a player" }; }
+    }
+    ```
 
-    // --- REGISTER EVENT LISTENERS ---
-    game.eventBus.on('scene.changed', () => {
-      const scene = game.sceneManager.getCurrentScene() as Scene;
-      currentSceneText.set(scene.getText());
+    **`src/game/data/gameData.ts`**
+    ```ts
+    import type { GameData } from '@types';
 
-      // Get available choices from your story state
-      const storyState = game.stateManager.states.get('story') as any;
-      const choices = storyState.getAvailableChoices(scene, game.context);
-      currentChoices.set(choices);
-    });
+    export const GAME_DATA: GameData = {
+        scenes: {
+            "start": {
+                "text": "This is the start of your new game!",
+                "choices": [
+                    { "text": "Choice 1" },
+                    { "text": "Choice 2" },
+                ]
+            }
+        }
+    };
+    ```
 
-    game.eventBus.on('player.damaged', () => updatePlayerStats());
-    game.eventBus.on('player.healed', () => updatePlayerStats());
+    **`src/game/states/StoryState.ts`**
+    ```ts
+    import type { StateData, SceneChoice, ActionContext } from '@types';
+    import { GameState } from '@engine/core/GameState';
+    import type { Engine } from '@engine/Engine';
+    import type { Scene } from '@engine/systems/Scene';
 
-    // ... register all other event listeners ...
+    export class StoryState extends GameState {
+        constructor(private engine: Engine) {
+            super('story');
+        }
 
-    // --- START GAME (AFTER listeners are registered) ---
-    startGame(game, 'story', { sceneId: 'start' });
+        enter(data: StateData = {}): void {
+            super.enter(data);
+            const sceneId = data.sceneId || 'start';
+            this.engine.sceneManager.goToScene(sceneId, this.engine.context);
+        }
 
-    // Set initial state
-    updatePlayerStats();
-  }
+        handleInput(input: string): void {
+            console.log(`Choice handled: ${input}`);
+            // Add your choice-handling logic here
+        }
+        
+        getAvailableChoices(scene: Scene, context: ActionContext): SceneChoice[] {
+             return scene.getChoices(context);
+        }
+    }
+    ```
 
-  onMount(() => {
-    game = createGame();
-  });
-</script>
+    **`src/game/main.ts`**
+    ```ts
+    import type { StateData } from '@types';
+    import { Engine } from '@engine/Engine';
+    import { Player } from '@game/entities/Player';
+    import { StoryState } from '@game/states/StoryState';
+    import { GAME_DATA } from '@game/data/gameData';
 
-<main class="game-container min-h-screen bg-gray-900 text-gray-200 p-8">
-  <h1 class="text-4xl font-bold text-center mb-8">My New Sci-Fi Game</h1>
+    export function createGame(): Engine {
+        console.log('Initializing new game...');
+        const engine = new Engine({ debug: true });
 
-  {#if !$gameStarted}
-    <div class="text-center">
-      <button
-        class="px-6 py-3 bg-blue-600 text-white rounded-lg"
-        on:click={handleStartClick}
-      >
-        Start Game
-      </button>
-    </div>
-  {:else}
-    <!-- Render your UI Components -->
-    <PlayerHUD />
+        // Create and set up context
+        engine.context.player = new Player();
 
-    <div class="max-w-3xl mx-auto mt-8">
-      <SceneDisplay />
-      <!-- Your choice component, etc. -->
-    </div>
-  {/if}
-</main>
-Step 5: Run Your New Game!You're all set. Run the dev server.npm run dev
-Your new game should load. When you click "Start Game", the handleStartClick function will wire up the events, start the engine, and the engine will fire the first scene.changed event. Your UI will catch it and render your first scene from src/game/data/gameData.ts.# game_engine
+        // Register game-specific states
+        engine.stateManager.register('story', new StoryState(engine));
+        
+        // Register game-specific actions
+        // engine.actionRegistry.register(new YourAction(), 'battle');
+        
+        engine.loadGameData(GAME_DATA);
+        console.log('Game initialized! Ready to start.');
+        return engine;
+    }
+
+    export function startGame(engine: Engine, initialState: string = 'story', initialData: StateData = { sceneId: 'start' }) {
+        engine.start(initialState, initialData);
+    }
+    ```
+
+    **`src/game/ui/stores.ts`**
+    ```ts
+    import { writable } from 'svelte/store';
+    
+    export const gameStarted = writable(false);
+    export const currentSceneText = writable('');
+    export const currentChoices = writable<any[]>([]);
+    // Add more stores as your game needs them
+    ```
+
+    **`src/App.svelte`** (This will be your main game UI)
+    ```svelte
+    <script lang="ts">
+      import { onMount } from 'svelte';
+      import type { Engine } from '@engine/Engine';
+      import { createGame, startGame } from '@game/main';
+      import type { Scene } from '@engine/systems/Scene';
+      import { gameStarted, currentSceneText, currentChoices } from '@game/ui/stores';
+
+      let game: Engine;
+
+      function handleStartClick() {
+        gameStarted.set(true);
+        
+        // Register event listeners FIRST
+        game.eventBus.on('scene.changed', () => {
+          const scene = game.sceneManager.getCurrentScene() as Scene;
+          if (scene) {
+            currentSceneText.set(scene.getText());
+            const storyState = game.stateManager.states.get('story') as any;
+            currentChoices.set(storyState.getAvailableChoices(scene, game.context));
+          }
+        });
+        
+        // THEN start the game
+        startGame(game, 'story', { sceneId: 'start' });
+      }
+
+      onMount(() => {
+        game = createGame();
+      });
+    </script>
+
+    <main class="game-container min-h-screen py-20 max-w-2xl mx-auto">
+      <h1 class="text-3xl font-bold text-center mb-8 text-game-accent">
+        Your New Game Title
+      </h1>
+
+      {#if !$gameStarted}
+        <div class="text-center">
+          <button
+            class="px-6 py-3 bg-game-accent text-white rounded-lg font-medium"
+            on:click={handleStartClick}
+          >
+            Start Game
+          </button>
+        </div>
+      {:else}
+        <div class="p-8 bg-black/20 rounded-xl border border-white/10">
+          <p class="text-lg text-gray-300 leading-relaxed whitespace-pre-wrap mb-8">
+            {$currentSceneText}
+          </p>
+
+          <div class="flex flex-col gap-4">
+            {#each $currentChoices as choice, i}
+              <button
+                class="p-4 bg-gray-700 hover:bg-gray-600 text-white text-left rounded-lg"
+                on:click={() => game.handleInput(String(i))}
+              >
+                <span class="font-bold">{i + 1}.</span> {choice.text}
+              </button>
+            {/each}
+          </div>
+        </div>
+      {/if}
+    </main>
+    ```
+
+---
+
+## 5. Run Your Blank Game
+
+Your project now has the engine, all configurations, and a minimal "stub" game.
+
+```bash
+# 1. Install all npm packages (Svelte, Vite, etc.)
+npm install
+
+# 2. Run the development server
+npm run dev
+```
+
+You should now see your "blank" game running in the browser. It will load, show your title, and display the single scene from `gameData.ts`.
+
+---
+
+## 6. Next Steps
+
+Your engine is running! Now, you just have to build your game on top of it:
+
+1.  **Flesh out `src/game/entities/Player.ts`**: Add your new game's stats (e.g., `energy`, `credits`, `hackingSkill`).
+2.  **Define `src/types/index.ts`**: Add your new interfaces (e.g., `PlayerStats`, `ShipData`).
+3.  **Populate `src/game/data/gameData.ts`**: Write your story! Add all your scenes, text, and choices.
+4.  **Create Actions**: Build your game's unique actions (e.g., `HackAction.ts`, `TradeAction.ts`) in `src/game/actions/` and register them in `src/game/main.ts`.
+5.  **Build Components**: Create your Svelte components (e.g., `PlayerStats.svelte`, `ShipComputer.svelte`) in `src/components/` and wire them up in `App.svelte`.
