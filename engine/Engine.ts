@@ -11,13 +11,20 @@ import { AudioManager } from './core/AudioManager';
 import type { StorageAdapter } from './core/StorageAdapter';
 import type { AudioSourceAdapter, AudioAssetMap } from './core/AudioSourceAdapter';
 
-export interface EngineConfig extends GameConfig {
+export interface EngineConfig {
+    debug?: boolean;
+    targetFPS?: number;
     audioAssets?: AudioAssetMap;
-    autoSceneMusic?: boolean; // Automatically play music on scene change
+    autoSceneMusic?: boolean;
 }
 
 export class Engine {
-    public config: Required<EngineConfig>;
+    public config: {
+        debug: boolean;
+        targetFPS: number;
+        audioAssets: AudioAssetMap;
+        autoSceneMusic: boolean;
+    };
     public eventBus: EventBus;
     public stateManager: GameStateManager;
     public sceneManager: SceneManager;
@@ -69,8 +76,14 @@ export class Engine {
         // Initialize SaveManager with optional custom storage adapter
         this.saveManager = new SaveManager(this, storageAdapter);
 
+        // Add to context for easy access from Actions/Scenes
+        this.context.saveManager = this.saveManager;
+
         // Initialize AudioManager with optional custom audio source adapter
         this.audioManager = new AudioManager(this.eventBus, audioSourceAdapter, this.config.audioAssets);
+
+        // Add to context for easy access from Actions/Scenes
+        this.context.audio = this.audioManager;
 
         // Set up automatic scene music handling
         if (this.config.autoSceneMusic) {

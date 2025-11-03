@@ -10,6 +10,8 @@ export interface GameConfig {
 export interface GameContext {
     engine: any;
     player?: any;
+    saveManager?: any;  // Add this
+    audio?: any;        // Add this
     flags: Set<string>;
     variables: Map<string, any>;
     renderer?: any;
