@@ -7,15 +7,23 @@ import { GameStateManager } from './core/GameStateManager';
 import { SceneManager } from './systems/SceneManager';
 import { ActionRegistry } from './systems/ActionRegistry';
 import { SaveManager } from './core/SaveManager';
+import { AudioManager } from './core/AudioManager';
 import type { StorageAdapter } from './core/StorageAdapter';
+import type { AudioSourceAdapter, AudioAssetMap } from './core/AudioSourceAdapter';
+
+export interface EngineConfig extends GameConfig {
+    audioAssets?: AudioAssetMap;
+    autoSceneMusic?: boolean; // Automatically play music on scene change
+}
 
 export class Engine {
-    public config: Required<GameConfig>;
+    public config: Required<EngineConfig>;
     public eventBus: EventBus;
     public stateManager: GameStateManager;
     public sceneManager: SceneManager;
     public actionRegistry: ActionRegistry;
     public saveManager: SaveManager;
+    public audioManager: AudioManager;
     public context: GameContext;
 
     public isRunning: boolean;
@@ -24,10 +32,16 @@ export class Engine {
     private lastFrameTime: number;
     private frameCount: number;
 
-    constructor(config: GameConfig = {}, storageAdapter?: StorageAdapter) {
+    constructor(
+        config: EngineConfig = {},
+        storageAdapter?: StorageAdapter,
+        audioSourceAdapter?: AudioSourceAdapter
+    ) {
         this.config = {
             debug: config.debug || false,
             targetFPS: config.targetFPS || 60,
+            audioAssets: config.audioAssets || {},
+            autoSceneMusic: config.autoSceneMusic !== false,
         };
 
         // Core systems
@@ -55,7 +69,49 @@ export class Engine {
         // Initialize SaveManager with optional custom storage adapter
         this.saveManager = new SaveManager(this, storageAdapter);
 
+        // Initialize AudioManager with optional custom audio source adapter
+        this.audioManager = new AudioManager(this.eventBus, audioSourceAdapter, this.config.audioAssets);
+
+        // Set up automatic scene music handling
+        if (this.config.autoSceneMusic) {
+            this.setupAutoSceneMusic();
+        }
+
         this.log('Engine initialized');
+    }
+
+    /**
+     * Set up automatic music playback on scene changes
+     */
+    private setupAutoSceneMusic(): void {
+        this.eventBus.on('scene.changed', (data) => {
+            const scene = this.sceneManager.getScene(data.sceneId);
+            if (!scene) return;
+
+            // Check if scene has music data
+            if (scene.data.music) {
+                const musicConfig = typeof scene.data.music === 'string'
+                    ? { track: scene.data.music, loop: true, fadeIn: 1 }
+                    : scene.data.music;
+
+                // Crossfade if currently playing music, otherwise just play
+                if (this.audioManager.getMusicState() === 'playing') {
+                    this.audioManager.crossfadeMusic(
+                        musicConfig.track,
+                        musicConfig.crossfade || 2
+                    );
+                } else {
+                    this.audioManager.playMusic(
+                        musicConfig.track,
+                        musicConfig.loop !== false,
+                        musicConfig.fadeIn || 0
+                    );
+                }
+            } else if (scene.data.stopMusic) {
+                // Stop music if scene specifies it
+                this.audioManager.stopMusic(scene.data.musicFadeOut || 1);
+            }
+        });
     }
 
     /**
