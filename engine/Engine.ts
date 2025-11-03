@@ -8,6 +8,7 @@ import { SceneManager } from './systems/SceneManager';
 import { ActionRegistry } from './systems/ActionRegistry';
 import { SaveManager } from './core/SaveManager';
 import { AudioManager } from './core/AudioManager';
+import { EffectManager } from './core/EffectManager'; // Added this import
 import type { StorageAdapter } from './core/StorageAdapter';
 import type { AudioSourceAdapter, AudioAssetMap } from './core/AudioSourceAdapter';
 
@@ -31,12 +32,9 @@ export class Engine {
     public actionRegistry: ActionRegistry;
     public saveManager: SaveManager;
     public audioManager: AudioManager;
+    public effectManager: EffectManager; // Added this property
     public context: GameContext;
 
-    /**
-     * A registry of all systems that must be saved.
-     * The key is a unique ID for the save data.
-     */
     public serializableSystems: Map<string, ISerializable>;
 
     public isRunning: boolean;
@@ -62,7 +60,7 @@ export class Engine {
         this.stateManager = new GameStateManager();
         this.sceneManager = new SceneManager();
         this.actionRegistry = new ActionRegistry();
-        this.serializableSystems = new Map(); // Initialize the new registry
+        this.serializableSystems = new Map();
 
         // Game state
         this.isRunning = false;
@@ -80,14 +78,11 @@ export class Engine {
             variables: new Map<string, any>(),
         };
 
-        // Initialize SaveManager with optional custom storage adapter
+        // Initialize SaveManager
         this.saveManager = new SaveManager(this, storageAdapter);
-
-        // Add to context for easy access from Actions/Scenes
         this.context.saveManager = this.saveManager;
 
-        // Register a "core" serializable system for flags and variables
-        // so the SaveManager can handle them automatically.
+        // Register core serializable system
         this.registerSerializableSystem('_core', {
             serialize: () => ({
                 flags: Array.from(this.context.flags),
@@ -99,11 +94,13 @@ export class Engine {
             },
         });
 
-        // Initialize AudioManager with optional custom audio source adapter
+        // Initialize AudioManager
         this.audioManager = new AudioManager(this.eventBus, audioSourceAdapter, this.config.audioAssets);
-
-        // Add to context for easy access from Actions/Scenes
         this.context.audio = this.audioManager;
+
+        // Initialize EffectManager
+        this.effectManager = new EffectManager(this.context);
+        this.context.effects = this.effectManager;
 
         // Set up automatic scene music handling
         if (this.config.autoSceneMusic) {
@@ -115,8 +112,6 @@ export class Engine {
 
     /**
      * Registers a system (like Player, Inventory, Clock) with the SaveManager
-     * @param key A unique string key to identify this system's data (e.g., 'player', 'clock')
-     * @param system The system instance that implements ISerializable
      */
     public registerSerializableSystem(key: string, system: ISerializable): void {
         if (this.serializableSystems.has(key)) {
@@ -126,8 +121,8 @@ export class Engine {
     }
 
     /**
-     * Set up automatic music playback on scene changes
-     */
+    * Set up automatic music playback on scene changes
+    */
     private setupAutoSceneMusic(): void {
         this.eventBus.on('scene.changed', (data) => {
             const scene = this.sceneManager.getScene(data.sceneId);
@@ -209,6 +204,9 @@ export class Engine {
             // Update current state
             this.stateManager.update(deltaTime);
 
+            // Update effect manager
+            this.effectManager.update(deltaTime); // Added this line
+
             // Render current state
             this.stateManager.render(this.context.renderer || null);
         }
@@ -238,7 +236,7 @@ export class Engine {
         this.eventBus.emit('engine.unpaused', {});
     }
 
-/**
+    /**
      * Handle user input
      */
     handleInput(input: string): void {

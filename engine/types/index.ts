@@ -1,6 +1,7 @@
 /**
  * Engine types only - no game-specific types
  */
+import type { EffectManager } from './core/EffectManager';
 
 export interface GameConfig {
     debug?: boolean;
@@ -13,6 +14,7 @@ export interface GameContext {
     saveManager?: any;
     audio?: any;
     input?: any;
+    effects?: EffectManager; // Added this line
     flags: Set<string>;
     variables: Map<string, any>;
     renderer?: any;
@@ -25,18 +27,8 @@ export interface StateData {
     [key: string]: any;
 }
 
-/**
- * Interface for systems that need to be saved and loaded
- */
 export interface ISerializable {
-    /**
-     * Generates a serializable JSON-compatible object of the system's state
-     */
     serialize(): any;
-
-    /**
-     * Restores the system's state from a JSON object
-     */
     deserialize(data: any): void;
 }
 
@@ -129,4 +121,32 @@ export interface GameData {
 export interface ActionContext extends GameContext {
     player: any;
     [key: string]: any;
+}
+
+// --- NEW EFFECT INTERFACES ---
+
+/**
+ * Interface for "Dynamic Effects" (e.g., heartbeat)
+ * Applied to a specific element and updated every frame.
+ */
+export interface IDynamicEffect {
+    /** Called once when the effect is applied */
+    onStart(element: HTMLElement, context: GameContext): void;
+    /** Called every frame the effect is active */
+    onUpdate(element: HTMLElement, context: GameContext, deltaTime: number): void;
+    /** Called when the effect is removed */
+    onStop(element: HTMLElement, context: GameContext): void;
+}
+
+/**
+ * Interface for "Global Effects" (e.g., x-ray scope)
+ * Screen-wide, interactive effects that create their own DOM.
+ */
+export interface IGlobalEffect {
+    /** Called once to create DOM elements */
+    onCreate(container: HTMLElement, context: GameContext): void;
+    /** Called every frame to update */
+    onUpdate(context: GameContext, deltaTime: number): void;
+    /** Called to clean up all DOM elements */
+    onDestroy(context: GameContext): void;
 }
