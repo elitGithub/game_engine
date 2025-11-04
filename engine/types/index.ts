@@ -1,7 +1,8 @@
 /**
  * Engine types only - no game-specific types
  */
-import type { EffectManager } from './core/EffectManager';
+import type { EffectManager } from '../systems/EffectManager';
+import {Engine} from "../Engine";
 
 export interface GameConfig {
     debug?: boolean;
@@ -10,7 +11,7 @@ export interface GameConfig {
 }
 
 export interface GameContext {
-    engine: any;
+    engine: Engine;
     player?: any;
     saveManager?: any;
     audio?: any;
