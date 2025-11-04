@@ -1,4 +1,4 @@
-// engine/Engine.ts
+// engine/Engine.ts - REFACTORED VERSION
 import type {
     GameConfig,
     GameContext,
@@ -8,7 +8,7 @@ import type {
     MigrationFunction,
     ISerializationRegistry
 } from '@engine/types';
-import {EventBus, eventBus} from './core/EventBus';
+import {EventBus} from './core/EventBus';
 import {GameStateManager} from './core/GameStateManager';
 import {SceneManager} from './systems/SceneManager';
 import {ActionRegistry} from './systems/ActionRegistry';
@@ -16,41 +16,40 @@ import {SaveManager} from './systems/SaveManager';
 import {AudioManager} from './systems/AudioManager';
 import {EffectManager} from './systems/EffectManager';
 import {InputManager} from './systems/InputManager';
+import {SystemRegistry, SYSTEMS} from './core/SystemRegistry';
+import {SystemFactory, type SystemConfig} from './core/SystemFactory';
 import {PluginManager} from './core/PluginManager';
+import type {AssetManager} from './systems/AssetManager';
+import type {AssetManifestEntry} from './systems/AssetManager';
 import type {StorageAdapter} from './core/StorageAdapter';
 
-import { AssetManager } from './systems/AssetManager';
-import { ImageLoader } from './systems/asset_loaders/ImageLoader';
-import { AudioLoader } from './systems/asset_loaders/AudioLoader';
-import type { AssetManifestEntry } from './systems/AssetManager';
-
-export interface EngineConfig {
+export interface EngineConfig<TGame> {
     debug?: boolean;
     targetFPS?: number;
-    // [!] This property is obsolete
-    // audioAssets?: AudioAssetMap;
-    autoSceneMusic?: boolean;
     gameVersion?: string;
+    systems: SystemConfig;
+    gameState: TGame;
+    gameData?: GameData;
+    containerElement?: HTMLElement;
+    storageAdapter?: StorageAdapter;
 }
 
-export class Engine implements ISerializationRegistry {
-    public config: {
-        debug: boolean;
-        targetFPS: number;
-        autoSceneMusic: boolean;
-        gameVersion: string;
-    };
-    public eventBus: EventBus;
-    public stateManager: GameStateManager;
-    public sceneManager: SceneManager;
-    public actionRegistry: ActionRegistry;
-    public saveManager: SaveManager;
-    public assetManager: AssetManager; // [+] ADDED
-    public audioManager: AudioManager;
-    public effectManager?: EffectManager;
-    public inputManager?: InputManager;
-    public context: GameContext;
-    public audioContext: AudioContext; // [+] ADDED
+/**
+ * Engine - Clean, type-safe, config-driven game engine
+ *
+ * Usage:
+ *   const engine = await Engine.create<MyGameState>({
+ *       systems: { audio: true, assets: true, save: true },
+ *       gameState: myGameState
+ *   });
+ *
+ *   await engine.audio.playSound('click');  // ← Full autocomplete!
+ *   engine.context.game.player.health -= 10;  // ← Type-safe!
+ */
+export class Engine<TGame = Record<string, any>> implements ISerializationRegistry {
+    public readonly config: Required<Pick<EngineConfig<TGame>, 'debug' | 'targetFPS' | 'gameVersion'>>;
+    public readonly registry: SystemRegistry;
+    public readonly context: GameContext;
 
     public serializableSystems: Map<string, ISerializable>;
     public migrationFunctions: Map<string, MigrationFunction>;
@@ -60,41 +59,25 @@ export class Engine implements ISerializationRegistry {
 
     private lastFrameTime: number;
     private frameCount: number;
-    private pluginManager: PluginManager;
 
-    constructor(
-        config: EngineConfig = {},
-        containerElement?: HTMLElement,
-        storageAdapter?: StorageAdapter
-    ) {
+    private constructor(userConfig: EngineConfig<TGame>) {
         this.config = {
-            debug: config.debug || false,
-            targetFPS: config.targetFPS || 60,
-            autoSceneMusic: config.autoSceneMusic !== false,
-            gameVersion: config.gameVersion || '1.0.0',
+            debug: userConfig.debug ?? false,
+            targetFPS: userConfig.targetFPS ?? 60,
+            gameVersion: userConfig.gameVersion ?? '1.0.0'
         };
 
-        // --- Core Systems Initialization ---
-        this.eventBus = eventBus;
+        // Create registry
+        this.registry = new SystemRegistry();
 
-        // Create core browser APIs
-        this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+        // Initialize serializablecontext with typed game state
+        this.context = {
+            game: userConfig.gameState,
+            flags: new Set(),
+            variables: new Map()
+        } as GameContext;
 
-        // Create AssetManager and register loaders
-        this.assetManager = new AssetManager(this.eventBus);
-        this.assetManager.registerLoader(new ImageLoader());
-        this.assetManager.registerLoader(new AudioLoader(this.audioContext));
-
-        // Create other managers
-        this.stateManager = new GameStateManager();
-        this.sceneManager = new SceneManager(this.eventBus);
-        this.actionRegistry = new ActionRegistry();
-        this.pluginManager = new PluginManager();
-
-        // Create AudioManager and pass dependencies
-        this.audioManager = new AudioManager(this.eventBus, this.assetManager, this.audioContext);
-
-        // --- State and Context ---
+        // Serialization support
         this.serializableSystems = new Map();
         this.migrationFunctions = new Map();
         this.isRunning = false;
@@ -102,18 +85,30 @@ export class Engine implements ISerializationRegistry {
         this.lastFrameTime = 0;
         this.frameCount = 0;
 
-        // Build the global GameContext
-        this.context = {
-            flags: new Set<string>(),
-            variables: new Map<string, any>(),
-            assets: this.assetManager, // [+] ADDED
-            audio: this.audioManager,
-            // We'll add other systems as they are created
-        };
+        // Create systems from config using factory
+        SystemFactory.create(
+            userConfig.systems,
+            this.registry,
+            userConfig.containerElement
+        );
 
-        // --- Save Manager (needs context) ---
-        this.saveManager = new SaveManager(this.eventBus, this, storageAdapter);
-        this.context.saveManager = this.saveManager;
+        // Inject context into StateManager
+        this.stateManager.setContext(this.context);
+
+        // Wire context to systems (readonly references)
+        this.wireContext();
+
+        // Create SaveManager now that Engine exists
+        if (userConfig.systems.save !== false) {
+            const eventBus = this.registry.get<EventBus>(SYSTEMS.EventBus);
+            const saveManager = new SaveManager(
+                eventBus,
+                this,
+                userConfig.storageAdapter
+            );
+            this.registry.register(SYSTEMS.SaveManager, saveManager);
+            (this.context as any).save = saveManager;
+        }
 
         // Register core engine state as serializable
         this.registerSerializableSystem('_core', {
@@ -127,78 +122,98 @@ export class Engine implements ISerializationRegistry {
             },
         });
 
-        // --- Optional/DOM-Dependent Systems ---
-        if (containerElement) {
-            this.effectManager = new EffectManager(containerElement);
-            this.context.effects = this.effectManager;
+        // Load game data if provided
+        if (userConfig.gameData) {
+            this.loadGameData(userConfig.gameData);
+        }
+    }
 
-            this.inputManager = new InputManager(this.stateManager, this.eventBus);
-            this.context.input = this.inputManager;
+    /**
+     * Static factory - THE ONLY WAY to create an Engine
+     *
+     * This ensures proper initialization order and unlocks audio
+     */
+    static async create<TGame>(config: EngineConfig<TGame>): Promise<Engine<TGame>> {
+        const engine = new Engine(config);
+
+        // Unlock audio if AudioManager is enabled
+        if (engine.registry.has(SYSTEMS.AudioManager)) {
+            await engine.audio.unlockAudio();
         }
 
-        // --- Final Setup ---
-        if (this.config.autoSceneMusic) {
-            this.setupAutoSceneMusic();
+        engine.log('Engine created successfully');
+
+        return engine;
+    }
+
+    /**
+     * Wire context to system references (readonly)
+     * @private
+     */
+    private wireContext(): void {
+        const ctx = this.context as any;
+
+        if (this.registry.has(SYSTEMS.AudioManager)) {
+            ctx.audio = this.registry.get(SYSTEMS.AudioManager);
         }
-
-        this.log('Engine initialized');
-    }
-
-    public registerSerializableSystem(key: string, system: ISerializable): void {
-        if (this.serializableSystems.has(key)) {
-            console.warn(`[Engine] Serializable system key '${key}' already registered. Overwriting.`);
+        if (this.registry.has(SYSTEMS.AssetManager)) {
+            ctx.assets = this.registry.get(SYSTEMS.AssetManager);
         }
-        this.serializableSystems.set(key, system);
-    }
-
-    public registerMigration(fromVersion: string, toVersion: string, migration: MigrationFunction): void {
-        const key = `${fromVersion}_to_${toVersion}`;
-        if (this.migrationFunctions.has(key)) {
-            console.warn(`[Engine] Migration function '${key}' already registered. Overwriting.`);
+        if (this.registry.has(SYSTEMS.EffectManager)) {
+            ctx.effects = this.registry.get(SYSTEMS.EffectManager);
         }
-        this.migrationFunctions.set(key, migration);
+        if (this.registry.has(SYSTEMS.InputManager)) {
+            ctx.input = this.registry.get(SYSTEMS.InputManager);
+        }
     }
 
-    get gameVersion(): string {
-        return this.config.gameVersion;
+    // ========================================================================
+    // TYPED SYSTEM GETTERS (for IDE autocomplete)
+    // ========================================================================
+
+    get eventBus(): EventBus {
+        return this.registry.get<EventBus>(SYSTEMS.EventBus);
     }
 
-    getCurrentSceneId(): string {
-        return this.sceneManager.getCurrentScene()?.sceneId || '';
+    get audio(): AudioManager {
+        return this.registry.get<AudioManager>(SYSTEMS.AudioManager);
     }
 
-    restoreScene(sceneId: string): void {
-        this.sceneManager.goToScene(sceneId, this.context);
+    get assets(): AssetManager {
+        return this.registry.get<AssetManager>(SYSTEMS.AssetManager);
     }
 
-    private setupAutoSceneMusic(): void {
-        this.eventBus.on('scene.changed', (data: any) => {
-            const scene = this.sceneManager.getScene(data.sceneId);
-            if (!scene) return;
-
-            if (scene.sceneData.music) {
-                const musicConfig = typeof scene.sceneData.music === 'string'
-                    ? {track: scene.sceneData.music, loop: true, fadeIn: 1}
-                    : scene.sceneData.music;
-
-                if (this.audioManager.getMusicState() === 'playing') {
-                    this.audioManager.crossfadeMusic(
-                        musicConfig.track,
-                        musicConfig.crossfade || 2
-                    );
-                } else {
-                    this.audioManager.playMusic(
-                        musicConfig.track,
-                        musicConfig.loop !== false,
-                        musicConfig.fadeIn || 0
-                    );
-                }
-            } else if (scene.sceneData.stopMusic) {
-                this.audioManager.stopMusic(scene.sceneData.musicFadeOut || 1);
-            }
-        });
+    get save(): SaveManager {
+        return this.registry.get<SaveManager>(SYSTEMS.SaveManager);
     }
 
+    get stateManager(): GameStateManager {
+        return this.registry.get<GameStateManager>(SYSTEMS.StateManager);
+    }
+
+    get sceneManager(): SceneManager {
+        return this.registry.get<SceneManager>(SYSTEMS.SceneManager);
+    }
+
+    get actionRegistry(): ActionRegistry {
+        return this.registry.get<ActionRegistry>(SYSTEMS.ActionRegistry);
+    }
+
+    get effectManager(): EffectManager | undefined {
+        return this.registry.getOptional<EffectManager>(SYSTEMS.EffectManager);
+    }
+
+    get inputManager(): InputManager | undefined {
+        return this.registry.getOptional<InputManager>(SYSTEMS.InputManager);
+    }
+
+    get pluginManager(): PluginManager {
+        return this.registry.get<PluginManager>(SYSTEMS.PluginManager);
+    }
+
+    // ========================================================================
+    // GAME DATA & ASSETS
+    // ========================================================================
 
     loadGameData(gameData: GameData): void {
         this.log('Loading game data...');
@@ -207,27 +222,24 @@ export class Engine implements ISerializationRegistry {
             this.sceneManager.loadScenes(gameData.scenes);
         }
 
-        // The game developer is now responsible for loading assets
-        // using the new `preload` method.
-
         this.eventBus.emit('game.data.loaded', gameData);
     }
 
     /**
-     * Pre-load assets from a manifest before starting the game.
-     * This is the new main entry point for loading.
+     * Pre-load assets from a manifest before starting the game
      */
     async preload(manifest: AssetManifestEntry[]): Promise<void> {
         this.log(`Preloading ${manifest.length} assets...`);
-        await this.assetManager.loadManifest(manifest);
+        await this.assets.loadManifest(manifest);
         this.log('Asset preloading complete.');
     }
 
+    // ========================================================================
+    // ENGINE LIFECYCLE
+    // ========================================================================
+
     start(initialState: string, initialData: StateData = {}): void {
         this.log('Starting engine...');
-
-        // Ensure audio is unlocked
-        this.audioManager.unlockAudio();
 
         this.isRunning = true;
 
@@ -252,11 +264,14 @@ export class Engine implements ISerializationRegistry {
 
         if (!this.isPaused) {
             this.stateManager.update(deltaTime);
+
             if (this.effectManager) {
                 this.effectManager.update(deltaTime, this.context);
             }
+
             this.pluginManager.update(deltaTime, this.context);
-                this.stateManager.render(this.context.renderer || null);
+
+            this.stateManager.render(this.context.renderer || null);
         }
 
         this.frameCount++;
@@ -269,17 +284,31 @@ export class Engine implements ISerializationRegistry {
     }
 
     pause(): void {
-        if(this.isPaused) return;
+        if (this.isPaused) return;
         this.isPaused = true;
-        this.audioContext.suspend();
+
+        if (this.registry.has(SYSTEMS.AudioManager)) {
+            const audioContext = (this.registry as any)._audioContext;
+            if (audioContext) {
+                audioContext.suspend();
+            }
+        }
+
         this.eventBus.emit('engine.paused', {});
     }
 
     unpause(): void {
-        if(!this.isPaused) return;
+        if (!this.isPaused) return;
         this.isPaused = false;
-        this.audioContext.resume();
-        this.lastFrameTime = performance.now(); // Reset delta time
+
+        if (this.registry.has(SYSTEMS.AudioManager)) {
+            const audioContext = (this.registry as any)._audioContext;
+            if (audioContext) {
+                audioContext.resume();
+            }
+        }
+
+        this.lastFrameTime = performance.now();
         this.eventBus.emit('engine.unpaused', {});
     }
 
@@ -288,6 +317,41 @@ export class Engine implements ISerializationRegistry {
             console.log('[Engine]', ...args);
         }
     }
+
+    // ========================================================================
+    // SERIALIZATION SUPPORT (for SaveManager)
+    // ========================================================================
+
+    get gameVersion(): string {
+        return this.config.gameVersion;
+    }
+
+    getCurrentSceneId(): string {
+        return this.sceneManager.getCurrentScene()?.sceneId || '';
+    }
+
+    restoreScene(sceneId: string): void {
+        this.sceneManager.goToScene(sceneId, this.context);
+    }
+
+    registerSerializableSystem(key: string, system: ISerializable): void {
+        if (this.serializableSystems.has(key)) {
+            console.warn(`[Engine] Serializable system key '${key}' already registered. Overwriting.`);
+        }
+        this.serializableSystems.set(key, system);
+    }
+
+    registerMigration(fromVersion: string, toVersion: string, migration: MigrationFunction): void {
+        const key = `${fromVersion}_to_${toVersion}`;
+        if (this.migrationFunctions.has(key)) {
+            console.warn(`[Engine] Migration function '${key}' already registered. Overwriting.`);
+        }
+        this.migrationFunctions.set(key, migration);
+    }
+
+    // ========================================================================
+    // CONVENIENCE METHODS
+    // ========================================================================
 
     getCurrentStateName(): string | null {
         return this.stateManager.getCurrentStateName();

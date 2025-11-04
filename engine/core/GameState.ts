@@ -1,12 +1,15 @@
 /**
  * GameState - Base class for all game states
+ *
+ * Now supports generic game state typing for full autocomplete
  */
-import type { StateData } from '@engine/types';
+import type { StateData, GameContext } from '@engine/types';
 import type { EngineInputEvent } from './InputEvents';
 
-export abstract class GameState {
+export abstract class GameState<TGame = any> {
     public name: string;
     public isActive: boolean;
+    protected context!: GameContext<TGame>;
 
     constructor(name: string) {
         this.name = name;
@@ -14,8 +17,18 @@ export abstract class GameState {
     }
 
     /**
+     * Set the context (called by StateManager)
+     * @internal
+     */
+    setContext(context: GameContext<TGame>): void {
+        this.context = context;
+    }
+
+    /**
      * Called by the GameStateManager when this state is first pushed onto the stack.
      * Override this to set up your state (e.g., load UI, start music).
+     *
+     * You can now access: this.context.game.X with full type safety!
      */
     enter(data: StateData = {}): void {
         this.isActive = true;
@@ -33,7 +46,7 @@ export abstract class GameState {
 
     /**
      * HOOK: Called by the GameStateManager when a new state is pushed on top of this one.
-     * * Override this in your game state (e.g., GameplayState) to add logic
+     * Override this in your game state (e.g., GameplayState) to add logic
      * for pausing music, stopping animations, or showing a "Paused" overlay.
      */
     pause(): void {
@@ -42,7 +55,7 @@ export abstract class GameState {
 
     /**
      * HOOK: Called by the GameStateManager when the state on top of this one is popped off.
-     * * Override this in your game state (e.g., GameplayState) to add logic
+     * Override this in your game state (e.g., GameplayState) to add logic
      * for resuming music, restarting animations, or hiding a "Paused" overlay.
      */
     resume(): void {

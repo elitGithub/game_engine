@@ -64,7 +64,7 @@ export class PluginManager {
     }
 
 
-    update(deltaTime: number, context: GameContext): void {
+    update(deltaTime: number, context: GameContext<any>): void {
         this.installed.forEach(pluginName => {
             const plugin = this.plugins.get(pluginName);
             if (plugin?.update) {

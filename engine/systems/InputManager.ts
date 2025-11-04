@@ -137,27 +137,27 @@ export class InputManager {
         const onTouchMove = this.onTouchMove.bind(this);
         const onTouchEnd = this.onTouchEnd.bind(this);
 
-        this.targetElement.addEventListener('keydown', onKeyDown);
-        this.targetElement.addEventListener('keyup', onKeyUp);
-        this.targetElement.addEventListener('mousedown', onMouseDown);
-        this.targetElement.addEventListener('mouseup', onMouseUp);
-        this.targetElement.addEventListener('mousemove', onMouseMove);
-        this.targetElement.addEventListener('wheel', onWheel);
-        this.targetElement.addEventListener('click', onClick);
-        this.targetElement.addEventListener('touchstart', onTouchStart);
-        this.targetElement.addEventListener('touchmove', onTouchMove);
-        this.targetElement.addEventListener('touchend', onTouchEnd);
+        this.targetElement.addEventListener('keydown', onKeyDown as EventListener);
+        this.targetElement.addEventListener('keyup', onKeyUp as EventListener);
+        this.targetElement.addEventListener('mousedown', onMouseDown as EventListener);
+        this.targetElement.addEventListener('mouseup', onMouseUp as EventListener);
+        this.targetElement.addEventListener('mousemove', onMouseMove as EventListener);
+        this.targetElement.addEventListener('wheel', onWheel as EventListener);
+        this.targetElement.addEventListener('click', onClick as EventListener);
+        this.targetElement.addEventListener('touchstart', onTouchStart as EventListener);
+        this.targetElement.addEventListener('touchmove', onTouchMove as EventListener);
+        this.targetElement.addEventListener('touchend', onTouchEnd as EventListener);
 
-        this.boundListeners.set('keydown', onKeyDown);
-        this.boundListeners.set('keyup', onKeyUp);
-        this.boundListeners.set('mousedown', onMouseDown);
-        this.boundListeners.set('mouseup', onMouseUp);
-        this.boundListeners.set('mousemove', onMouseMove);
-        this.boundListeners.set('wheel', onWheel);
-        this.boundListeners.set('click', onClick);
-        this.boundListeners.set('touchstart', onTouchStart);
-        this.boundListeners.set('touchmove', onTouchMove);
-        this.boundListeners.set('touchend', onTouchEnd);
+        this.boundListeners.set('keydown', onKeyDown as EventListener);
+        this.boundListeners.set('keyup', onKeyUp as EventListener);
+        this.boundListeners.set('mousedown', onMouseDown as EventListener);
+        this.boundListeners.set('mouseup', onMouseUp as EventListener);
+        this.boundListeners.set('mousemove', onMouseMove as EventListener);
+        this.boundListeners.set('wheel', onWheel as EventListener);
+        this.boundListeners.set('click', onClick as EventListener);
+        this.boundListeners.set('touchstart', onTouchStart as EventListener);
+        this.boundListeners.set('touchmove', onTouchMove as EventListener);
+        this.boundListeners.set('touchend', onTouchEnd as EventListener);
     }
 
     enableGamepadPolling(): void {

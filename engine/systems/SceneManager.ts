@@ -39,7 +39,7 @@ export class SceneManager {
         return this.scenes.get(sceneId) || null;
     }
 
-    goToScene(sceneId: string, context: GameContext): boolean {
+    goToScene(sceneId: string, context: GameContext<any>): boolean {
         const scene = this.getScene(sceneId);
 
         if (!scene) {
@@ -64,7 +64,7 @@ export class SceneManager {
         return true;
     }
 
-    goBack(context: GameContext): boolean {
+    goBack(context: GameContext<any>): boolean {
         if (this.history.length === 0) return false;
         const previousSceneId = this.history.pop()!;
         return this.goToScene(previousSceneId, context);
@@ -74,7 +74,7 @@ export class SceneManager {
         return this.currentScene;
     }
 
-    getCurrentChoices(context: GameContext): any[] {
+    getCurrentChoices(context: GameContext<any>): any[] {
         if (!this.currentScene) return [];
         return this.currentScene.getChoices(context);
     }

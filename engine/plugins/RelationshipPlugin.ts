@@ -1,6 +1,5 @@
 // engine/plugins/RelationshipPlugin.ts
-import type { Engine } from '../Engine';
-import type { IEnginePlugin } from '../types';
+import type { IEngineHost, IEnginePlugin } from '../types';
 import { ValueTracker } from '../utils/ValueTracker';
 
 export interface RelationshipConfig {
@@ -27,12 +26,12 @@ export class RelationshipPlugin implements IEnginePlugin {
         this.ranks = new Map();
     }
 
-    install(engine: Engine): void {
+    install(engine: IEngineHost): void {
         engine.context.relationships = this;
         engine.registerSerializableSystem('relationships', this.tracker);
     }
 
-    uninstall(engine: Engine): void {
+    uninstall(engine: IEngineHost): void {
         delete engine.context.relationships;
     }
 

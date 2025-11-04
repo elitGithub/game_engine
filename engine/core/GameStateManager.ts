@@ -1,21 +1,39 @@
 /**
  * GameStateManager - Manages game states and transitions using a stack.
+ *
+ * Now injects context into GameState instances for type-safe access
  */
-import type {StateData} from '@engine/types';
+import type {StateData, GameContext} from '@engine/types';
 import {GameState} from './GameState';
 import type {EngineInputEvent} from './InputEvents';
 
 export class GameStateManager {
     public states: Map<string, GameState>;
     private stateStack: GameState[];
+    private context!: GameContext<any>;
 
     constructor() {
         this.states = new Map();
         this.stateStack = [];
     }
 
+    /**
+     * Set the context that will be injected into all states
+     * Called by Engine during initialization
+     * @internal
+     */
+    setContext(context: GameContext<any>): void {
+        this.context = context;
+    }
+
     register(name: string, state: GameState): void {
         this.states.set(name, state);
+
+        // Inject context if available
+        if (this.context) {
+            state.setContext(this.context);
+        }
+
         console.log(`[StateManager] Registered state: ${name}`);
     }
 
@@ -31,6 +49,12 @@ export class GameStateManager {
         }
 
         const newState = this.states.get(stateName)!;
+
+        // Ensure context is injected
+        if (this.context && !newState['context']) {
+            newState.setContext(this.context);
+        }
+
         newState.enter(data);
         this.stateStack.push(newState);
     }

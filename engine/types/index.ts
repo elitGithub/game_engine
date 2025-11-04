@@ -14,7 +14,8 @@ export interface GameConfig {
     gameVersion?: string;
 }
 
-export interface GameContext {
+export interface GameContext<TGame = Record<string, any>> {
+    game: TGame;
     flags: Set<string>;
     variables: Map<string, any>;
     assets?: AssetManager;
@@ -139,19 +140,19 @@ export interface ActionContext extends GameContext {
 }
 
 export interface IDynamicEffect {
-    onStart(element: HTMLElement, context: GameContext): void;
+    onStart(element: HTMLElement, context: GameContext<any>): void;
 
-    onUpdate(element: HTMLElement, context: GameContext, deltaTime: number): void;
+    onUpdate(element: HTMLElement, context: GameContext<any>, deltaTime: number): void;
 
-    onStop(element: HTMLElement, context: GameContext): void;
+    onStop(element: HTMLElement, context: GameContext<any>): void;
 }
 
 export interface IGlobalEffect {
-    onCreate(container: HTMLElement, context: GameContext): void;
+    onCreate(container: HTMLElement, context: GameContext<any>): void;
 
-    onUpdate(context: GameContext, deltaTime: number): void;
+    onUpdate(context: GameContext<any>, deltaTime: number): void;
 
-    onDestroy(context: GameContext): void;
+    onDestroy(context: GameContext<any>): void;
 }
 
 export interface ISerializationRegistry {
@@ -166,7 +167,7 @@ export interface ISerializationRegistry {
 
 
 export interface IEngineHost {
-    context: GameContext;
+    context: GameContext<any>;
     eventBus: EventBus;
 
     registerSerializableSystem(key: string, system: ISerializable): void;
@@ -180,7 +181,7 @@ export interface IEnginePlugin {
 
     uninstall?(engine: IEngineHost): void;
 
-    update?(deltaTime: number, context: GameContext): void; // ← NEW
+    update?(deltaTime: number, context: GameContext<any>): void;
 }
 
 /**

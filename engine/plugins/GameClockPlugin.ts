@@ -37,7 +37,7 @@ export class GameClockPlugin implements IEnginePlugin, ISerializable {
         delete engine.context.clock;
     }
 
-    update(deltaTime: number, context: GameContext): void {
+    update(deltaTime: number, context: GameContext<any>): void {
         // Clock doesn't auto-advance - game calls advance() explicitly
         // This is here in case you want real-time mode in the future
     }

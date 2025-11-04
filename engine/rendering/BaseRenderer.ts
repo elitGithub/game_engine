@@ -24,8 +24,9 @@ export abstract class BaseRenderer {
 
     /**
      * Render content with optional metadata
+     * Can return void, Promise<void>, or any value for specialized renderers
      */
-    abstract render(content: any, options?: any): void | Promise<void>;
+    abstract render(content: any, options?: any): void | Promise<void> | Promise<any>;
 
     /**
      * Clean up resources
