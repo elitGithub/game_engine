@@ -3,6 +3,7 @@ import type { StorageAdapter, SaveSlotMetadata } from '../core/StorageAdapter';
 import type { EventBus } from '../core/EventBus';
 import { LocalStorageAdapter } from './LocalStorageAdapter';
 import type { ISerializable, MigrationFunction } from '../types';
+import semver from 'semver';
 
 export interface SaveData {
     version: string;
@@ -16,7 +17,6 @@ export interface SaveData {
     };
 }
 
-// engine/systems/SaveManager.ts (update interface)
 export interface ISerializationRegistry {
     serializableSystems: Map<string, ISerializable>;
     migrationFunctions: Map<string, MigrationFunction>;
@@ -122,9 +122,17 @@ export class SaveManager {
             allVersions.add(toV);
         });
 
-        const sorted = Array.from(allVersions).sort();
+        const sorted = Array.from(allVersions)
+            .filter(v => semver.valid(v))
+            .sort(semver.compare);
+
         const fromIndex = sorted.indexOf(from);
         const toIndex = sorted.indexOf(to);
+
+        if (fromIndex === -1 || toIndex === -1) {
+            console.warn(`[SaveManager] Invalid version in migration path: from=${from}, to=${to}`);
+            return [from, to];
+        }
 
         return sorted.slice(fromIndex, toIndex + 1);
     }
