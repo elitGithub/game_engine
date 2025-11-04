@@ -1,56 +1,22 @@
-# Abstract Game Engine (Svelte + TS + Tailwind)
-
-A fully abstract game engine for building browser-based games. The engine provides structure and systems, while **you** define the game-specific logic.
-
-## Engine Philosophy
-
-**The engine is abstract and knows nothing about your game.**
-
-- ✅ The engine provides: Scene management, state machines, event bus, rendering systems
-- ❌ The engine does NOT provide: Player stats, item systems, combat logic, requirement checking
-
-**Your game implements all game-specific logic in your GameState classes.**
-
----
-
-## Quick Start
-
-### 1. Project Setup
-
-```bash
-# Create new Svelte + TypeScript project
+Abstract Game Engine (Svelte + TS + Tailwind)A fully abstract game engine for building browser-based games. The engine provides structure and systems, while you define the game-specific logic.Engine PhilosophyThe engine is abstract and knows nothing about your game.✅ The engine provides: Scene management, state machines, event bus, rendering systems❌ The engine does NOT provide: Player stats, item systems, combat logic, requirement checkingYour game implements all game-specific logic in your GameState classes.Quick Start1. Project Setup# Create new Svelte + TypeScript project
 npm create vite@latest your-game-name -- --template svelte-ts
 cd your-game-name
 
 # Install Tailwind
 npm install -D tailwindcss postcss autoprefixer
 npx tailwindcss init -p
-```
-
-### 2. Configuration
-
-**`tailwind.config.js`**
-```js
-export default {
+2. Configurationtailwind.config.jsexport default {
   content: ["./index.html", "./src/**/*.{js,ts,svelte}"],
   theme: { extend: {} },
   plugins: [],
 }
-```
-
-**`src/app.css`**
-```css
-@import "tailwindcss";
+src/app.css@import "tailwindcss";
 
 @layer base {
   * { box-sizing: border-box; }
   body { margin: 0; min-height: 100vh; }
 }
-```
-
-**`vite.config.ts`**
-```ts
-import { defineConfig } from 'vite'
+vite.config.tsimport { defineConfig } from 'vite'
 import { svelte } from '@sveltejs/vite-plugin-svelte'
 import path from 'path'
 
@@ -64,11 +30,7 @@ export default defineConfig({
     }
   }
 })
-```
-
-**`tsconfig.json`** - Add paths:
-```json
-{
+tsconfig.json - Add paths:{
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
@@ -78,28 +40,14 @@ export default defineConfig({
     }
   }
 }
-```
-
-### 3. Install Engine Files
-
-Copy the entire `engine/` folder and `types/index.ts` into your project:
-
-```
-src/
+3. Install Engine FilesCopy the entire engine/ folder and types/index.ts into your project:src/
 ├── engine/          # Copy all engine files here
 │   ├── core/
 │   ├── systems/
 │   └── Engine.ts
 └── types/
     └── index.ts     # Copy engine types here
-```
-
-### 4. Define Your Game Types
-
-Create `src/game/types.ts` with YOUR game-specific types:
-
-```ts
-// Example for an RPG game
+4. Define Your Game TypesCreate src/game/types.ts with YOUR game-specific types:// Example for an RPG game
 export interface PlayerStats {
     health: number;
     maxHealth: number;
@@ -114,21 +62,17 @@ export interface ItemData {
 }
 
 // etc...
-```
+5. Create Your Player ClassCreate src/game/entities/Player.ts. Note how it implements ISerializable to hook into the engine's save system.import type { PlayerStats } from '@game/types';
+import type { ISerializable, GameContext } from '@types';
 
-### 5. Create Your Player Class
-
-Create `src/game/entities/Player.ts`:
-
-```ts
-import type { PlayerStats } from '@game/types';
-
-export class Player {
+export class Player implements ISerializable {
+    private context: GameContext;
     public stats: PlayerStats;
     private inventory: Map<string, number>;
     private flags: Set<string>;
 
-    constructor() {
+    constructor(context: GameContext) {
+        this.context = context;
         this.stats = {
             health: 100,
             maxHealth: 100,
@@ -162,18 +106,33 @@ export class Player {
     takeDamage(amount: number): void {
         this.stats.health = Math.max(0, this.stats.health - amount);
     }
+    
+    // --- ISerializable Implementation ---
+
+    serialize(): any {
+        // Return a JSON-friendly object of this class's data
+        return {
+            stats: this.stats,
+            inventory: Array.from(this.inventory.entries()),
+            flags: Array.from(this.flags)
+        };
+    }
+
+    deserialize(data: any): void {
+        // Repopulate this instance with the saved data
+        this.stats = data.stats;
+        this.inventory = new Map(data.inventory);
+        this.flags = new Set(data.flags);
+        
+        // ** IMPORTANT **
+        // The Player is responsible for restoring itself
+        // to the global context on load.
+        this.context.player = this;
+    }
 }
-```
-
-### 6. Implement Requirements & Effects in Your GameState
-
-The engine's Scene class is just a data container. **YOU** check requirements and apply effects:
-
-Create `src/game/states/StoryState.ts`:
-
-```ts
-import { GameState } from '@engine/core/GameState';
+6. Implement Requirements & Effects in Your GameStateThe engine's Scene class is just a data container. YOU check requirements and apply effects in your GameState.Create src/game/states/StoryState.ts:import { GameState } from '@engine/core/GameState';
 import type { Engine } from '@engine/Engine';
+import type { Scene } from '@engine/systems/Scene';
 import type { StateData } from '@types';
 
 export class StoryState extends GameState {
@@ -205,8 +164,9 @@ export class StoryState extends GameState {
     }
 
     // YOUR implementation of requirement checking
-    private checkRequirements(scene: any): boolean {
-        const reqs = scene.getRequirements();
+    private checkRequirements(scene: Scene): boolean {
+        // Access data directly from the scene's public property
+        const reqs = scene.requirements;
         const player = this.engine.context.player;
 
         if (reqs.hasItem && !player.hasItem(reqs.hasItem)) {
@@ -221,8 +181,9 @@ export class StoryState extends GameState {
     }
 
     // YOUR implementation of effect application
-    private applyEffects(scene: any): void {
-        const effects = scene.getEffects();
+    private applyEffects(scene: Scene): void {
+        // Access data directly from the scene's public property
+        const effects = scene.effects;
         const player = this.engine.context.player;
 
         if (effects.setFlag) {
@@ -249,14 +210,7 @@ export class StoryState extends GameState {
         }
     }
 }
-```
-
-### 7. Create Your Game Data
-
-Create `src/game/data/gameData.ts`:
-
-```ts
-import type { GameData } from '@types';
+7. Create Your Game DataCreate src/game/data/gameData.ts:import type { GameData } from '@types';
 
 export const GAME_DATA: GameData = {
     scenes: {
@@ -284,14 +238,7 @@ export const GAME_DATA: GameData = {
         }
     }
 };
-```
-
-### 8. Initialize Your Game
-
-Create `src/game/main.ts`:
-
-```ts
-import { Engine } from '@engine/Engine';
+8. Initialize Your GameCreate src/game/main.ts:import { Engine } from '@engine/Engine';
 import { Player } from '@game/entities/Player';
 import { StoryState } from '@game/states/StoryState';
 import { GAME_DATA } from '@game/data/gameData';
@@ -299,13 +246,26 @@ import { GAME_DATA } from '@game/data/gameData';
 export function createGame(): Engine {
     const engine = new Engine({ debug: true });
 
-    // Set up YOUR game's context
-    engine.context.player = new Player();
+    // 1. Create YOUR systems, passing context
+    const player = new Player(engine.context);
+    // const inventory = new InventoryManager();
+    // const clock = new GameClockManager(engine.eventBus);
 
-    // Register YOUR game states
+    // 2. Set up YOUR game's context
+    engine.context.player = player;
+    // engine.context.inventory = inventory;
+    // engine.context.clock = clock;
+
+    // 3. Register all serializable systems for saving
+    // This tells the SaveManager to serialize these objects.
+    engine.registerSerializableSystem('player', player);
+    // engine.registerSerializableSystem('inventory', inventory);
+    // engine.registerSerializableSystem('clock', clock);
+
+    // 4. Register YOUR game states
     engine.stateManager.register('story', new StoryState(engine));
 
-    // Load YOUR game data
+    // 5. Load YOUR game data
     engine.loadGameData(GAME_DATA);
 
     return engine;
@@ -314,14 +274,7 @@ export function createGame(): Engine {
 export function startGame(engine: Engine) {
     engine.start('story', { sceneId: 'start' });
 }
-```
-
-### 9. Create Your UI
-
-Create `src/App.svelte`:
-
-```svelte
-<script lang="ts">
+9. Create Your UICreate src/App.svelte:<script lang="ts">
   import { onMount } from 'svelte';
   import { createGame, startGame } from '@game/main';
   
@@ -332,6 +285,7 @@ Create `src/App.svelte`:
   onMount(() => {
     game = createGame();
     
+    // Listen for the engine's scene.changed event
     game.eventBus.on('scene.changed', () => {
       const scene = game.sceneManager.getCurrentScene();
       sceneText = scene.getText();
@@ -340,56 +294,22 @@ Create `src/App.svelte`:
     
     startGame(game);
   });
+  
+  function handleChoiceClick(choiceIndex) {
+    // Pass a simple string to the game
+    // The StoryState will handle the logic
+    game.stateManager.getCurrentState()?.handleInput(String(choiceIndex));
+  }
 </script>
 
 <main>
   <p>{sceneText}</p>
   {#each choices as choice, i}
-    <button on:click={() => game.handleInput(String(i))}>
+    <button on:click={() => handleChoiceClick(i)}>
       {choice.text}
     </button>
-  {/each}
+  {/each
 </main>
-```
-
-### 10. Run Your Game
-
-```bash
-npm install
+10. Run Your Gamenpm install
 npm run dev
-```
-
----
-
-## Key Principles
-
-1. **The engine provides structure**, your game provides content
-2. **Requirements checking** = Your GameState's responsibility
-3. **Effect application** = Your GameState's responsibility  
-4. **Player class** = Completely yours to define
-5. **Scene data** = Just data, the engine doesn't interpret it
-
-## What You Control
-
-- Player stats and abilities
-- Item system
-- Combat system  
-- Requirement logic (what blocks scene access?)
-- Effect logic (what happens when entering a scene?)
-- Save/load data structure
-- UI rendering
-
-## What The Engine Provides
-
-- Scene management and transitions
-- State machine for game states
-- Event bus for communication
-- Text/sprite rendering systems
-- Action registry pattern
-- Dice utilities
-
----
-
-## Need Help?
-
-The engine is abstract by design. If you find yourself asking "how do I make the player have health?" - that's YOUR game's responsibility, not the engine's!
+Key PrinciplesThe engine provides structure, your game provides contentRequirements checking = Your GameState's responsibilityEffect application = Your GameState's responsibilityPlayer class = Completely yours to defineScene data = Just data, the engine doesn't interpret itWhat You ControlPlayer stats and abilitiesItem systemCombat systemRequirement logic (what blocks scene access?)Effect logic (what happens when entering a scene?)Save/load data structure (via ISerializable)UI renderingWhat The Engine ProvidesScene management and transitionsState machine for game statesEvent bus for communicationAbstract Save/Load systemText/sprite rendering systemsInput and Audio managersAction registry patternDice utilitiesNeed Help?The engine is abstract by design. If you find yourself asking "how do I make the player have health?" - that's YOUR game's responsibility, not the engine's!

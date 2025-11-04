@@ -132,25 +132,6 @@ export class SaveManager {
             }
         }
 
-        // Restore player object reference in context
-        // This assumes the player has been registered with the key 'player'
-        // and that its deserialize method updates the instance in place.
-        const playerSystem = this.engine.serializableSystems.get('player');
-        if (playerSystem) {
-             this.engine.context.player = playerSystem;
-        }
-
-        // Restore any custom context properties (if any - this is now legacy)
-        // This loop can likely be removed if all data is in serializable systems
-        if ((saveData as any).context) {
-            const legacyContext = (saveData as any).context;
-            for (const [key, value] of Object.entries(legacyContext)) {
-                if (key !== 'flags' && key !== 'variables' && key !== 'player') {
-                    this.engine.context[key] = value;
-                }
-            }
-        }
-
         // Transition to saved scene
         if (saveData.currentSceneId) {
             this.engine.sceneManager.goToScene(saveData.currentSceneId, this.engine.context);

@@ -18,70 +18,40 @@ export class Scene {
         this.effects = data.effects || {};
     }
 
-    /**
-     * Check if player can enter this scene
-     */
-    canEnter(context: GameContext): boolean {
-        if (this.requirements?.hasItem) {
-            const item = this.requirements.hasItem;
-            if (!context.player?.hasItem(item)) {
-                return false;
-            }
-        }
-
-        if (this.requirements?.hasFlag) {
-            const flag = this.requirements.hasFlag;
-            if (!context.player?.hasFlag(flag)) {
-                return false;
-            }
-        }
-
-        return true;
-    }
 
     /**
      * Called when scene is entered
      */
     onEnter(context: GameContext): void {
-        console.log(`[Scene] Entering: ${this.id} (type: ${this.type})`);
-        this.applyEffects(context);
+        // Override in game systems if needed
     }
 
     /**
      * Called when scene is exited
      */
     onExit(context: GameContext): void {
-        console.log(`[Scene] Exiting: ${this.id}`);
-    }
-
-    /**
-     * Apply scene effects to game state
-     */
-    applyEffects(context: GameContext): void {
-        if (this.effects?.setFlag) {
-            context.player?.addFlag(this.effects.setFlag);
-        }
-
-        if (this.effects?.heal) {
-            context.player?.heal(this.effects.heal);
-        }
-
-        if (this.effects?.damage) {
-            context.player?.takeDamage(this.effects.damage);
-        }
+        // Override in game systems if needed
     }
 
     /**
      * Get scene text/description
      */
     getText(): string {
-        return this.data.text || '';
+        return this.data?.text || '';
     }
 
     /**
      * Get available choices/exits from this scene
      */
     getChoices(context: GameContext): SceneChoice[] {
-        return this.data.choices || [];
+        return this.data?.choices || [];
+    }
+
+    canExit() {
+        return true;
+    }
+
+    canEnter() {
+        return true;
     }
 }
