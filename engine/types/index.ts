@@ -7,6 +7,7 @@ import type {SaveManager} from '../systems/SaveManager';
 import type {InputManager} from '../systems/InputManager';
 import {EventBus} from "@engine/core/EventBus.ts";
 import {AssetManager} from "@engine/systems/AssetManager.ts";
+import {EngineEventMap} from "@engine/types/EngineEventMap.ts";
 
 export interface GameConfig {
     debug?: boolean;
@@ -194,3 +195,17 @@ export interface BaseItem {
     description?: string;
     stackable?: boolean;
 }
+
+/**
+ * This is the final, extensible EventMap.
+ * Game-specific code can extend this interface using declaration merging.
+ *
+ * @example
+ * // In your game's types file:
+ * declare module '@engine/types' {
+ * interface EventMap {
+ * 'player.tookDamage': { amount: number };
+ * }
+ * }
+ */
+export interface EventMap extends EngineEventMap {}
