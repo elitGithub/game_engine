@@ -49,14 +49,14 @@ export class SceneManager {
 
         if (this.currentScene) {
             this.currentScene.onExit(context);
-            this.history.push(this.currentScene.id);
+            this.history.push(this.currentScene.sceneId);
         }
 
         this.currentScene = scene;
         scene.onEnter(context);
 
         eventBus.emit('scene.changed', {
-            sceneId: scene.id,
+            sceneId: scene.sceneId,
             type: scene.sceneType,
             previousScene: this.history[this.history.length - 1] || null
         });
@@ -81,5 +81,12 @@ export class SceneManager {
 
     clearHistory(): void {
         this.history = [];
+    }
+
+    dispose(): void {
+        this.scenes.clear();
+        this.currentScene = null;
+        this.history = [];
+        this.sceneFactories.clear();
     }
 }

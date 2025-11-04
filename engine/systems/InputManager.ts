@@ -1,15 +1,8 @@
 /**
  * InputManager - Comprehensive centralized input handling
- *
- * Features:
- * - All input types: keyboard, mouse, touch, gamepad
- * - Input state tracking (isKeyDown, etc)
- * - Input buffering and combo detection
- * - Key rebinding system
- * - Input blocking/enabling
- * - Input modes/contexts
  */
-import type { Engine } from '../Engine';
+import type { GameStateManager } from '../core/GameStateManager';
+import type { EventBus } from '../core/EventBus';
 import type {
     EngineInputEvent,
     KeyDownEvent,
@@ -50,7 +43,8 @@ interface BufferedInput {
 }
 
 export class InputManager {
-    private engine: Engine;
+    private stateManager: GameStateManager;
+    private eventBus: EventBus;
     private targetElement: HTMLElement;
 
     // Input state
@@ -73,8 +67,9 @@ export class InputManager {
     // Event listeners (for cleanup)
     private boundListeners: Map<string, EventListener>;
 
-    constructor(engine: Engine, targetElement: HTMLElement) {
-        this.engine = engine;
+    constructor(stateManager: GameStateManager, eventBus: EventBus, targetElement: HTMLElement) {
+        this.stateManager = stateManager;
+        this.eventBus = eventBus;
         this.targetElement = targetElement;
 
         // Initialize state
@@ -95,7 +90,7 @@ export class InputManager {
 
         // Initialize buffering
         this.inputBuffer = [];
-        this.bufferSize = 10; // Keep last 10 inputs
+        this.bufferSize = 10;
 
         // Gamepad
         this.gamepadPollingInterval = null;
@@ -116,23 +111,17 @@ export class InputManager {
     // ============================================================================
 
     private attachListeners(): void {
-        // Keyboard
         const onKeyDown = this.onKeyDown.bind(this);
         const onKeyUp = this.onKeyUp.bind(this);
-
-        // Mouse
         const onMouseDown = this.onMouseDown.bind(this);
         const onMouseUp = this.onMouseUp.bind(this);
         const onMouseMove = this.onMouseMove.bind(this);
         const onWheel = this.onWheel.bind(this);
         const onClick = this.onClick.bind(this);
-
-        // Touch
         const onTouchStart = this.onTouchStart.bind(this);
         const onTouchMove = this.onTouchMove.bind(this);
         const onTouchEnd = this.onTouchEnd.bind(this);
 
-        // Attach to target
         this.targetElement.addEventListener('keydown', onKeyDown);
         this.targetElement.addEventListener('keyup', onKeyUp);
         this.targetElement.addEventListener('mousedown', onMouseDown);
@@ -144,7 +133,6 @@ export class InputManager {
         this.targetElement.addEventListener('touchmove', onTouchMove);
         this.targetElement.addEventListener('touchend', onTouchEnd);
 
-        // Store for cleanup
         this.boundListeners.set('keydown', onKeyDown);
         this.boundListeners.set('keyup', onKeyUp);
         this.boundListeners.set('mousedown', onMouseDown);
@@ -156,7 +144,6 @@ export class InputManager {
         this.boundListeners.set('touchmove', onTouchMove);
         this.boundListeners.set('touchend', onTouchEnd);
 
-        // Make element focusable
         if (!this.targetElement.hasAttribute('tabindex')) {
             this.targetElement.setAttribute('tabindex', '0');
         }
@@ -164,20 +151,17 @@ export class InputManager {
     }
 
     private startGamepadPolling(): void {
-        // Poll gamepads at 60fps
         this.gamepadPollingInterval = window.setInterval(() => {
             this.pollGamepads();
         }, 16);
     }
 
     dispose(): void {
-        // Remove event listeners
         this.boundListeners.forEach((listener, event) => {
             this.targetElement.removeEventListener(event, listener);
         });
         this.boundListeners.clear();
 
-        // Stop gamepad polling
         if (this.gamepadPollingInterval !== null) {
             clearInterval(this.gamepadPollingInterval);
             this.gamepadPollingInterval = null;
@@ -207,8 +191,6 @@ export class InputManager {
 
         this.addToBuffer(e.key);
         this.dispatchEvent(event);
-
-        // Check for action triggers
         this.checkActionTriggers('key', e.key, { shift: e.shiftKey, ctrl: e.ctrlKey, alt: e.altKey, meta: e.metaKey });
     }
 
@@ -254,8 +236,6 @@ export class InputManager {
 
         this.addToBuffer(`mouse${e.button}`);
         this.dispatchEvent(event);
-
-        // Check for action triggers
         this.checkActionTriggers('mouse', e.button, { shift: e.shiftKey, ctrl: e.ctrlKey, alt: e.altKey, meta: e.metaKey });
     }
 
@@ -383,7 +363,6 @@ export class InputManager {
     private onTouchEnd(e: TouchEvent): void {
         if (!this.enabled) return;
 
-        // Remove ended touches
         Array.from(e.changedTouches).forEach(t => {
             this.state.touchPoints.delete(t.identifier);
         });
@@ -423,14 +402,12 @@ export class InputManager {
                 axes: new Map()
             };
 
-            // Check buttons
             gamepad.buttons.forEach((button, index) => {
                 currentState.buttons.set(index, { pressed: button.pressed, value: button.value });
 
                 const wasPressed = lastState?.buttons.get(index)?.pressed || false;
 
                 if (button.pressed && !wasPressed) {
-                    // Button just pressed
                     const event: GamepadButtonEvent = {
                         type: 'gamepadbutton',
                         timestamp: Date.now(),
@@ -446,13 +423,11 @@ export class InputManager {
                 }
             });
 
-            // Check axes
             gamepad.axes.forEach((value, index) => {
                 currentState.axes.set(index, value);
 
                 const lastValue = lastState?.axes.get(index) || 0;
 
-                // Only emit if significant change (deadzone)
                 if (Math.abs(value - lastValue) > 0.1) {
                     const event: GamepadAxisEvent = {
                         type: 'gamepadaxis',
@@ -476,14 +451,9 @@ export class InputManager {
     // ============================================================================
 
     private dispatchEvent(event: EngineInputEvent): void {
-        // Dispatch to the state manager, which will handle the stack
-        this.engine.stateManager.handleEvent(event);
-
-        // Check combos
+        this.stateManager.handleEvent(event);
         this.checkCombos();
-
-        // Emit event on EventBus
-        this.engine.eventBus.emit(`input.${event.type}`, event);
+        this.eventBus.emit(`input.${event.type}`, event);
     }
 
     // ============================================================================
@@ -534,7 +504,6 @@ export class InputManager {
                 const keyDown = this.isKeyDown(binding.input as string);
                 if (!keyDown) return false;
 
-                // Check modifiers
                 if (binding.modifiers) {
                     if (binding.modifiers.shift && !this.isKeyDown('Shift')) return false;
                     if (binding.modifiers.ctrl && !this.isKeyDown('Control')) return false;
@@ -559,7 +528,6 @@ export class InputManager {
                 if (binding.type !== type) return false;
                 if (binding.input !== input) return false;
 
-                // Check modifiers for keyboard
                 if (type === 'key' && binding.modifiers && modifiers) {
                     if (binding.modifiers.shift !== modifiers.shift) return false;
                     if (binding.modifiers.ctrl !== modifiers.ctrl) return false;
@@ -571,7 +539,7 @@ export class InputManager {
             });
 
             if (triggered) {
-                this.engine.eventBus.emit('input.action', { action: name });
+                this.eventBus.emit('input.action', { action: name });
             }
         });
     }
@@ -586,7 +554,6 @@ export class InputManager {
             timestamp: Date.now()
         });
 
-        // Trim buffer
         if (this.inputBuffer.length > this.bufferSize) {
             this.inputBuffer.shift();
         }
@@ -599,7 +566,7 @@ export class InputManager {
     private checkCombos(): void {
         this.combos.forEach((combo, name) => {
             if (this.isComboTriggered(combo)) {
-                this.engine.eventBus.emit('input.combo', { combo: name });
+                this.eventBus.emit('input.combo', { combo: name });
             }
         });
     }
@@ -610,7 +577,6 @@ export class InputManager {
         const recent = this.inputBuffer.slice(-combo.inputs.length);
         const now = Date.now();
 
-        // Check if all inputs match and within time window
         return combo.inputs.every((input, i) => {
             const buffered = recent[i];
             return buffered.input === input && (now - buffered.timestamp) <= combo.timeWindow;
@@ -632,7 +598,6 @@ export class InputManager {
     setEnabled(enabled: boolean): void {
         this.enabled = enabled;
         if (!enabled) {
-            // Clear state when disabling
             this.state.keysDown.clear();
             this.state.mouseButtonsDown.clear();
         }
@@ -644,7 +609,7 @@ export class InputManager {
 
     setInputMode(mode: InputMode): void {
         this.currentMode = mode;
-        this.engine.eventBus.emit('input.modeChanged', { mode });
+        this.eventBus.emit('input.modeChanged', { mode });
     }
 
     getInputMode(): InputMode {

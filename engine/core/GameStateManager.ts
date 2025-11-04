@@ -14,18 +14,11 @@ export class GameStateManager {
         this.stateStack = [];
     }
 
-    /**
-     * Register a state so it can be used
-     */
     register(name: string, state: GameState): void {
         this.states.set(name, state);
         console.log(`[StateManager] Registered state: ${name}`);
     }
 
-    /**
-     * Pushes a new state onto the stack (e.g., opening a pause menu).
-     * The current top state will be paused.
-     */
     pushState(stateName: string, data: StateData = {}): void {
         if (!this.states.has(stateName)) {
             console.error(`[StateManager] State '${stateName}' not found!`);
@@ -42,10 +35,6 @@ export class GameStateManager {
         this.stateStack.push(newState);
     }
 
-    /**
-     * Pops the top state from the stack (e.g., closing a pause menu).
-     * The state below it will be resumed.
-     */
     popState(): void {
         if (this.stateStack.length === 0) return;
 
@@ -58,22 +47,14 @@ export class GameStateManager {
         }
     }
 
-    /**
-     * Clears the entire stack and pushes a new state (e.g., main menu -> gameplay).
-     */
     changeState(stateName: string, data: StateData = {}): void {
-        // Exit all current states
         while (this.stateStack.length > 0) {
             this.stateStack.pop()!.exit();
         }
 
-        // Push the new state
         this.pushState(stateName, data);
     }
 
-    /**
-     * Update the top-most state
-     */
     update(deltaTime: number): void {
         const currentState = this.getCurrentState();
         if (currentState && currentState.isActive) {
@@ -81,9 +62,6 @@ export class GameStateManager {
         }
     }
 
-    /**
-     * Render all states in the stack, from bottom to top.
-     */
     render(renderer: any): void {
         for (const state of this.stateStack) {
             if (state.isActive) {
@@ -92,9 +70,6 @@ export class GameStateManager {
         }
     }
 
-    /**
-     * Pass rich event input to the top-most state
-     */
     handleEvent(event: EngineInputEvent): void {
         const currentState = this.getCurrentState();
         if (currentState && currentState.isActive) {
@@ -102,18 +77,12 @@ export class GameStateManager {
         }
     }
 
-    /**
-     * Get the current state name
-     */
     getCurrentStateName(): string | null {
         return this.stateStack.length > 0
             ? this.stateStack[this.stateStack.length - 1].name
             : null;
     }
 
-    /**
-     * Get the current state instance (needed by InputManager)
-     */
     getCurrentState(): GameState | null {
         return this.stateStack.length > 0
             ? this.stateStack[this.stateStack.length - 1]

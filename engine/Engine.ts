@@ -17,7 +17,7 @@ export interface EngineConfig {
     targetFPS?: number;
     audioAssets?: AudioAssetMap;
     autoSceneMusic?: boolean;
-    gameVersion?: string; // Added for save versioning
+    gameVersion?: string;
 }
 
 export class Engine {
@@ -26,7 +26,7 @@ export class Engine {
         targetFPS: number;
         audioAssets: AudioAssetMap;
         autoSceneMusic: boolean;
-        gameVersion: string; // Added for save versioning
+        gameVersion: string;
     };
     public eventBus: EventBus;
     public stateManager: GameStateManager;
@@ -38,7 +38,7 @@ export class Engine {
     public context: GameContext;
 
     public serializableSystems: Map<string, ISerializable>;
-    public migrationFunctions: Map<string, MigrationFunction>; // Added for save versioning
+    public migrationFunctions: Map<string, MigrationFunction>;
 
     public isRunning: boolean;
     public isPaused: boolean;
@@ -48,6 +48,7 @@ export class Engine {
 
     constructor(
         config: EngineConfig = {},
+        containerElement: HTMLElement,
         storageAdapter?: StorageAdapter,
         audioSourceAdapter?: AudioSourceAdapter
     ) {
@@ -56,26 +57,22 @@ export class Engine {
             targetFPS: config.targetFPS || 60,
             audioAssets: config.audioAssets || {},
             autoSceneMusic: config.autoSceneMusic !== false,
-            gameVersion: config.gameVersion || '1.0.0', // Added for save versioning
+            gameVersion: config.gameVersion || '1.0.0',
         };
 
-        // Core systems
         this.eventBus = eventBus;
         this.stateManager = new GameStateManager();
         this.sceneManager = new SceneManager();
         this.actionRegistry = new ActionRegistry();
         this.serializableSystems = new Map();
-        this.migrationFunctions = new Map(); // Added for save versioning
+        this.migrationFunctions = new Map();
 
-        // Game state
         this.isRunning = false;
         this.isPaused = false;
 
-        // Game loop tracking
         this.lastFrameTime = 0;
         this.frameCount = 0;
 
-        // Game context - shared data accessible to all systems
         this.context = {
             engine: this,
             player: undefined,
@@ -83,14 +80,9 @@ export class Engine {
             variables: new Map<string, any>(),
         };
 
-        // Initialize SaveManager with optional custom storage adapter
         this.saveManager = new SaveManager(this, storageAdapter);
-
-        // Add to context for easy access from Actions/Scenes
         this.context.saveManager = this.saveManager;
 
-        // Register a "core" serializable system for flags and variables
-        // so the SaveManager can handle them automatically.
         this.registerSerializableSystem('_core', {
             serialize: () => ({
                 flags: Array.from(this.context.flags),
@@ -102,17 +94,12 @@ export class Engine {
             },
         });
 
-        // Initialize AudioManager with optional custom audio source adapter
         this.audioManager = new AudioManager(this.eventBus, audioSourceAdapter, this.config.audioAssets);
-
-        // Add to context for easy access from Actions/Scenes
         this.context.audio = this.audioManager;
 
-        // Initialize EffectManager
-        this.effectManager = new EffectManager(this.context);
+        this.effectManager = new EffectManager(this.context, containerElement);
         this.context.effects = this.effectManager;
 
-        // Set up automatic scene music handling
         if (this.config.autoSceneMusic) {
             this.setupAutoSceneMusic();
         }
@@ -120,11 +107,6 @@ export class Engine {
         this.log('Engine initialized');
     }
 
-    /**
-     * Registers a system (like Player, Inventory, Clock) with the SaveManager
-     * @param key A unique string key to identify this system's data (e.g., 'player', 'clock')
-     * @param system The system instance that implements ISerializable
-     */
     public registerSerializableSystem(key: string, system: ISerializable): void {
         if (this.serializableSystems.has(key)) {
             console.warn(`[Engine] Serializable system key '${key}' already registered. Overwriting.`);
@@ -132,12 +114,6 @@ export class Engine {
         this.serializableSystems.set(key, system);
     }
 
-    /**
-     * Registers a migration function to update save data.
-     * @param fromVersion The version to migrate *from* (e.g., '1.0.0')
-     * @param toVersion The version to migrate *to* (e.g., '1.1.0')
-     * @param migration The function that performs the migration
-     */
     public registerMigration(fromVersion: string, toVersion: string, migration: MigrationFunction): void {
         const key = `${fromVersion}_to_${toVersion}`;
         if (this.migrationFunctions.has(key)) {
@@ -146,21 +122,16 @@ export class Engine {
         this.migrationFunctions.set(key, migration);
     }
 
-    /**
-     * Set up automatic music playback on scene changes
-     */
     private setupAutoSceneMusic(): void {
         this.eventBus.on('scene.changed', (data) => {
             const scene = this.sceneManager.getScene(data.sceneId);
             if (!scene) return;
 
-            // Check if scene has music data
-            if (scene.sceneData.music) {
-                const musicConfig = typeof scene.sceneData.music === 'string'
-                    ? { track: scene.sceneData.music, loop: true, fadeIn: 1 }
-                    : scene.sceneData.music;
+            if (scene.data.music) {
+                const musicConfig = typeof scene.data.music === 'string'
+                    ? { track: scene.data.music, loop: true, fadeIn: 1 }
+                    : scene.data.music;
 
-                // Crossfade if currently playing music, otherwise just play
                 if (this.audioManager.getMusicState() === 'playing') {
                     this.audioManager.crossfadeMusic(
                         musicConfig.track,
@@ -173,16 +144,12 @@ export class Engine {
                         musicConfig.fadeIn || 0
                     );
                 }
-            } else if (scene.sceneData.stopMusic) {
-                // Stop music if scene specifies it
-                this.audioManager.stopMusic(scene.sceneData.musicFadeOut || 1);
+            } else if (scene.data.stopMusic) {
+                this.audioManager.stopMusic(scene.data.musicFadeOut || 1);
             }
         });
     }
 
-    /**
-     * Load game data (scenes, etc.)
-     */
     loadGameData(gameData: GameData): void {
         this.log('Loading game data...');
 
@@ -193,65 +160,44 @@ export class Engine {
         this.eventBus.emit('game.data.loaded', gameData);
     }
 
-    /**
-     * Start the game engine
-     */
     start(initialState: string, initialData: StateData = {}): void {
         this.log('Starting engine...');
         this.isRunning = true;
 
-        // Enter initial state (now uses changeState)
         if (initialState) {
             this.stateManager.changeState(initialState, initialData);
         }
 
-        // Start game loop
         this.lastFrameTime = performance.now();
         this.gameLoop();
 
         this.eventBus.emit('engine.started', {});
     }
 
-/**
-     * Main game loop
-     */
     private gameLoop(): void {
         if (!this.isRunning) return;
 
-        // Request next frame
         requestAnimationFrame(() => this.gameLoop());
 
-        // Calculate delta time
         const currentTime = performance.now();
         const deltaTime = (currentTime - this.lastFrameTime) / 1000;
         this.lastFrameTime = currentTime;
 
         if (!this.isPaused) {
-            // Update current state (only updates top of stack)
             this.stateManager.update(deltaTime);
-
-            // Update effect manager
             this.effectManager.update(deltaTime);
-
-            // Render current state (renders entire stack)
             this.stateManager.render(this.context.renderer || null);
         }
 
         this.frameCount++;
     }
 
-    /**
-     * Stop the engine
-     */
     stop(): void {
         this.log('Stopping engine...');
         this.isRunning = false;
         this.eventBus.emit('engine.stopped', {});
     }
 
-    /**
-     * Pause/unpause the game
-     */
     pause(): void {
         this.isPaused = true;
         this.eventBus.emit('engine.paused', {});
@@ -262,25 +208,16 @@ export class Engine {
         this.eventBus.emit('engine.unpaused', {});
     }
 
-    /**
-     * Debug logging
-     */
     log(...args: any[]): void {
         if (this.config.debug) {
             console.log('[Engine]', ...args);
         }
     }
 
-    /**
-     * Get current game state name
-     */
     getCurrentStateName(): string | null {
         return this.stateManager.getCurrentStateName();
     }
 
-    /**
-     * Get current scene
-     */
     getCurrentScene(): any {
         return this.sceneManager.getCurrentScene();
     }

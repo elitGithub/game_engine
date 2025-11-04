@@ -1,13 +1,13 @@
 /**
  * Engine types only - no game-specific types
  */
+import type { Engine } from '../Engine';
 import type { EffectManager } from '../systems/EffectManager';
-import {Engine} from "../Engine";
 
 export interface GameConfig {
     debug?: boolean;
     targetFPS?: number;
-    gameVersion?: string; // Added for save versioning
+    gameVersion?: string;
 }
 
 export interface GameContext {
@@ -34,18 +34,11 @@ export interface ISerializable {
     deserialize(data: any): void;
 }
 
-/**
- * A function that migrates save data from one version to another.
- * It receives the *entire* save data object and must return the *entire* modified object.
- */
 export type MigrationFunction = (data: any) => any;
 
-/**
- * A single step in an EffectManager sequence.
- */
 export type EffectStep =
-    | { name: string; duration: number } // Apply an effect for a duration
-    | { wait: number }; // Wait for a duration
+    | { name: string; duration: number }
+    | { wait: number };
 
 export interface RenderOptions {
     style?: string | TextStyleConfig;
@@ -137,8 +130,6 @@ export interface ActionContext extends GameContext {
     player: any;
     [key: string]: any;
 }
-
-// --- EFFECT INTERFACES ---
 
 export interface IDynamicEffect {
     onStart(element: HTMLElement, context: GameContext): void;

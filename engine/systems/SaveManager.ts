@@ -1,9 +1,9 @@
 /**
- * SaveManager - Handles game save/load with configurable storage backend
+ * SaveManager - WITH VERSION MIGRATION
  */
-import type {Engine} from '../Engine';
-import type {StorageAdapter, SaveSlotMetadata} from '../core/StorageAdapter';
-import {LocalStorageAdapter} from './LocalStorageAdapter';
+import type { Engine } from '../Engine';
+import type { StorageAdapter, SaveSlotMetadata } from '../core/StorageAdapter';
+import { LocalStorageAdapter } from './LocalStorageAdapter';
 
 export interface SaveData {
     version: string; // ← ADD VERSION
@@ -42,7 +42,7 @@ export class SaveManager {
             return success;
         } catch (error) {
             console.error('[SaveManager] Save failed:', error);
-            this.engine.eventBus.emit('save.failed', {slotId, error});
+            this.engine.eventBus.emit('save.failed', { slotId, error });
             return false;
         }
     }
@@ -66,7 +66,7 @@ export class SaveManager {
             return true;
         } catch (error) {
             console.error('[SaveManager] Load failed:', error);
-            this.engine.eventBus.emit('save.loadFailed', {slotId, error});
+            this.engine.eventBus.emit('save.loadFailed', { slotId, error });
             return false;
         }
     }
@@ -132,7 +132,7 @@ export class SaveManager {
     async deleteSave(slotId: string): Promise<boolean> {
         const success = await this.adapter.delete(slotId);
         if (success) {
-            this.engine.eventBus.emit('save.deleted', {slotId});
+            this.engine.eventBus.emit('save.deleted', { slotId });
         }
         return success;
     }
