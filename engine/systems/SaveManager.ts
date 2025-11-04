@@ -2,7 +2,7 @@
 import type { StorageAdapter, SaveSlotMetadata } from '../core/StorageAdapter';
 import type { EventBus } from '../core/EventBus';
 import { LocalStorageAdapter } from './LocalStorageAdapter';
-import type { ISerializable, MigrationFunction } from '../types';
+import type {ISerializationRegistry} from '../types';
 import semver from 'semver';
 
 export interface SaveData {
@@ -17,13 +17,6 @@ export interface SaveData {
     };
 }
 
-export interface ISerializationRegistry {
-    serializableSystems: Map<string, ISerializable>;
-    migrationFunctions: Map<string, MigrationFunction>;
-    readonly gameVersion: string;
-    getCurrentSceneId(): string;
-    restoreScene(sceneId: string): void;
-}
 
 export class SaveManager {
     private eventBus: EventBus;

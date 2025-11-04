@@ -1,10 +1,11 @@
 /**
  * Engine types only - no game-specific types
  */
-import type { EffectManager } from '../systems/EffectManager';
-import type { AudioManager } from '../systems/AudioManager';
-import type { SaveManager } from '../systems/SaveManager';
-import type { InputManager } from '../systems/InputManager';
+import type {EffectManager} from '../systems/EffectManager';
+import type {AudioManager} from '../systems/AudioManager';
+import type {SaveManager} from '../systems/SaveManager';
+import type {InputManager} from '../systems/InputManager';
+import {EventBus} from "@engine/core/EventBus.ts";
 
 export interface GameConfig {
     debug?: boolean;
@@ -20,11 +21,9 @@ export interface GameContext {
     effects?: EffectManager;
     input?: InputManager;
     renderer?: any;
+
     [key: string]: any;
 }
-
-
-export type EventCallback = (data: any) => void;
 
 export interface StateData {
     [key: string]: any;
@@ -32,6 +31,7 @@ export interface StateData {
 
 export interface ISerializable {
     serialize(): any;
+
     deserialize(data: any): void;
 }
 
@@ -108,6 +108,7 @@ export interface DialogueLineOptions {
 
 export interface SceneChoice {
     text: string;
+
     [key: string]: any;
 }
 
@@ -115,6 +116,7 @@ export interface SceneData {
     type?: string;
     text?: string;
     choices?: SceneChoice[];
+
     [key: string]: any;
 }
 
@@ -124,30 +126,68 @@ export interface ScenesDataMap {
 
 export interface GameData {
     scenes?: ScenesDataMap;
+
     [key: string]: any;
 }
 
 export interface ActionContext extends GameContext {
     player: any;
+
     [key: string]: any;
 }
 
 export interface IDynamicEffect {
     onStart(element: HTMLElement, context: GameContext): void;
+
     onUpdate(element: HTMLElement, context: GameContext, deltaTime: number): void;
+
     onStop(element: HTMLElement, context: GameContext): void;
 }
 
 export interface IGlobalEffect {
     onCreate(container: HTMLElement, context: GameContext): void;
+
     onUpdate(context: GameContext, deltaTime: number): void;
+
     onDestroy(context: GameContext): void;
 }
 
 export interface ISerializationRegistry {
     serializableSystems: Map<string, ISerializable>;
     migrationFunctions: Map<string, MigrationFunction>;
-    gameVersion: string;
-    getCurrentSceneId: () => string;
-    restoreScene: (sceneId: string) => void;
+    readonly gameVersion: string;
+
+    getCurrentSceneId(): string;
+
+    restoreScene(sceneId: string): void;
+}
+
+
+export interface IEngineHost {
+    context: GameContext;
+    eventBus: EventBus;
+
+    registerSerializableSystem(key: string, system: ISerializable): void;
+}
+
+export interface IEnginePlugin {
+    name: string;
+    version?: string;
+
+    install(engine: IEngineHost): void;
+
+    uninstall?(engine: IEngineHost): void;
+
+    update?(deltaTime: number, context: GameContext): void; // ← NEW
+}
+
+/**
+ * Optional base interface for items.
+ * Games can extend this or ignore it entirely.
+ */
+export interface BaseItem {
+    id: string;
+    name: string;
+    description?: string;
+    stackable?: boolean;
 }

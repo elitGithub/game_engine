@@ -8,6 +8,7 @@ import {SaveManager, ISerializationRegistry} from './systems/SaveManager';
 import {AudioManager} from './systems/AudioManager';
 import {EffectManager} from './systems/EffectManager';
 import {InputManager} from './systems/InputManager';
+import {PluginManager} from './core/PluginManager';
 import type {StorageAdapter} from './core/StorageAdapter';
 import type {AudioSourceAdapter, AudioAssetMap} from './core/AudioSourceAdapter';
 
@@ -45,6 +46,7 @@ export class Engine implements ISerializationRegistry {
 
     private lastFrameTime: number;
     private frameCount: number;
+    private pluginManager: PluginManager;
 
     constructor(
         config: EngineConfig = {},
@@ -64,6 +66,8 @@ export class Engine implements ISerializationRegistry {
         this.stateManager = new GameStateManager();
         this.sceneManager = new SceneManager(this.eventBus);
         this.actionRegistry = new ActionRegistry();
+
+        this.pluginManager = new PluginManager();
         this.serializableSystems = new Map();
         this.migrationFunctions = new Map();
 
@@ -204,6 +208,7 @@ export class Engine implements ISerializationRegistry {
             if (this.effectManager) {
                 this.effectManager.update(deltaTime, this.context);
             }
+            this.pluginManager.update(deltaTime, this.context); // ← NEW
             this.stateManager.render(this.context.renderer || null);
         }
 
