@@ -155,10 +155,10 @@ export class Engine {
             if (!scene) return;
 
             // Check if scene has music data
-            if (scene.data.music) {
-                const musicConfig = typeof scene.data.music === 'string'
-                    ? { track: scene.data.music, loop: true, fadeIn: 1 }
-                    : scene.data.music;
+            if (scene.sceneData.music) {
+                const musicConfig = typeof scene.sceneData.music === 'string'
+                    ? { track: scene.sceneData.music, loop: true, fadeIn: 1 }
+                    : scene.sceneData.music;
 
                 // Crossfade if currently playing music, otherwise just play
                 if (this.audioManager.getMusicState() === 'playing') {
@@ -173,9 +173,9 @@ export class Engine {
                         musicConfig.fadeIn || 0
                     );
                 }
-            } else if (scene.data.stopMusic) {
+            } else if (scene.sceneData.stopMusic) {
                 // Stop music if scene specifies it
-                this.audioManager.stopMusic(scene.data.musicFadeOut || 1);
+                this.audioManager.stopMusic(scene.sceneData.musicFadeOut || 1);
             }
         });
     }

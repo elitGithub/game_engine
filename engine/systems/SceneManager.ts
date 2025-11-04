@@ -57,7 +57,7 @@ export class SceneManager {
 
         eventBus.emit('scene.changed', {
             sceneId: scene.id,
-            type: scene.type,
+            type: scene.sceneType,
             previousScene: this.history[this.history.length - 1] || null
         });
 

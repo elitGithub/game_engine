@@ -3,7 +3,7 @@
  */
 import type {StateData} from '@types/index';
 import {GameState} from './GameState';
-import type {EngineInputEvent} from './Inputevents';
+import type {EngineInputEvent} from './InputEvents';
 
 export class GameStateManager {
     public states: Map<string, GameState>;

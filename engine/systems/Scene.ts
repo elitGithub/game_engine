@@ -1,21 +1,11 @@
 /**
  * Scene - Base class for all game scenes
  */
-import type { SceneData, SceneChoice, GameContext } from '@types/index';
+import type {GameContext, SceneChoice, SceneData} from '@types/index';
 
 export class Scene {
-    public id: string;
-    public type: string;
-    public data: SceneData;
-    public requirements: SceneData['requirements'];
-    public effects: SceneData['effects'];
 
-    constructor(id: string, type: string, data: SceneData = {}) {
-        this.id = id;
-        this.type = type;
-        this.data = data;
-        this.requirements = data.requirements || {};
-        this.effects = data.effects || {};
+    constructor(public sceneId: string, public sceneType: string, public sceneData: SceneData = {}) {
     }
 
 
@@ -37,14 +27,14 @@ export class Scene {
      * Get scene text/description
      */
     getText(): string {
-        return this.data?.text || '';
+        return this.sceneData?.text || '';
     }
 
     /**
      * Get available choices/exits from this scene
      */
     getChoices(context: GameContext): SceneChoice[] {
-        return this.data?.choices || [];
+        return this.sceneData?.choices || [];
     }
 
     canExit() {
