@@ -1,6 +1,4 @@
-/**
- * InputManager - Comprehensive centralized input handling
- */
+// engine/systems/InputManager.ts
 import type { GameStateManager } from '../core/GameStateManager';
 import type { EventBus } from '../core/EventBus';
 import type {
@@ -45,34 +43,28 @@ interface BufferedInput {
 export class InputManager {
     private stateManager: GameStateManager;
     private eventBus: EventBus;
-    private targetElement: HTMLElement;
+    private targetElement: HTMLElement | null;
 
-    // Input state
     private state: InputState;
     private enabled: boolean;
     private currentMode: InputMode;
 
-    // Input actions (rebinding)
     private actions: Map<string, InputAction>;
 
-    // Input buffering and combos
     private inputBuffer: BufferedInput[];
     private bufferSize: number;
     private combos: Map<string, InputCombo>;
 
-    // Gamepad polling
     private gamepadPollingInterval: number | null;
     private lastGamepadStates: Map<number, GamepadState>;
 
-    // Event listeners (for cleanup)
     private boundListeners: Map<string, EventListener>;
 
-    constructor(stateManager: GameStateManager, eventBus: EventBus, targetElement: HTMLElement) {
+    constructor(stateManager: GameStateManager, eventBus: EventBus) {
         this.stateManager = stateManager;
         this.eventBus = eventBus;
-        this.targetElement = targetElement;
+        this.targetElement = null;
 
-        // Initialize state
         this.state = {
             keysDown: new Set(),
             mouseButtonsDown: new Set(),
@@ -84,33 +76,56 @@ export class InputManager {
         this.enabled = true;
         this.currentMode = 'gameplay';
 
-        // Initialize actions and combos
         this.actions = new Map();
         this.combos = new Map();
 
-        // Initialize buffering
         this.inputBuffer = [];
         this.bufferSize = 10;
 
-        // Gamepad
         this.gamepadPollingInterval = null;
         this.lastGamepadStates = new Map();
 
-        // Store bound listeners for cleanup
         this.boundListeners = new Map();
-
-        // Attach event listeners
-        this.attachListeners();
-
-        // Start gamepad polling
-        this.startGamepadPolling();
     }
 
     // ============================================================================
     // SETUP AND CLEANUP
     // ============================================================================
 
+    attach(element: HTMLElement, options?: { focus?: boolean; tabindex?: string }): void {
+        if (this.targetElement) {
+            this.detach();
+        }
+
+        this.targetElement = element;
+
+        if (options?.tabindex !== undefined) {
+            element.setAttribute('tabindex', options.tabindex);
+        } else if (!element.hasAttribute('tabindex')) {
+            element.setAttribute('tabindex', '0');
+        }
+
+        this.attachListeners();
+
+        if (options?.focus) {
+            element.focus();
+        }
+    }
+
+    detach(): void {
+        if (!this.targetElement) return;
+
+        this.boundListeners.forEach((listener, event) => {
+            this.targetElement!.removeEventListener(event, listener);
+        });
+        this.boundListeners.clear();
+
+        this.targetElement = null;
+    }
+
     private attachListeners(): void {
+        if (!this.targetElement) return;
+
         const onKeyDown = this.onKeyDown.bind(this);
         const onKeyUp = this.onKeyUp.bind(this);
         const onMouseDown = this.onMouseDown.bind(this);
@@ -143,29 +158,26 @@ export class InputManager {
         this.boundListeners.set('touchstart', onTouchStart);
         this.boundListeners.set('touchmove', onTouchMove);
         this.boundListeners.set('touchend', onTouchEnd);
-
-        if (!this.targetElement.hasAttribute('tabindex')) {
-            this.targetElement.setAttribute('tabindex', '0');
-        }
-        this.targetElement.focus();
     }
 
-    private startGamepadPolling(): void {
+    enableGamepadPolling(): void {
+        if (this.gamepadPollingInterval !== null) return;
+
         this.gamepadPollingInterval = window.setInterval(() => {
             this.pollGamepads();
         }, 16);
     }
 
-    dispose(): void {
-        this.boundListeners.forEach((listener, event) => {
-            this.targetElement.removeEventListener(event, listener);
-        });
-        this.boundListeners.clear();
+    disableGamepadPolling(): void {
+        if (this.gamepadPollingInterval === null) return;
 
-        if (this.gamepadPollingInterval !== null) {
-            clearInterval(this.gamepadPollingInterval);
-            this.gamepadPollingInterval = null;
-        }
+        clearInterval(this.gamepadPollingInterval);
+        this.gamepadPollingInterval = null;
+    }
+
+    dispose(): void {
+        this.detach();
+        this.disableGamepadPolling();
     }
 
     // ============================================================================
@@ -190,7 +202,7 @@ export class InputManager {
         };
 
         this.addToBuffer(e.key);
-        this.dispatchEvent(event);
+        this.dispatchEvent(event, true);
         this.checkActionTriggers('key', e.key, { shift: e.shiftKey, ctrl: e.ctrlKey, alt: e.altKey, meta: e.metaKey });
     }
 
@@ -210,7 +222,7 @@ export class InputManager {
             meta: e.metaKey
         };
 
-        this.dispatchEvent(event);
+        this.dispatchEvent(event, false);
     }
 
     // ============================================================================
@@ -235,7 +247,7 @@ export class InputManager {
         };
 
         this.addToBuffer(`mouse${e.button}`);
-        this.dispatchEvent(event);
+        this.dispatchEvent(event, true);
         this.checkActionTriggers('mouse', e.button, { shift: e.shiftKey, ctrl: e.ctrlKey, alt: e.altKey, meta: e.metaKey });
     }
 
@@ -256,7 +268,7 @@ export class InputManager {
             meta: e.metaKey
         };
 
-        this.dispatchEvent(event);
+        this.dispatchEvent(event, false);
     }
 
     private onMouseMove(e: MouseEvent): void {
@@ -277,7 +289,7 @@ export class InputManager {
             buttons: e.buttons
         };
 
-        this.dispatchEvent(event);
+        this.dispatchEvent(event, false);
     }
 
     private onWheel(e: WheelEvent): void {
@@ -293,7 +305,7 @@ export class InputManager {
             y: e.clientY
         };
 
-        this.dispatchEvent(event);
+        this.dispatchEvent(event, false);
     }
 
     private onClick(e: MouseEvent): void {
@@ -308,7 +320,7 @@ export class InputManager {
             target: e.target
         };
 
-        this.dispatchEvent(event);
+        this.dispatchEvent(event, false);
     }
 
     // ============================================================================
@@ -335,7 +347,7 @@ export class InputManager {
         };
 
         this.addToBuffer(`touch${touches.length}`);
-        this.dispatchEvent(event);
+        this.dispatchEvent(event, true);
     }
 
     private onTouchMove(e: TouchEvent): void {
@@ -357,7 +369,7 @@ export class InputManager {
             touches
         };
 
-        this.dispatchEvent(event);
+        this.dispatchEvent(event, false);
     }
 
     private onTouchEnd(e: TouchEvent): void {
@@ -380,7 +392,7 @@ export class InputManager {
             touches
         };
 
-        this.dispatchEvent(event);
+        this.dispatchEvent(event, false);
     }
 
     // ============================================================================
@@ -418,7 +430,7 @@ export class InputManager {
                     };
 
                     this.addToBuffer(`gamepad${i}_button${index}`);
-                    this.dispatchEvent(event);
+                    this.dispatchEvent(event, true);
                     this.checkActionTriggers('gamepad', index);
                 }
             });
@@ -437,7 +449,7 @@ export class InputManager {
                         value
                     };
 
-                    this.dispatchEvent(event);
+                    this.dispatchEvent(event, false);
                 }
             });
 
@@ -450,9 +462,11 @@ export class InputManager {
     // EVENT DISPATCHING
     // ============================================================================
 
-    private dispatchEvent(event: EngineInputEvent): void {
+    private dispatchEvent(event: EngineInputEvent, checkCombos: boolean): void {
         this.stateManager.handleEvent(event);
-        this.checkCombos();
+        if (checkCombos) {
+            this.checkCombos();
+        }
         this.eventBus.emit(`input.${event.type}`, event);
     }
 

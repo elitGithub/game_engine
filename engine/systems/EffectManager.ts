@@ -1,7 +1,5 @@
-/**
- * EffectManager - WITH AUTO-INITIALIZATION
- */
-import type { GameContext, IDynamicEffect, IGlobalEffect, EffectStep } from '@types/index';
+// engine/systems/EffectManager.ts
+import type { GameContext, IDynamicEffect, IGlobalEffect, EffectStep } from '@engine/types';
 import type { SpriteRenderer } from '../rendering/SpriteRenderer';
 
 type ActiveDynamicEffect = {
@@ -10,7 +8,6 @@ type ActiveDynamicEffect = {
 };
 
 export class EffectManager {
-    private context: GameContext;
     private container: HTMLElement;
 
     // Registries
@@ -23,8 +20,7 @@ export class EffectManager {
     private activeGlobalEffects: Map<string, IGlobalEffect>;
     private timedEffects: Map<HTMLElement, number[]>;
 
-    constructor(context: GameContext, container: HTMLElement) {
-        this.context = context;
+    constructor(container: HTMLElement) {
         this.container = container;
 
         this.staticEffects = new Map();
@@ -36,15 +32,15 @@ export class EffectManager {
         this.timedEffects = new Map();
     }
 
-    update(deltaTime: number): void {
+    update(deltaTime: number, context: GameContext): void {
         this.activeDynamicEffects.forEach((effects, element) => {
             effects.forEach(effect => {
-                effect.logic.onUpdate(element, this.context, deltaTime);
+                effect.logic.onUpdate(element, context, deltaTime);
             });
         });
 
         this.activeGlobalEffects.forEach(effect => {
-            effect.onUpdate(this.context, deltaTime);
+            effect.onUpdate(context, deltaTime);
         });
     }
 
@@ -64,7 +60,7 @@ export class EffectManager {
 
     // --- ELEMENT-BASED EFFECTS ---
 
-    apply(element: HTMLElement, effectName: string, duration?: number): Promise<void> {
+    apply(element: HTMLElement, effectName: string, context: GameContext, duration?: number): Promise<void> {
         if (!element) return Promise.resolve();
 
         if (this.dynamicEffects.has(effectName)) {
@@ -79,7 +75,7 @@ export class EffectManager {
                 return Promise.resolve();
             }
 
-            logic.onStart(element, this.context);
+            logic.onStart(element, context);
             existing.push({ name: effectName, logic });
 
         } else if (this.staticEffects.has(effectName)) {
@@ -94,7 +90,7 @@ export class EffectManager {
         if (duration) {
             return new Promise(resolve => {
                 const timerId = window.setTimeout(() => {
-                    this.remove(element, effectName);
+                    this.remove(element, effectName, context);
 
                     const timers = this.timedEffects.get(element);
                     if (timers) {
@@ -114,7 +110,7 @@ export class EffectManager {
         return Promise.resolve();
     }
 
-    remove(element: HTMLElement, effectName: string): void {
+    remove(element: HTMLElement, effectName: string, context: GameContext): void {
         if (!element) return;
 
         if (this.dynamicEffects.has(effectName)) {
@@ -123,7 +119,7 @@ export class EffectManager {
                 const effectIndex = active.findIndex(e => e.name === effectName);
                 if (effectIndex > -1) {
                     const [removedEffect] = active.splice(effectIndex, 1);
-                    removedEffect.logic.onStop(element, this.context);
+                    removedEffect.logic.onStop(element, context);
                 }
                 if (active.length === 0) {
                     this.activeDynamicEffects.delete(element);
@@ -136,63 +132,63 @@ export class EffectManager {
         }
     }
 
-    applyToSprite(spriteId: string, effectName: string, duration?: number): Promise<void> {
-        const renderer = this.context.renderer as SpriteRenderer;
+    applyToSprite(spriteId: string, effectName: string, context: GameContext, duration?: number): Promise<void> {
+        const renderer = context.renderer as SpriteRenderer;
         if (renderer && typeof renderer.getSprite === 'function') {
             const spriteElement = renderer.getSprite(spriteId);
             if (spriteElement) {
-                return this.apply(spriteElement, effectName, duration);
+                return this.apply(spriteElement, effectName, context, duration);
             } else {
                 console.warn(`[EffectManager] Sprite '${spriteId}' not found in renderer.`);
             }
         } else {
-            console.error(`[EffectManager] context.renderer is not a valid SpriteRenderer.`);
+            console.warn(`[EffectManager] Renderer lacks sprite support.`);
         }
         return Promise.resolve();
     }
 
-    async sequence(element: HTMLElement, steps: EffectStep[]): Promise<void> {
+    async sequence(element: HTMLElement, steps: EffectStep[], context: GameContext): Promise<void> {
         for (const step of steps) {
             if ('wait' in step) {
                 await new Promise(r => setTimeout(r, step.wait));
             } else {
-                await this.apply(element, step.name, step.duration);
+                await this.apply(element, step.name, context, step.duration);
             }
         }
     }
 
     // --- GLOBAL EFFECTS ---
 
-    startGlobalEffect(effectName: string): void {
+    startGlobalEffect(effectName: string, context: GameContext): void {
         if (this.activeGlobalEffects.has(effectName)) return;
 
         const logic = this.globalEffects.get(effectName);
         if (logic) {
-            logic.onCreate(this.container, this.context);
+            logic.onCreate(this.container, context);
             this.activeGlobalEffects.set(effectName, logic);
         } else {
             console.warn(`[EffectManager] Global effect '${effectName}' not registered.`);
         }
     }
 
-    stopGlobalEffect(effectName: string): void {
+    stopGlobalEffect(effectName: string, context: GameContext): void {
         const logic = this.activeGlobalEffects.get(effectName);
         if (logic) {
-            logic.onDestroy(this.context);
+            logic.onDestroy(context);
             this.activeGlobalEffects.delete(effectName);
         }
     }
 
-    stopAllEffects(): void {
+    stopAllEffects(context: GameContext): void {
         this.activeDynamicEffects.forEach((effects, element) => {
             effects.forEach(effect => {
-                effect.logic.onStop(element, this.context);
+                effect.logic.onStop(element, context);
             });
         });
         this.activeDynamicEffects.clear();
 
         this.activeGlobalEffects.forEach(effect => {
-            effect.onDestroy(this.context);
+            effect.onDestroy(context);
         });
         this.activeGlobalEffects.clear();
 
@@ -202,8 +198,8 @@ export class EffectManager {
         this.timedEffects.clear();
     }
 
-    dispose(): void {
-        this.stopAllEffects();
+    dispose(context: GameContext): void {
+        this.stopAllEffects(context);
 
         this.staticEffects.clear();
         this.dynamicEffects.clear();

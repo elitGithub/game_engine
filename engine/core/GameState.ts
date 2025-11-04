@@ -1,7 +1,7 @@
 /**
  * GameState - Base class for all game states
  */
-import type { StateData } from '@types/index';
+import type { StateData } from '@engine/types';
 import type { EngineInputEvent } from './InputEvents';
 
 export abstract class GameState {

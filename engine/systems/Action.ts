@@ -1,7 +1,7 @@
 /**
  * Action - Base class for all player actions
  */
-import type { ActionContext } from '@types/index';
+import type { ActionContext } from '@engine/types';
 
 export abstract class Action {
     public id: string;

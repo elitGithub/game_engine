@@ -1,7 +1,7 @@
 /**
  * GameStateManager - Manages game states and transitions using a stack.
  */
-import type {StateData} from '@types/index';
+import type {StateData} from '@engine/types';
 import {GameState} from './GameState';
 import type {EngineInputEvent} from './InputEvents';
 

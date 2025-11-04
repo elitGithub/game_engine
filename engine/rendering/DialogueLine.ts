@@ -1,7 +1,7 @@
 /**
  * DialogueLine - Represents a single line of dialogue
  */
-import type { DialogueLineOptions } from '@types/index';
+import type { DialogueLineOptions } from '@engine/types';
 
 export class DialogueLine {
     public speakerId: string;

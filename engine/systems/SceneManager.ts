@@ -1,19 +1,19 @@
-/**
- * SceneManager - Manages scenes and transitions
- */
-import type { ScenesDataMap, GameContext } from '@types/index';
+// engine/systems/SceneManager.ts
+import type { ScenesDataMap, GameContext } from '@engine/types';
 import { Scene } from './Scene';
-import { eventBus } from '../core/EventBus';
+import type { EventBus } from '../core/EventBus';
 
 type SceneFactory = (id: string, type: string, data: any) => Scene;
 
 export class SceneManager {
+    private eventBus: EventBus;
     private scenes: Map<string, Scene>;
     private currentScene: Scene | null;
     private history: string[];
     private sceneFactories: Map<string, SceneFactory>;
 
-    constructor() {
+    constructor(eventBus: EventBus) {
+        this.eventBus = eventBus;
         this.scenes = new Map();
         this.currentScene = null;
         this.history = [];
@@ -55,7 +55,7 @@ export class SceneManager {
         this.currentScene = scene;
         scene.onEnter(context);
 
-        eventBus.emit('scene.changed', {
+        this.eventBus.emit('scene.changed', {
             sceneId: scene.sceneId,
             type: scene.sceneType,
             previousScene: this.history[this.history.length - 1] || null

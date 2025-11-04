@@ -1,13 +1,4 @@
-/**
- * AudioManager - Comprehensive audio management with Web Audio API
- *
- * Features:
- * - Separate volume controls (master, music, SFX, voice)
- * - Music control (play, pause, resume, stop, crossfade, seek)
- * - SFX pooling for performance
- * - Mobile audio unlock
- * - Configurable audio source adapter
- */
+// engine/systems/AudioManager.ts
 import type { AudioSourceAdapter, AudioAssetMap } from '../core/AudioSourceAdapter';
 import { LocalAudioSourceAdapter } from './LocalAudioSourceAdapter';
 import type { EventBus } from '../core/EventBus';
@@ -21,6 +12,7 @@ interface MusicTrack {
     startTime: number;
     pausedAt: number;
     duration: number;
+    fadeOutTimer?: number;
 }
 
 interface SFXPool {
@@ -43,7 +35,6 @@ export class AudioManager {
     // Music state
     private currentMusic: MusicTrack | null;
     private musicState: MusicState;
-    private nextMusic: { trackId: string; fadeInDuration: number } | null;
 
     // SFX pooling
     private sfxPools: Map<string, SFXPool>;
@@ -56,7 +47,6 @@ export class AudioManager {
         this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
         this.eventBus = eventBus;
 
-        // Use provided adapter or create default
         this.adapter = adapter || new LocalAudioSourceAdapter(this.audioContext, assetMap || {});
 
         // Create gain nodes
@@ -74,7 +64,6 @@ export class AudioManager {
         // Initialize state
         this.currentMusic = null;
         this.musicState = 'stopped';
-        this.nextMusic = null;
         this.sfxPools = new Map();
         this.isUnlocked = false;
         this.loadedBuffers = new Map();
@@ -86,16 +75,12 @@ export class AudioManager {
         this.setVoiceVolume(1.0);
     }
 
-    /**
-     * Unlock audio on mobile (call on first user interaction)
-     */
     async unlockAudio(): Promise<void> {
         if (this.isUnlocked) return;
 
         try {
             await this.audioContext.resume();
 
-            // Play silent buffer to unlock
             const buffer = this.audioContext.createBuffer(1, 1, 22050);
             const source = this.audioContext.createBufferSource();
             source.buffer = buffer;
@@ -109,9 +94,6 @@ export class AudioManager {
         }
     }
 
-    /**
-     * Preload audio assets
-     */
     async preload(audioIds: string[]): Promise<void> {
         const promises = audioIds.map(async (id) => {
             try {
@@ -170,12 +152,10 @@ export class AudioManager {
         try {
             const buffer = await this.getOrLoadBuffer(trackId);
 
-            // Stop current music if playing
             if (this.currentMusic) {
                 await this.stopMusic(0);
             }
 
-            // Create new track
             const source = this.audioContext.createBufferSource();
             const gainNode = this.audioContext.createGain();
 
@@ -184,7 +164,6 @@ export class AudioManager {
             source.connect(gainNode);
             gainNode.connect(this.musicGain);
 
-            // Fade in if requested
             if (fadeInDuration > 0) {
                 gainNode.gain.value = 0;
                 gainNode.gain.linearRampToValueAtTime(1, this.audioContext.currentTime + fadeInDuration);
@@ -233,7 +212,6 @@ export class AudioManager {
         source.loop = true;
         source.connect(this.currentMusic.gainNode);
 
-        // Resume from paused position
         source.start(0, this.currentMusic.pausedAt);
 
         this.currentMusic.source = source;
@@ -246,12 +224,17 @@ export class AudioManager {
     async stopMusic(fadeOutDuration: number = 0): Promise<void> {
         if (!this.currentMusic) return;
 
+        // Clear any existing fade-out timer
+        if (this.currentMusic.fadeOutTimer !== undefined) {
+            clearTimeout(this.currentMusic.fadeOutTimer);
+            this.currentMusic.fadeOutTimer = undefined;
+        }
+
         if (fadeOutDuration > 0 && this.currentMusic.source) {
             const currentTime = this.audioContext.currentTime;
             this.currentMusic.gainNode.gain.linearRampToValueAtTime(0, currentTime + fadeOutDuration);
 
-            // Stop after fade
-            setTimeout(() => {
+            this.currentMusic.fadeOutTimer = window.setTimeout(() => {
                 if (this.currentMusic?.source) {
                     this.currentMusic.source.stop();
                     this.currentMusic.source = null;
@@ -272,12 +255,10 @@ export class AudioManager {
     }
 
     async crossfadeMusic(newTrackId: string, duration: number = 2): Promise<void> {
-        // Start fading out current music
         if (this.currentMusic) {
             this.stopMusic(duration);
         }
 
-        // Start fading in new music
         await this.playMusic(newTrackId, true, duration);
 
         this.eventBus.emit('music.crossfaded', { newTrackId, duration });
@@ -304,12 +285,10 @@ export class AudioManager {
 
         const wasPlaying = this.musicState === 'playing';
 
-        // Stop current source
         if (this.currentMusic.source) {
             this.currentMusic.source.stop();
         }
 
-        // Create new source at new position
         const source = this.audioContext.createBufferSource();
         source.buffer = this.currentMusic.buffer;
         source.loop = true;
@@ -333,7 +312,6 @@ export class AudioManager {
         try {
             const buffer = await this.getOrLoadBuffer(soundId);
 
-            // Try to get from pool first
             let source = this.getFromPool(soundId);
 
             if (!source) {
@@ -402,7 +380,6 @@ export class AudioManager {
         }
 
         if (pool.available.length < pool.maxSize) {
-            // Create new source for pool
             const newSource = this.audioContext.createBufferSource();
             newSource.buffer = pool.buffer;
             pool.available.push(newSource);
@@ -423,17 +400,11 @@ export class AudioManager {
         return buffer;
     }
 
-    /**
-     * Stop all audio
-     */
     stopAll(): void {
         this.stopMusic(0);
         this.eventBus.emit('audio.allStopped', {});
     }
 
-    /**
-     * Dispose and clean up
-     */
     dispose(): void {
         this.stopAll();
         this.sfxPools.clear();

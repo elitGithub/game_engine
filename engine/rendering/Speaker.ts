@@ -1,7 +1,7 @@
 /**
  * Speaker - Represents a character or narrator in dialogue
  */
-import type { SpeakerConfig } from '@types/index';
+import type { SpeakerConfig } from '@engine/types';
 import { TextStyle } from './TextStyle';
 
 export class Speaker {

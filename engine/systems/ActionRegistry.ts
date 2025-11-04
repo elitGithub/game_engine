@@ -1,7 +1,7 @@
 /**
  * ActionRegistry - Central registry for all game actions
  */
-import type { ActionContext } from '@types/index';
+import type { ActionContext } from '@engine/types';
 import { Action } from './Action';
 
 export class ActionRegistry {

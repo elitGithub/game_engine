@@ -1,7 +1,7 @@
 /**
  * SpeakerRegistry - Manages all speakers in the game
  */
-import type { SpeakerConfig } from '@types/index';
+import type { SpeakerConfig } from '@engine/types';
 import { Speaker } from './Speaker';
 
 export class SpeakerRegistry {

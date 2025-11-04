@@ -1,8 +1,10 @@
 /**
  * Engine types only - no game-specific types
  */
-import type { Engine } from '../Engine';
 import type { EffectManager } from '../systems/EffectManager';
+import type { AudioManager } from '../systems/AudioManager';
+import type { SaveManager } from '../systems/SaveManager';
+import type { InputManager } from '../systems/InputManager';
 
 export interface GameConfig {
     debug?: boolean;
@@ -11,17 +13,16 @@ export interface GameConfig {
 }
 
 export interface GameContext {
-    engine: Engine;
-    player?: any;
-    saveManager?: any;
-    audio?: any;
-    input?: any;
-    effects?: EffectManager;
     flags: Set<string>;
     variables: Map<string, any>;
+    audio?: AudioManager;
+    saveManager?: SaveManager;
+    effects?: EffectManager;
+    input?: InputManager;
     renderer?: any;
     [key: string]: any;
 }
+
 
 export type EventCallback = (data: any) => void;
 
@@ -118,7 +119,7 @@ export interface SceneData {
 }
 
 export interface ScenesDataMap {
-    [sceneId: string]: ScenesDataMap;
+    [sceneId: string]: SceneData;
 }
 
 export interface GameData {
@@ -141,4 +142,12 @@ export interface IGlobalEffect {
     onCreate(container: HTMLElement, context: GameContext): void;
     onUpdate(context: GameContext, deltaTime: number): void;
     onDestroy(context: GameContext): void;
+}
+
+export interface ISerializationRegistry {
+    serializableSystems: Map<string, ISerializable>;
+    migrationFunctions: Map<string, MigrationFunction>;
+    gameVersion: string;
+    getCurrentSceneId: () => string;
+    restoreScene: (sceneId: string) => void;
 }

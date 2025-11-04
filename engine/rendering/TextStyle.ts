@@ -1,7 +1,7 @@
 /**
  * TextStyle - Configuration for text appearance
  */
-import type { TextStyleConfig } from '@types/index';
+import type { TextStyleConfig } from '@engine/types';
 
 export class TextStyle {
     public fontFamily: string;

@@ -1,7 +1,7 @@
 /**
  * EventBus - Simple publish/subscribe system
  */
-import type { EventCallback } from '@types/index';
+import type { EventCallback } from '@engine/types';
 
 export class EventBus {
     private listeners: Map<string, EventCallback[]>;

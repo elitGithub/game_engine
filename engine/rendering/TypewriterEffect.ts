@@ -1,7 +1,7 @@
 /**
  * TypewriterEffect - Handles animated text reveal
  */
-import type { TypewriterConfig } from '@types/index';
+import type { TypewriterConfig } from '@engine/types';
 
 export class TypewriterEffect {
     private config: Required<TypewriterConfig>;

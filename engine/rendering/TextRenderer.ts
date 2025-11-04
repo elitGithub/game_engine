@@ -1,7 +1,7 @@
 /**
  * TextRenderer - Text rendering with styling, animation, and speakers
  */
-import type { RenderOptions, TypewriterConfig } from '@types/index';
+import type { RenderOptions, TypewriterConfig } from '@engine/types';
 import { BaseRenderer } from './BaseRenderer';
 import { TypewriterEffect } from './TypewriterEffect';
 import { TextStyle, StylePresets } from './TextStyle';

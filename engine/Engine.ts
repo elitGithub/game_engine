@@ -1,16 +1,15 @@
-/**
- * Engine - The main game engine
- */
-import type { GameConfig, GameContext, GameData, StateData, ISerializable, MigrationFunction } from '@types/index';
-import { EventBus, eventBus } from './core/EventBus';
-import { GameStateManager } from './core/GameStateManager';
-import { SceneManager } from './systems/SceneManager';
-import { ActionRegistry } from './systems/ActionRegistry';
-import { SaveManager } from './systems/SaveManager';
-import { AudioManager } from './systems/AudioManager';
-import { EffectManager } from './systems/EffectManager';
-import type { StorageAdapter } from './core/StorageAdapter';
-import type { AudioSourceAdapter, AudioAssetMap } from './core/AudioSourceAdapter';
+// engine/Engine.ts
+import type {GameConfig, GameContext, GameData, StateData, ISerializable, MigrationFunction} from '@engine/types';
+import {EventBus, eventBus} from './core/EventBus';
+import {GameStateManager} from './core/GameStateManager';
+import {SceneManager} from './systems/SceneManager';
+import {ActionRegistry} from './systems/ActionRegistry';
+import {SaveManager, ISerializationRegistry} from './systems/SaveManager';
+import {AudioManager} from './systems/AudioManager';
+import {EffectManager} from './systems/EffectManager';
+import {InputManager} from './systems/InputManager';
+import type {StorageAdapter} from './core/StorageAdapter';
+import type {AudioSourceAdapter, AudioAssetMap} from './core/AudioSourceAdapter';
 
 export interface EngineConfig {
     debug?: boolean;
@@ -20,7 +19,7 @@ export interface EngineConfig {
     gameVersion?: string;
 }
 
-export class Engine {
+export class Engine implements ISerializationRegistry {
     public config: {
         debug: boolean;
         targetFPS: number;
@@ -34,7 +33,8 @@ export class Engine {
     public actionRegistry: ActionRegistry;
     public saveManager: SaveManager;
     public audioManager: AudioManager;
-    public effectManager: EffectManager;
+    public effectManager?: EffectManager;
+    public inputManager?: InputManager;
     public context: GameContext;
 
     public serializableSystems: Map<string, ISerializable>;
@@ -48,7 +48,7 @@ export class Engine {
 
     constructor(
         config: EngineConfig = {},
-        containerElement: HTMLElement,
+        containerElement?: HTMLElement,
         storageAdapter?: StorageAdapter,
         audioSourceAdapter?: AudioSourceAdapter
     ) {
@@ -62,7 +62,7 @@ export class Engine {
 
         this.eventBus = eventBus;
         this.stateManager = new GameStateManager();
-        this.sceneManager = new SceneManager();
+        this.sceneManager = new SceneManager(this.eventBus);
         this.actionRegistry = new ActionRegistry();
         this.serializableSystems = new Map();
         this.migrationFunctions = new Map();
@@ -74,13 +74,11 @@ export class Engine {
         this.frameCount = 0;
 
         this.context = {
-            engine: this,
-            player: undefined,
             flags: new Set<string>(),
             variables: new Map<string, any>(),
         };
 
-        this.saveManager = new SaveManager(this, storageAdapter);
+        this.saveManager = new SaveManager(this.eventBus, this, storageAdapter);
         this.context.saveManager = this.saveManager;
 
         this.registerSerializableSystem('_core', {
@@ -97,8 +95,13 @@ export class Engine {
         this.audioManager = new AudioManager(this.eventBus, audioSourceAdapter, this.config.audioAssets);
         this.context.audio = this.audioManager;
 
-        this.effectManager = new EffectManager(this.context, containerElement);
-        this.context.effects = this.effectManager;
+        if (containerElement) {
+            this.effectManager = new EffectManager(containerElement);
+            this.context.effects = this.effectManager;
+
+            this.inputManager = new InputManager(this.stateManager, this.eventBus);
+            this.context.input = this.inputManager;
+        }
 
         if (this.config.autoSceneMusic) {
             this.setupAutoSceneMusic();
@@ -122,15 +125,27 @@ export class Engine {
         this.migrationFunctions.set(key, migration);
     }
 
+    get gameVersion(): string {
+        return this.config.gameVersion;
+    }
+
+    getCurrentSceneId(): string {
+        return this.sceneManager.getCurrentScene()?.sceneId || '';
+    }
+
+    restoreScene(sceneId: string): void {
+        this.sceneManager.goToScene(sceneId, this.context);
+    }
+
     private setupAutoSceneMusic(): void {
-        this.eventBus.on('scene.changed', (data) => {
+        this.eventBus.on('scene.changed', (data: any) => {
             const scene = this.sceneManager.getScene(data.sceneId);
             if (!scene) return;
 
-            if (scene.data.music) {
-                const musicConfig = typeof scene.data.music === 'string'
-                    ? { track: scene.data.music, loop: true, fadeIn: 1 }
-                    : scene.data.music;
+            if (scene.sceneData.music) {
+                const musicConfig = typeof scene.sceneData.music === 'string'
+                    ? {track: scene.sceneData.music, loop: true, fadeIn: 1}
+                    : scene.sceneData.music;
 
                 if (this.audioManager.getMusicState() === 'playing') {
                     this.audioManager.crossfadeMusic(
@@ -144,11 +159,12 @@ export class Engine {
                         musicConfig.fadeIn || 0
                     );
                 }
-            } else if (scene.data.stopMusic) {
-                this.audioManager.stopMusic(scene.data.musicFadeOut || 1);
+            } else if (scene.sceneData.stopMusic) {
+                this.audioManager.stopMusic(scene.sceneData.musicFadeOut || 1);
             }
         });
     }
+
 
     loadGameData(gameData: GameData): void {
         this.log('Loading game data...');
@@ -185,7 +201,9 @@ export class Engine {
 
         if (!this.isPaused) {
             this.stateManager.update(deltaTime);
-            this.effectManager.update(deltaTime);
+            if (this.effectManager) {
+                this.effectManager.update(deltaTime, this.context);
+            }
             this.stateManager.render(this.context.renderer || null);
         }
 

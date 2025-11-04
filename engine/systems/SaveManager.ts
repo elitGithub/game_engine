@@ -1,12 +1,11 @@
-/**
- * SaveManager - WITH VERSION MIGRATION
- */
-import type { Engine } from '../Engine';
+// engine/systems/SaveManager.ts
 import type { StorageAdapter, SaveSlotMetadata } from '../core/StorageAdapter';
+import type { EventBus } from '../core/EventBus';
 import { LocalStorageAdapter } from './LocalStorageAdapter';
+import type { ISerializable, MigrationFunction } from '../types';
 
 export interface SaveData {
-    version: string; // ← ADD VERSION
+    version: string;
     timestamp: number;
     currentSceneId: string;
     systems: {
@@ -17,12 +16,27 @@ export interface SaveData {
     };
 }
 
+// engine/systems/SaveManager.ts (update interface)
+export interface ISerializationRegistry {
+    serializableSystems: Map<string, ISerializable>;
+    migrationFunctions: Map<string, MigrationFunction>;
+    readonly gameVersion: string;
+    getCurrentSceneId(): string;
+    restoreScene(sceneId: string): void;
+}
+
 export class SaveManager {
-    private engine: Engine;
+    private eventBus: EventBus;
+    private registry: ISerializationRegistry;
     private adapter: StorageAdapter;
 
-    constructor(engine: Engine, adapter?: StorageAdapter) {
-        this.engine = engine;
+    constructor(
+        eventBus: EventBus,
+        registry: ISerializationRegistry,
+        adapter?: StorageAdapter
+    ) {
+        this.eventBus = eventBus;
+        this.registry = registry;
         this.adapter = adapter || new LocalStorageAdapter();
     }
 
@@ -33,7 +47,7 @@ export class SaveManager {
             const success = await this.adapter.save(slotId, json);
 
             if (success) {
-                this.engine.eventBus.emit('save.completed', {
+                this.eventBus.emit('save.completed', {
                     slotId,
                     timestamp: saveData.timestamp
                 });
@@ -42,7 +56,7 @@ export class SaveManager {
             return success;
         } catch (error) {
             console.error('[SaveManager] Save failed:', error);
-            this.engine.eventBus.emit('save.failed', { slotId, error });
+            this.eventBus.emit('save.failed', { slotId, error });
             return false;
         }
     }
@@ -53,39 +67,31 @@ export class SaveManager {
             if (!json) return false;
 
             let saveData: SaveData = JSON.parse(json);
-
-            // ← MIGRATION LOGIC
             saveData = this.migrateIfNeeded(saveData);
-
             this.restoreGameState(saveData);
 
-            this.engine.eventBus.emit('save.loaded', {
+            this.eventBus.emit('save.loaded', {
                 slotId,
                 timestamp: saveData.timestamp
             });
             return true;
         } catch (error) {
             console.error('[SaveManager] Load failed:', error);
-            this.engine.eventBus.emit('save.loadFailed', { slotId, error });
+            this.eventBus.emit('save.loadFailed', { slotId, error });
             return false;
         }
     }
 
-    /**
-     * ← NEW: Migrate save data through registered migration functions
-     */
     private migrateIfNeeded(saveData: SaveData): SaveData {
-        // If no version, assume oldest (pre-versioning)
         const saveVersion = saveData.version || '1.0.0';
-        const currentVersion = this.engine.config.gameVersion;
+        const currentVersion = this.registry.gameVersion;
 
         if (saveVersion === currentVersion) {
-            return saveData; // No migration needed
+            return saveData;
         }
 
         console.log(`[SaveManager] Migrating save from ${saveVersion} to ${currentVersion}`);
 
-        // Apply migrations in order
         let migratedData = saveData;
         const versions = this.getVersionPath(saveVersion, currentVersion);
 
@@ -94,7 +100,7 @@ export class SaveManager {
             const to = versions[i + 1];
             const key = `${from}_to_${to}`;
 
-            const migration = this.engine.migrationFunctions.get(key);
+            const migration = this.registry.migrationFunctions.get(key);
             if (migration) {
                 console.log(`[SaveManager] Applying migration ${key}`);
                 migratedData = migration(migratedData);
@@ -107,21 +113,15 @@ export class SaveManager {
         return migratedData;
     }
 
-    /**
-     * ← NEW: Get version path (e.g., ['1.0.0', '1.1.0', '1.2.0'])
-     * Simple implementation - you may need semver library for complex cases
-     */
     private getVersionPath(from: string, to: string): string[] {
-        // For now, check all registered migrations to build path
         const allVersions = new Set<string>([from, to]);
 
-        this.engine.migrationFunctions.forEach((_, key) => {
+        this.registry.migrationFunctions.forEach((_, key) => {
             const [fromV, toV] = key.split('_to_');
             allVersions.add(fromV);
             allVersions.add(toV);
         });
 
-        // Sort versions (basic string sort - use semver for production)
         const sorted = Array.from(allVersions).sort();
         const fromIndex = sorted.indexOf(from);
         const toIndex = sorted.indexOf(to);
@@ -132,7 +132,7 @@ export class SaveManager {
     async deleteSave(slotId: string): Promise<boolean> {
         const success = await this.adapter.delete(slotId);
         if (success) {
-            this.engine.eventBus.emit('save.deleted', { slotId });
+            this.eventBus.emit('save.deleted', { slotId });
         }
         return success;
     }
@@ -142,10 +142,9 @@ export class SaveManager {
     }
 
     private serializeGameState(metadata?: any): SaveData {
-        const currentScene = this.engine.sceneManager.getCurrentScene();
         const systemsData: { [key: string]: any } = {};
 
-        for (const [key, system] of this.engine.serializableSystems.entries()) {
+        for (const [key, system] of this.registry.serializableSystems.entries()) {
             try {
                 systemsData[key] = system.serialize();
             } catch (error) {
@@ -154,9 +153,9 @@ export class SaveManager {
         }
 
         return {
-            version: this.engine.config.gameVersion, // ← SAVE VERSION
+            version: this.registry.gameVersion,
             timestamp: Date.now(),
-            currentSceneId: currentScene?.id || '',
+            currentSceneId: this.registry.getCurrentSceneId(),
             systems: systemsData,
             metadata: metadata || {}
         };
@@ -165,7 +164,7 @@ export class SaveManager {
     private restoreGameState(saveData: SaveData): void {
         if (saveData.systems) {
             for (const [key, data] of Object.entries(saveData.systems)) {
-                const system = this.engine.serializableSystems.get(key);
+                const system = this.registry.serializableSystems.get(key);
                 if (system) {
                     try {
                         system.deserialize(data);
@@ -179,7 +178,7 @@ export class SaveManager {
         }
 
         if (saveData.currentSceneId) {
-            this.engine.sceneManager.goToScene(saveData.currentSceneId, this.engine.context);
+            this.registry.restoreScene(saveData.currentSceneId);
         }
     }
 }
