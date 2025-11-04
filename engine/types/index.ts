@@ -6,6 +6,7 @@ import type {AudioManager} from '../systems/AudioManager';
 import type {SaveManager} from '../systems/SaveManager';
 import type {InputManager} from '../systems/InputManager';
 import {EventBus} from "@engine/core/EventBus.ts";
+import {AssetManager} from "@engine/systems/AssetManager.ts";
 
 export interface GameConfig {
     debug?: boolean;
@@ -16,6 +17,7 @@ export interface GameConfig {
 export interface GameContext {
     flags: Set<string>;
     variables: Map<string, any>;
+    assets?: AssetManager;
     audio?: AudioManager;
     saveManager?: SaveManager;
     effects?: EffectManager;

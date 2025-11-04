@@ -1,7 +1,6 @@
 // engine/systems/AudioManager.ts
-import type { AudioSourceAdapter, AudioAssetMap } from '../core/AudioSourceAdapter';
-import { LocalAudioSourceAdapter } from './LocalAudioSourceAdapter';
 import type { EventBus } from '../core/EventBus';
+import type { AssetManager } from './AssetManager';
 
 export type MusicState = 'playing' | 'paused' | 'stopped';
 
@@ -23,7 +22,7 @@ interface SFXPool {
 
 export class AudioManager {
     private audioContext: AudioContext;
-    private adapter: AudioSourceAdapter;
+    private assetManager: AssetManager;
     private eventBus: EventBus;
 
     // Gain nodes for volume control
@@ -41,13 +40,15 @@ export class AudioManager {
 
     // State
     private isUnlocked: boolean;
-    private loadedBuffers: Map<string, AudioBuffer>;
 
-    constructor(eventBus: EventBus, adapter?: AudioSourceAdapter, assetMap?: AudioAssetMap) {
-        this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    constructor(
+        eventBus: EventBus,
+        assetManager: AssetManager,
+        audioContext: AudioContext
+    ) {
         this.eventBus = eventBus;
-
-        this.adapter = adapter || new LocalAudioSourceAdapter(this.audioContext, assetMap || {});
+        this.assetManager = assetManager;
+        this.audioContext = audioContext;
 
         // Create gain nodes
         this.masterGain = this.audioContext.createGain();
@@ -66,7 +67,6 @@ export class AudioManager {
         this.musicState = 'stopped';
         this.sfxPools = new Map();
         this.isUnlocked = false;
-        this.loadedBuffers = new Map();
 
         // Set default volumes
         this.setMasterVolume(1.0);
@@ -92,20 +92,6 @@ export class AudioManager {
         } catch (error) {
             console.error('[AudioManager] Failed to unlock audio:', error);
         }
-    }
-
-    async preload(audioIds: string[]): Promise<void> {
-        const promises = audioIds.map(async (id) => {
-            try {
-                const buffer = await this.adapter.load(id);
-                this.loadedBuffers.set(id, buffer);
-            } catch (error) {
-                console.error(`[AudioManager] Failed to preload '${id}':`, error);
-            }
-        });
-
-        await Promise.all(promises);
-        this.eventBus.emit('audio.preloaded', { count: this.loadedBuffers.size });
     }
 
     // ============================================================================
@@ -150,7 +136,10 @@ export class AudioManager {
 
     async playMusic(trackId: string, loop: boolean = true, fadeInDuration: number = 0): Promise<void> {
         try {
-            const buffer = await this.getOrLoadBuffer(trackId);
+            const buffer = this.assetManager.get<AudioBuffer>(trackId);
+            if (!buffer) {
+                throw new Error(`[AudioManager] Asset '${trackId}' not found. Was it preloaded?`);
+            }
 
             if (this.currentMusic) {
                 await this.stopMusic(0);
@@ -193,7 +182,7 @@ export class AudioManager {
         if (!this.currentMusic || this.musicState !== 'playing') return;
 
         const elapsed = this.audioContext.currentTime - this.currentMusic.startTime;
-        this.currentMusic.pausedAt = elapsed;
+        this.currentMusic.pausedAt = elapsed % this.currentMusic.duration; // Store position
 
         if (this.currentMusic.source) {
             this.currentMusic.source.stop();
@@ -209,13 +198,14 @@ export class AudioManager {
 
         const source = this.audioContext.createBufferSource();
         source.buffer = this.currentMusic.buffer;
-        source.loop = true;
+        source.loop = true; // Assuming music always loops, adjust if needed
         source.connect(this.currentMusic.gainNode);
 
-        source.start(0, this.currentMusic.pausedAt);
+        const offset = this.currentMusic.pausedAt;
+        source.start(0, offset);
 
         this.currentMusic.source = source;
-        this.currentMusic.startTime = this.audioContext.currentTime - this.currentMusic.pausedAt;
+        this.currentMusic.startTime = this.audioContext.currentTime - offset;
         this.musicState = 'playing';
 
         this.eventBus.emit('music.resumed', {});
@@ -224,7 +214,6 @@ export class AudioManager {
     async stopMusic(fadeOutDuration: number = 0): Promise<void> {
         if (!this.currentMusic) return;
 
-        // Clear any existing fade-out timer
         if (this.currentMusic.fadeOutTimer !== undefined) {
             clearTimeout(this.currentMusic.fadeOutTimer);
             this.currentMusic.fadeOutTimer = undefined;
@@ -232,6 +221,7 @@ export class AudioManager {
 
         if (fadeOutDuration > 0 && this.currentMusic.source) {
             const currentTime = this.audioContext.currentTime;
+            this.currentMusic.gainNode.gain.setValueAtTime(this.currentMusic.gainNode.gain.value, currentTime);
             this.currentMusic.gainNode.gain.linearRampToValueAtTime(0, currentTime + fadeOutDuration);
 
             this.currentMusic.fadeOutTimer = window.setTimeout(() => {
@@ -255,12 +245,12 @@ export class AudioManager {
     }
 
     async crossfadeMusic(newTrackId: string, duration: number = 2): Promise<void> {
-        if (this.currentMusic) {
-            this.stopMusic(duration);
+        if (this.currentMusic && this.currentMusic.buffer === this.assetManager.get(newTrackId)) {
+            return; // Don't crossfade to the same track
         }
 
+        this.stopMusic(duration);
         await this.playMusic(newTrackId, true, duration);
-
         this.eventBus.emit('music.crossfaded', { newTrackId, duration });
     }
 
@@ -272,7 +262,7 @@ export class AudioManager {
         if (!this.currentMusic) return 0;
 
         if (this.musicState === 'playing') {
-            return this.audioContext.currentTime - this.currentMusic.startTime;
+            return (this.audioContext.currentTime - this.currentMusic.startTime) % this.currentMusic.duration;
         } else if (this.musicState === 'paused') {
             return this.currentMusic.pausedAt;
         }
@@ -284,23 +274,16 @@ export class AudioManager {
         if (!this.currentMusic) return;
 
         const wasPlaying = this.musicState === 'playing';
-
-        if (this.currentMusic.source) {
-            this.currentMusic.source.stop();
+        if (wasPlaying) {
+            this.pauseMusic();
         }
 
-        const source = this.audioContext.createBufferSource();
-        source.buffer = this.currentMusic.buffer;
-        source.loop = true;
-        source.connect(this.currentMusic.gainNode);
-        source.start(0, seconds);
-
-        this.currentMusic.source = source;
-        this.currentMusic.startTime = this.audioContext.currentTime - seconds;
-        this.currentMusic.pausedAt = seconds;
+        const newTime = Math.max(0, seconds) % this.currentMusic.duration;
+        this.currentMusic.pausedAt = newTime;
+        this.currentMusic.startTime = this.audioContext.currentTime - newTime; // This will be used if resumed
 
         if (wasPlaying) {
-            this.musicState = 'playing';
+            this.resumeMusic();
         }
     }
 
@@ -310,14 +293,12 @@ export class AudioManager {
 
     async playSound(soundId: string, volume: number = 1.0): Promise<void> {
         try {
-            const buffer = await this.getOrLoadBuffer(soundId);
-
-            let source = this.getFromPool(soundId);
-
-            if (!source) {
-                source = this.audioContext.createBufferSource();
-                source.buffer = buffer;
+            const buffer = this.assetManager.get<AudioBuffer>(soundId);
+            if (!buffer) {
+                throw new Error(`[AudioManager] Asset '${soundId}' not found. Was it preloaded?`);
             }
+
+            let source = this.getFromPool(soundId, buffer);
 
             const gainNode = this.audioContext.createGain();
             gainNode.gain.value = Math.max(0, Math.min(1, volume));
@@ -326,7 +307,7 @@ export class AudioManager {
             gainNode.connect(this.sfxGain);
 
             source.onended = () => {
-                this.returnToPool(soundId, source!);
+                this.returnToPool(soundId, source);
             };
 
             source.start(0);
@@ -337,7 +318,10 @@ export class AudioManager {
 
     async playVoice(voiceId: string, volume: number = 1.0): Promise<void> {
         try {
-            const buffer = await this.getOrLoadBuffer(voiceId);
+            const buffer = this.assetManager.get<AudioBuffer>(voiceId);
+            if (!buffer) {
+                throw new Error(`[AudioManager] Asset '${voiceId}' not found. Was it preloaded?`);
+            }
 
             const source = this.audioContext.createBufferSource();
             source.buffer = buffer;
@@ -360,55 +344,59 @@ export class AudioManager {
     // SFX POOLING
     // ============================================================================
 
-    private getFromPool(soundId: string): AudioBufferSourceNode | null {
-        const pool = this.sfxPools.get(soundId);
-        if (!pool || pool.available.length === 0) return null;
-
-        return pool.available.pop()!;
-    }
-
-    private returnToPool(soundId: string, source: AudioBufferSourceNode): void {
+    private getFromPool(soundId: string, buffer: AudioBuffer): AudioBufferSourceNode {
         let pool = this.sfxPools.get(soundId);
-
         if (!pool) {
             pool = {
-                buffer: source.buffer!,
+                buffer: buffer,
                 available: [],
                 maxSize: 5
             };
             this.sfxPools.set(soundId, pool);
         }
 
-        if (pool.available.length < pool.maxSize) {
-            const newSource = this.audioContext.createBufferSource();
-            newSource.buffer = pool.buffer;
-            pool.available.push(newSource);
+        if (pool.available.length > 0) {
+            return pool.available.pop()!;
         }
+
+        // Create a new one if pool is empty
+        const source = this.audioContext.createBufferSource();
+        source.buffer = buffer;
+        return source;
+    }
+
+    private returnToPool(soundId: string, source: AudioBufferSourceNode): void {
+        const pool = this.sfxPools.get(soundId);
+
+        // Disconnect to prevent memory leaks
+        source.disconnect();
+        source.onended = null;
+
+        if (pool && pool.available.length < pool.maxSize) {
+            pool.available.push(source);
+        }
+        // If pool is full, the source node is just left for garbage collection.
     }
 
     // ============================================================================
     // HELPERS
     // ============================================================================
 
-    private async getOrLoadBuffer(audioId: string): Promise<AudioBuffer> {
-        if (this.loadedBuffers.has(audioId)) {
-            return this.loadedBuffers.get(audioId)!;
-        }
-
-        const buffer = await this.adapter.load(audioId);
-        this.loadedBuffers.set(audioId, buffer);
-        return buffer;
+    public getAudioContext(): AudioContext {
+        return this.audioContext;
     }
 
     stopAll(): void {
         this.stopMusic(0);
+        // TODO: Add logic to stop all active SFX/voice if needed
         this.eventBus.emit('audio.allStopped', {});
     }
 
     dispose(): void {
         this.stopAll();
         this.sfxPools.clear();
-        this.loadedBuffers.clear();
-        this.audioContext.close();
+        if (this.audioContext.state !== 'closed') {
+            this.audioContext.close();
+        }
     }
 }
