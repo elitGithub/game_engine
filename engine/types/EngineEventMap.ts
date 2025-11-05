@@ -31,6 +31,7 @@ export interface SceneChoice {
 
     [key: string]: any;
 }
+
 export interface ScenesDataMap {
     [sceneId: string]: SceneData;
 }
@@ -111,4 +112,20 @@ export interface EngineEventMap {
     'clock.dayChanged': { day: number; previousDay: number };
     'clock.timeOfDayChanged': { rangeName: string | null; previousRange: string | null };
     'clock.advanced': { units: number; currentUnit: number; currentDay: number };
+
+    // *** NEW: InventoryManagerPlugin ***
+    'inventory.item.added': {
+        itemId: string;
+        quantityAdded: number;
+        newTotal: number;
+    };
+    'inventory.item.removed': {
+        itemId: string;
+        quantityRemoved: number;
+        newTotal: number;
+    };
+    'inventory.add.failed.full': {
+        itemId: string;
+        quantityAttempted: number;
+    };
 }

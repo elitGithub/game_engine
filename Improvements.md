@@ -68,6 +68,6 @@ This document outlines the planned tasks for enhancing the game engine, separati
 * \[x\] **Implement a Game Clock / Time System**  
   * **Task:** Create a GameClockManager (as a plugin).  
   * **Explanation:** This system manages an internal clock. Actions or Scene transitions can advance the clock. This manager emits events via the EventBus (like 'dayNightChange').  
-* \[ \] **Implement a Generic Inventory/Item System**  
+* \[x\] **Implement a Generic Inventory/Item System**  
   * **Task:** Create a basic InventoryManager plugin and Item base interface.  
   * **Explanation:** This manager would handle the *logic* of adding, removing, and checking for items in a collection, separate from any specific Player class. It should use the CollectionTracker utility as its backend.
