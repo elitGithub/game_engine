@@ -4,6 +4,7 @@
  * Provides decoupled access to engine systems using symbol-based keys.
  * Replaces the "god object" pattern with controlled dependency management.
  */
+import {RenderManager} from "@engine/core/RenderManager.ts";
 
 export class SystemRegistry {
     private systems = new Map<symbol, any>();
@@ -77,7 +78,7 @@ export const SYSTEMS = {
     EffectManager: Symbol('EffectManager'),
     InputManager: Symbol('InputManager'),
     PluginManager: Symbol('PluginManager'),
-    Renderer: Symbol('Renderer'),
+    RenderManager: Symbol('RenderManager'),
 } as const;
 
 /**

@@ -5,19 +5,20 @@
  * Systems are created in the correct order to satisfy dependencies.
  */
 
-import { EventBus } from '../core/EventBus';
-import { AssetManager } from '../systems/AssetManager';
-import { AudioManager } from '../systems/AudioManager';
-import { GameStateManager } from '../core/GameStateManager';
-import { SceneManager } from '../systems/SceneManager';
-import { ActionRegistry } from '../systems/ActionRegistry';
-import { EffectManager } from '../systems/EffectManager';
-import { InputManager } from '../systems/InputManager';
-import { PluginManager } from '../core/PluginManager';
-import { ImageLoader } from '../systems/asset_loaders/ImageLoader';
-import { AudioLoader } from '../systems/asset_loaders/AudioLoader';
-import type { SystemRegistry } from './SystemRegistry';
-import { SYSTEMS } from './SystemRegistry';
+import {EventBus} from '../core/EventBus';
+import {AssetManager} from '../systems/AssetManager';
+import {AudioManager} from '../systems/AudioManager';
+import {GameStateManager} from '../core/GameStateManager';
+import {SceneManager} from '../systems/SceneManager';
+import {ActionRegistry} from '../systems/ActionRegistry';
+import {EffectManager} from '../systems/EffectManager';
+import {InputManager} from '../systems/InputManager';
+import {PluginManager} from '../core/PluginManager';
+import {ImageLoader} from '../systems/asset_loaders/ImageLoader';
+import {AudioLoader} from '../systems/asset_loaders/AudioLoader';
+import type {SystemRegistry} from './SystemRegistry';
+import {SYSTEMS} from './SystemRegistry';
+import {RenderManager} from "@engine/core/RenderManager.ts";
 
 /**
  * System configuration options
@@ -136,6 +137,24 @@ export class SystemFactory {
         if (config.effects !== false && containerElement) {
             const effectManager = new EffectManager(containerElement);
             registry.register(SYSTEMS.EffectManager, effectManager);
+        }
+
+        // Renderer (depends on: EventBus, AssetManager, SystemRegistry, containerElement)
+        if (config.renderer && containerElement) {
+            if (!registry.has(SYSTEMS.AssetManager)) {
+                throw new Error('[SystemFactory] Renderer requires AssetManager. Enable assets in config.');
+            }
+            const eventBus = registry.get<EventBus>(SYSTEMS.EventBus);
+
+            // RenderManager needs the registry to get AssetManager, so we pass it
+            const renderManager = new RenderManager(
+                config.renderer,
+                eventBus,
+                containerElement,
+                registry // Pass the whole registry as the file expects
+            );
+
+            registry.register(SYSTEMS.Renderer, renderManager);
         }
 
         // InputManager (depends on: StateManager, EventBus)

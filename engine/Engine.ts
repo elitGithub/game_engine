@@ -1,6 +1,4 @@
-// engine/Engine.ts - REFACTORED VERSION
 import type {
-    GameConfig,
     GameContext,
     GameData,
     StateData,
@@ -43,8 +41,8 @@ export interface EngineConfig<TGame> {
  *       gameState: myGameState
  *   });
  *
- *   await engine.audio.playSound('click');  // ← Full autocomplete!
- *   engine.context.game.player.health -= 10;  // ← Type-safe!
+ *   await engine.audio.playSound('click');
+ *   engine.context.game.player.health -= 10;
  */
 export class Engine<TGame = Record<string, any>> implements ISerializationRegistry {
     public readonly config: Required<Pick<EngineConfig<TGame>, 'debug' | 'targetFPS' | 'gameVersion'>>;
@@ -164,6 +162,10 @@ export class Engine<TGame = Record<string, any>> implements ISerializationRegist
         }
         if (this.registry.has(SYSTEMS.InputManager)) {
             ctx.input = this.registry.get(SYSTEMS.InputManager);
+        }
+
+        if (this.registry.has(SYSTEMS.RenderManager)) {
+            ctx.renderer = this.registry.get(SYSTEMS.RenderManager);
         }
     }
 
