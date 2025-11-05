@@ -1,7 +1,8 @@
 // engine/systems/SceneManager.ts
-import type { ScenesDataMap, GameContext } from '@engine/types';
+import type { GameContext } from '@engine/types';
 import { Scene } from './Scene';
 import type { EventBus } from '../core/EventBus';
+import {ScenesDataMap} from "@engine/types/EngineEventMap";
 
 type SceneFactory = (id: string, type: string, data: any) => Scene;
 

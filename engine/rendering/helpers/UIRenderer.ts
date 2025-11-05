@@ -183,7 +183,7 @@ export class UIRenderer {
         }
 
         // 3. Menu Items (Buttons)
-        const itemStyle = {
+        const itemStyle: TextStyleData = {
             font: '18px Arial',
             color: 'white',
             align: 'left',
