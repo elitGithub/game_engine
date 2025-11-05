@@ -13,7 +13,7 @@ import type {
     TouchMoveEvent,
     TouchStartEvent,
 } from '@engine/core/InputEvents';
-import {InputMode} from "@engine/systems/InputManager.ts";
+import {InputMode} from "@engine/systems/InputManager";
 
 // --- GameData definitions (moved from index.ts) ---
 // We move these here because 'game.data.loaded' depends on GameData,
