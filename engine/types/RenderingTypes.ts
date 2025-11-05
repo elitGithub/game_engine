@@ -7,8 +7,8 @@ export interface IRenderer {
 }
 
 export interface TextStyleData {
-  font?: string;           // e.g., "16px Arial"
-  color?: string;          // e.g., "#fff"
+  font?: string;
+  color?: string;
   align?: 'left' | 'center' | 'right';
   bold?: boolean;
   italic?: boolean;
@@ -17,9 +17,20 @@ export interface TextStyleData {
 export type RenderCommand =
   | { type: 'clear' }
   | {
-      type: 'image' | 'sprite';
+      type: 'image';
       id: string;
-      assetId: string;           // Reference to AssetManager
+      assetId: string;
+      x: number;
+      y: number;
+      width?: number;
+      height?: number;
+      fit?: 'cover' | 'contain' | 'fill';
+      zIndex?: number;
+    }
+  | {
+      type: 'sprite';
+      id: string;
+      assetId: string;
       x: number;
       y: number;
       width?: number;
@@ -36,6 +47,7 @@ export type RenderCommand =
       zIndex?: number;
     }
   | {
+      /** Renders a simple colored rectangle */
       type: 'rect';
       id: string;
       x: number;
@@ -47,22 +59,13 @@ export type RenderCommand =
       zIndex?: number;
     }
   | {
-      type: 'dialogue';
-      id: string;
-      lines: { speaker?: string; text: string }[];
-      x: number;
-      y: number;
-      style?: TextStyleData;
-      typewriter?: boolean;
-      zIndex?: number;
-    }
-  | {
       type: 'hotspot';
       id: string;
       x: number;
       y: number;
       width: number;
       height: number;
-      onClick: 'input.click';  // keyof EngineEventMap
+      action: string;
       zIndex?: number;
     };
+
