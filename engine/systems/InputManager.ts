@@ -1,6 +1,6 @@
 // engine/systems/InputManager.ts
-import type { GameStateManager } from '../core/GameStateManager';
-import type { EventBus } from '../core/EventBus';
+import type {GameStateManager} from '../core/GameStateManager';
+import type {EventBus} from '../core/EventBus';
 import type {
     EngineInputEvent,
     KeyDownEvent,
@@ -52,7 +52,7 @@ export class InputManager {
     private actions: Map<string, InputAction>;
 
     private inputBuffer: BufferedInput[];
-    private bufferSize: number;
+    private readonly bufferSize: number;
     private combos: Map<string, InputCombo>;
 
     private gamepadPollingInterval: number | null;
@@ -68,7 +68,7 @@ export class InputManager {
         this.state = {
             keysDown: new Set(),
             mouseButtonsDown: new Set(),
-            mousePosition: { x: 0, y: 0 },
+            mousePosition: {x: 0, y: 0},
             touchPoints: new Map(),
             gamepadStates: new Map()
         };
@@ -203,7 +203,7 @@ export class InputManager {
 
         this.addToBuffer(e.key);
         this.dispatchEvent(event, true);
-        this.checkActionTriggers('key', e.key, { shift: e.shiftKey, ctrl: e.ctrlKey, alt: e.altKey, meta: e.metaKey });
+        this.checkActionTriggers('key', e.key, {shift: e.shiftKey, ctrl: e.ctrlKey, alt: e.altKey, meta: e.metaKey});
     }
 
     private onKeyUp(e: KeyboardEvent): void {
@@ -248,7 +248,12 @@ export class InputManager {
 
         this.addToBuffer(`mouse${e.button}`);
         this.dispatchEvent(event, true);
-        this.checkActionTriggers('mouse', e.button, { shift: e.shiftKey, ctrl: e.ctrlKey, alt: e.altKey, meta: e.metaKey });
+        this.checkActionTriggers('mouse', e.button, {
+            shift: e.shiftKey,
+            ctrl: e.ctrlKey,
+            alt: e.altKey,
+            meta: e.metaKey
+        });
     }
 
     private onMouseUp(e: MouseEvent): void {
@@ -277,7 +282,7 @@ export class InputManager {
         const deltaX = e.clientX - this.state.mousePosition.x;
         const deltaY = e.clientY - this.state.mousePosition.y;
 
-        this.state.mousePosition = { x: e.clientX, y: e.clientY };
+        this.state.mousePosition = {x: e.clientX, y: e.clientY};
 
         const event: MouseMoveEvent = {
             type: 'mousemove',
@@ -310,7 +315,10 @@ export class InputManager {
 
     private onClick(e: MouseEvent): void {
         if (!this.enabled) return;
-
+        const target = e.target as HTMLElement;
+        if (target?.dataset?.action) {
+            this.eventBus.emit('input.action', {action: target.dataset.action});
+        }
         const event: ClickEvent = {
             type: 'click',
             timestamp: Date.now(),
@@ -331,7 +339,7 @@ export class InputManager {
         if (!this.enabled) return;
 
         const touches = Array.from(e.touches).map(t => {
-            this.state.touchPoints.set(t.identifier, { x: t.clientX, y: t.clientY });
+            this.state.touchPoints.set(t.identifier, {x: t.clientX, y: t.clientY});
             return {
                 id: t.identifier,
                 x: t.clientX,
@@ -354,7 +362,7 @@ export class InputManager {
         if (!this.enabled) return;
 
         const touches = Array.from(e.touches).map(t => {
-            this.state.touchPoints.set(t.identifier, { x: t.clientX, y: t.clientY });
+            this.state.touchPoints.set(t.identifier, {x: t.clientX, y: t.clientY});
             return {
                 id: t.identifier,
                 x: t.clientX,
@@ -415,7 +423,7 @@ export class InputManager {
             };
 
             gamepad.buttons.forEach((button, index) => {
-                currentState.buttons.set(index, { pressed: button.pressed, value: button.value });
+                currentState.buttons.set(index, {pressed: button.pressed, value: button.value});
 
                 const wasPressed = lastState?.buttons.get(index)?.pressed || false;
 
@@ -483,7 +491,7 @@ export class InputManager {
     }
 
     getMousePosition(): { x: number; y: number } {
-        return { ...this.state.mousePosition };
+        return {...this.state.mousePosition};
     }
 
     getTouchPoints(): Array<{ id: number; x: number; y: number }> {
@@ -506,7 +514,7 @@ export class InputManager {
     // ============================================================================
 
     registerAction(name: string, bindings: InputBinding[]): void {
-        this.actions.set(name, { name, bindings });
+        this.actions.set(name, {name, bindings});
     }
 
     isActionTriggered(actionName: string): boolean {
@@ -553,7 +561,7 @@ export class InputManager {
             });
 
             if (triggered) {
-                this.eventBus.emit('input.action', { action: name });
+                this.eventBus.emit('input.action', {action: name});
             }
         });
     }
@@ -574,13 +582,13 @@ export class InputManager {
     }
 
     registerCombo(name: string, inputs: string[], timeWindow: number = 1000): void {
-        this.combos.set(name, { inputs, timeWindow });
+        this.combos.set(name, {inputs, timeWindow});
     }
 
     private checkCombos(): void {
         this.combos.forEach((combo, name) => {
             if (this.isComboTriggered(combo)) {
-                this.eventBus.emit('input.combo', { combo: name });
+                this.eventBus.emit('input.combo', {combo: name});
             }
         });
     }
@@ -623,7 +631,7 @@ export class InputManager {
 
     setInputMode(mode: InputMode): void {
         this.currentMode = mode;
-        this.eventBus.emit('input.modeChanged', { mode });
+        this.eventBus.emit('input.modeChanged', {mode});
     }
 
     getInputMode(): InputMode {

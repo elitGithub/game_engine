@@ -1,145 +1,68 @@
 /**
- * TypewriterEffect - Handles animated text reveal
+ * TypewriterEffect - Handles animated text reveal as a dynamic effect
  */
-import type { TypewriterConfig } from '@engine/types';
+import type { IDynamicEffect, GameContext } from '@engine/types';
 
-export class TypewriterEffect {
-    private config: Required<TypewriterConfig>;
-    public isTyping: boolean;
-    public isSkipping: boolean;
-    private currentAnimation: number | null;
-    private skipKeyPressed: boolean;
-    private handleKeyDown: (e: KeyboardEvent) => void;
-    private handleKeyUp: (e: KeyboardEvent) => void;
+export class TypewriterEffect implements IDynamicEffect {
+    private fullText: string = '';
+    private currentAnimation: number | null = null;
+    private charIndex: number = 0;
 
-    constructor(config: TypewriterConfig = {}) {
-        this.config = {
-            charsPerSecond: config.charsPerSecond || 30,
-            punctuationDelay: config.punctuationDelay || 200,
-            skipKey: config.skipKey || ' ',
-            skipMultiplier: config.skipMultiplier || 10
-        };
+    // Configurable (or could be passed via context)
+    private charsPerSecond: number = 30;
+    private punctuationDelay: number = 200;
 
-        this.isTyping = false;
-        this.isSkipping = false;
-        this.currentAnimation = null;
-        this.skipKeyPressed = false;
-
-        // Bind key handlers
-        this.handleKeyDown = (e: KeyboardEvent) => {
-            if (e.key === this.config.skipKey && this.isTyping) {
-                this.isSkipping = true;
-                this.skipKeyPressed = true;
-            }
-        };
-
-        this.handleKeyUp = (e: KeyboardEvent) => {
-            if (e.key === this.config.skipKey) {
-                this.isSkipping = false;
-                this.skipKeyPressed = false;
-            }
-        };
-    }
-
-    /**
-     * Start listening for skip input
-     */
-    enableSkip(): void {
-        document.addEventListener('keydown', this.handleKeyDown);
-        document.addEventListener('keyup', this.handleKeyUp);
-    }
-
-    /**
-     * Stop listening for skip input
-     */
-    disableSkip(): void {
-        document.removeEventListener('keydown', this.handleKeyDown);
-        document.removeEventListener('keyup', this.handleKeyUp);
-    }
-
-    /**
-     * Animate text reveal
-     */
-    async animate(
-        element: HTMLElement, 
-        text: string, 
-        options: Partial<TypewriterConfig> = {}
-    ): Promise<void> {
-        // Stop any existing animation
-        this.stop();
-
-        const speed = options.charsPerSecond || this.config.charsPerSecond;
-        const skipMultiplier = options.skipMultiplier || this.config.skipMultiplier;
-        
-        this.isTyping = true;
+    onStart(element: HTMLElement, context: GameContext<any>): void {
+        this.fullText = element.textContent || '';
         element.textContent = '';
+        this.charIndex = 0;
 
-        return new Promise((resolve) => {
-            let charIndex = 0;
-            
-            const typeNextChar = () => {
-                if (!this.isTyping || charIndex >= text.length) {
-                    this.isTyping = false;
-                    this.isSkipping = false;
-                    resolve();
-                    return;
-                }
-
-                // Add next character
-                element.textContent += text[charIndex];
-                const currentChar = text[charIndex];
-                charIndex++;
-
-                // Calculate delay
-                const baseDelay = 1000 / speed;
-                let delay = this.isSkipping ? baseDelay / skipMultiplier : baseDelay;
-
-                // Pause on punctuation (unless skipping)
-                if (!this.isSkipping && this.isPunctuation(currentChar)) {
-                    delay += this.config.punctuationDelay;
-                }
-
-                this.currentAnimation = window.setTimeout(typeNextChar, delay);
-            };
-
-            typeNextChar();
-        });
+        this.stop(); // Clear any previous timer
+        this.typeNextChar(element);
     }
 
-    /**
-     * Instantly complete current animation
-     */
-    complete(element: HTMLElement | null, fullText: string): void {
+    private typeNextChar(element: HTMLElement): void {
+        if (this.charIndex >= this.fullText.length) {
+            this.currentAnimation = null;
+            return;
+        }
+
+        // Add next character
+        const currentChar = this.fullText[this.charIndex];
+        element.textContent += currentChar;
+        this.charIndex++;
+
+        // Calculate delay
+        let delay = 1000 / this.charsPerSecond;
+        if (this.isPunctuation(currentChar)) {
+            delay += this.punctuationDelay;
+        }
+
+        this.currentAnimation = window.setTimeout(() => {
+            this.typeNextChar(element);
+        }, delay);
+    }
+
+    onUpdate(element: HTMLElement, context: GameContext<any>, deltaTime: number): void {
+        // No-op, we are using setTimeout for simplicity.
+        // A more robust implementation would use deltaTime.
+    }
+
+    onStop(element: HTMLElement, context: GameContext<any>): void {
         this.stop();
         if (element) {
-            element.textContent = fullText;
+            element.textContent = this.fullText;
         }
     }
 
-    /**
-     * Stop current animation
-     */
-    stop(): void {
-        this.isTyping = false;
-        this.isSkipping = false;
+    private stop(): void {
         if (this.currentAnimation !== null) {
             clearTimeout(this.currentAnimation);
             this.currentAnimation = null;
         }
     }
 
-    /**
-     * Check if character is punctuation
-     */
     private isPunctuation(char: string): boolean {
         return /[.!?,;:]/.test(char);
-    }
-
-    /**
-     * Clean up
-     */
-    dispose(): void {
-        this.stop();
-        this.disableSkip();
     }
 }

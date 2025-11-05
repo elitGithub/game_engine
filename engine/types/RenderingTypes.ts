@@ -2,7 +2,7 @@ export interface IRenderer {
   init(container: HTMLElement): void;
   clear(): void;
   flush(commands: RenderCommand[]): void;
-  resize(width: number, height: number): void;
+  resize?(width: number, height: number): void;
   dispose(): void;
 }
 
