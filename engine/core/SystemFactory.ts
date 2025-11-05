@@ -146,8 +146,5 @@ export class SystemFactory {
             const inputManager = new InputManager(stateManager, eventBus);
             registry.register(SYSTEMS.InputManager, inputManager);
         }
-
-        // Note: SaveManager is created later in Engine after Engine itself is available
-        // (it needs ISerializationRegistry which Engine implements)
     }
 }
