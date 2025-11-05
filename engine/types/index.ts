@@ -8,6 +8,8 @@ import type {InputManager} from '../systems/InputManager';
 import {EventBus} from "@engine/core/EventBus.ts";
 import {AssetManager} from "@engine/systems/AssetManager.ts";
 import {EngineEventMap} from "@engine/types/EngineEventMap.ts";
+import {IRenderer} from "@engine/rendering/IRenderer.ts";
+import {RenderCommand} from "@engine/types/RenderingTypes.ts";
 
 export interface GameConfig {
     debug?: boolean;
@@ -24,7 +26,8 @@ export interface GameContext<TGame = Record<string, any>> {
     saveManager?: SaveManager;
     effects?: EffectManager;
     input?: InputManager;
-    renderer?: any;
+    renderQueue: RenderCommand[];
+    renderer?: IRenderer;  // Wired readonly
 
     [key: string]: any;
 }
@@ -208,4 +211,5 @@ export interface BaseItem {
  * }
  * }
  */
-export interface EventMap extends EngineEventMap {}
+export interface EventMap extends EngineEventMap {
+}

@@ -34,6 +34,7 @@ export interface SystemConfig {
     };
     effects?: boolean;
     input?: boolean;
+    renderer?: { type: 'canvas' | 'dom' | 'svelte' };  // Extend as needed
 }
 
 /**

@@ -77,6 +77,7 @@ export const SYSTEMS = {
     EffectManager: Symbol('EffectManager'),
     InputManager: Symbol('InputManager'),
     PluginManager: Symbol('PluginManager'),
+    Renderer: Symbol('Renderer'),
 } as const;
 
 /**
