@@ -1,10 +1,11 @@
 // engine/rendering/helpers/TextRenderer.ts
-import type { SceneChoice } from '@engine/types';
+
 import type { RenderCommand } from '@engine/types/RenderingTypes';
 import type { DialogueLine } from '../DialogueLine';
 import type { SpeakerRegistry } from '../SpeakerRegistry';
 import { DialogueLayoutHelper } from './DialogueLayoutHelper';
 import { ChoiceLayoutHelper } from './ChoiceLayoutHelper';
+import {SceneChoice} from "@engine/types/EngineEventMap";
 
 /**
  * TextRenderer - "Smart Helper" / "Central Entry Point"

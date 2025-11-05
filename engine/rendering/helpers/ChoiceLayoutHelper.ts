@@ -1,7 +1,8 @@
 // engine/rendering/helpers/ChoiceLayoutHelper.ts
 
-import type { SceneChoice } from '../../types';
+
 import type { RenderCommand } from '../../types/RenderingTypes';
+import {SceneChoice} from "@engine/types/EngineEventMap";
 
 /**
  * ChoiceLayoutHelper - "Command Factory"

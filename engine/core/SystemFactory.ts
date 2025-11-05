@@ -18,8 +18,8 @@ import {ImageLoader} from '../systems/asset_loaders/ImageLoader';
 import {AudioLoader} from '../systems/asset_loaders/AudioLoader';
 import type {SystemRegistry} from './SystemRegistry';
 import {SYSTEMS} from './SystemRegistry';
-import {RenderManager} from "@engine/core/RenderManager.ts";
-import {JsonLoader} from "@engine/systems/asset_loaders/JsonLoader.ts";
+import {RenderManager} from "@engine/core/RenderManager";
+import {JsonLoader} from "@engine/systems/asset_loaders/JsonLoader";
 
 /**
  * System configuration options
@@ -156,7 +156,7 @@ export class SystemFactory {
                 registry // Pass the whole registry as the file expects
             );
 
-            registry.register(SYSTEMS.Renderer, renderManager);
+            registry.register(SYSTEMS.RenderManager, renderManager);
         }
 
         // InputManager (depends on: StateManager, EventBus)

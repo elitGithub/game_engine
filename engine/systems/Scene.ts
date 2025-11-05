@@ -1,7 +1,8 @@
 /**
  * Scene - Base class for all game scenes
  */
-import type {GameContext, SceneChoice, SceneData} from '@engine/types';
+import type {GameContext} from '@engine/types';
+import {SceneChoice, SceneData} from "@engine/types/EngineEventMap";
 
 export class Scene {
 

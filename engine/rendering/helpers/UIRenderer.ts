@@ -1,9 +1,10 @@
 // engine/rendering/helpers/UIRenderer.ts
 import type { RenderCommand, TextStyleData } from '@engine/types/RenderingTypes';
-import type { GameContext, SceneChoice } from '@engine/types';
+import type { GameContext } from '@engine/types';
 import type { DialogueLine } from '../DialogueLine';
 import type { SpeakerRegistry } from '../SpeakerRegistry';
 import { TextRenderer } from './TextRenderer';
+import {SceneChoice} from "@engine/types/EngineEventMap";
 
 /**
  * Defines the contract for a menu button.
