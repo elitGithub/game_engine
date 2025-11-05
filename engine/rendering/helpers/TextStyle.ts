@@ -66,41 +66,13 @@ export class TextStyle {
 
     /**
      * Apply this style to a DOM element
+     *
+     * !!! DELETED !!!
+     * This logic is renderer-specific and DOM-coupled.
+     * The new TextRenderer helper converts this class to TextStyleData.
+     * The DomRenderer itself implements its own 'applyTextStyle'.
      */
-    apply(element: HTMLElement): void {
-        element.style.fontFamily = this.fontFamily;
-        element.style.fontSize = this.fontSize;
-        element.style.fontWeight = this.fontWeight;
-        element.style.fontStyle = this.fontStyle;
-        element.style.lineHeight = this.lineHeight;
-        element.style.letterSpacing = this.letterSpacing;
-        element.style.color = this.color;
-        element.style.backgroundColor = this.backgroundColor;
-        element.style.textAlign = this.textAlign;
-        element.style.textTransform = this.textTransform;
-        element.style.textDecoration = this.textDecoration;
-        element.style.textShadow = this.textShadow;
-        element.style.margin = this.margin;
-        element.style.padding = this.padding;
-        element.style.border = this.border;
-        element.style.borderRadius = this.borderRadius;
-        element.style.position = this.position;
-        element.style.top = this.top;
-        element.style.right = this.right;
-        element.style.bottom = this.bottom;
-        element.style.left = this.left;
-        element.style.width = this.width;
-        element.style.maxWidth = this.maxWidth;
-        element.style.transition = this.transition;
-        element.style.animation = this.animation;
-        element.style.boxShadow = this.boxShadow;
-        element.style.opacity = this.opacity;
-
-        // Apply custom CSS
-        Object.entries(this.customCSS).forEach(([prop, value]) => {
-            (element.style as any)[prop] = value;
-        });
-    }
+    // apply(element: HTMLElement): void { ... }
 
     /**
      * Clone this style

@@ -1,24 +1,25 @@
-// engine/systems/EffectManager.ts
-import type { GameContext, IDynamicEffect, IGlobalEffect, EffectStep } from '@engine/types';
-import type { SpriteRenderer } from '../rendering/SpriteRenderer';
+import type { GameContext, EffectStep } from '@engine/types';
+import type { IEffectTarget, IDynamicEffect, IGlobalEffect } from '@engine/types/EffectTypes';
 
 type ActiveDynamicEffect = {
     name: string;
     logic: IDynamicEffect;
+    target: IEffectTarget; // Store the target
 };
 
 export class EffectManager {
     private container: HTMLElement;
 
     // Registries
-    private staticEffects: Map<string, string | string[]>;
-    private dynamicEffects: Map<string, IDynamicEffect>;
-    private globalEffects: Map<string, IGlobalEffect>;
+    private staticEffects: Map<string, string | string[]>; // DOM-only
+    private dynamicEffects: Map<string, IDynamicEffect>; // Generic
+    private globalEffects: Map<string, IGlobalEffect>; // Generic
 
     // Active effect trackers
-    private activeDynamicEffects: Map<HTMLElement, ActiveDynamicEffect[]>;
+    // Use target.id as the key
+    private activeDynamicEffects: Map<string, ActiveDynamicEffect[]>;
     private activeGlobalEffects: Map<string, IGlobalEffect>;
-    private timedEffects: Map<HTMLElement, number[]>;
+    private timedEffects: Map<string, number[]>; // Keyed by target.id
 
     constructor(container: HTMLElement) {
         this.container = container;
@@ -33,9 +34,9 @@ export class EffectManager {
     }
 
     update(deltaTime: number, context: GameContext): void {
-        this.activeDynamicEffects.forEach((effects, element) => {
+        this.activeDynamicEffects.forEach((effects) => {
             effects.forEach(effect => {
-                effect.logic.onUpdate(element, context, deltaTime);
+                effect.logic.onUpdate(effect.target, context, deltaTime);
             });
         });
 
@@ -60,27 +61,39 @@ export class EffectManager {
 
     // --- ELEMENT-BASED EFFECTS ---
 
-    apply(element: HTMLElement, effectName: string, context: GameContext, duration?: number): Promise<void> {
-        if (!element) return Promise.resolve();
+    /**
+     * Applies an effect to a generic, abstract target.
+     * The caller is responsible for creating the IEffectTarget.
+     */
+    apply(target: IEffectTarget, effectName: string, context: GameContext, duration?: number): Promise<void> {
+        if (!target) return Promise.resolve();
+
+        const targetId = target.id;
 
         if (this.dynamicEffects.has(effectName)) {
             const logic = this.dynamicEffects.get(effectName)!;
 
-            if (!this.activeDynamicEffects.has(element)) {
-                this.activeDynamicEffects.set(element, []);
+            if (!this.activeDynamicEffects.has(targetId)) {
+                this.activeDynamicEffects.set(targetId, []);
             }
 
-            const existing = this.activeDynamicEffects.get(element)!;
+            const existing = this.activeDynamicEffects.get(targetId)!;
             if (existing.some(e => e.name === effectName)) {
-                return Promise.resolve();
+                return Promise.resolve(); // Effect already active
             }
 
-            logic.onStart(element, context);
-            existing.push({ name: effectName, logic });
+            logic.onStart(target, context);
+            existing.push({ name: effectName, logic, target });
 
         } else if (this.staticEffects.has(effectName)) {
-            const cssClass = this.staticEffects.get(effectName)!;
-            element.classList.add(...(Array.isArray(cssClass) ? cssClass : [cssClass]));
+            // Static effects are DOM-ONLY. We must check the target.
+            const element = target.getRaw() as HTMLElement;
+            if (element && typeof element.classList === 'object') {
+                const cssClass = this.staticEffects.get(effectName)!;
+                element.classList.add(...(Array.isArray(cssClass) ? cssClass : [cssClass]));
+            } else {
+                console.warn(`[EffectManager] Static effect '${effectName}' can only be applied to DOM targets.`);
+            }
 
         } else {
             console.warn(`[EffectManager] Effect '${effectName}' not registered.`);
@@ -90,9 +103,9 @@ export class EffectManager {
         if (duration) {
             return new Promise(resolve => {
                 const timerId = window.setTimeout(() => {
-                    this.remove(element, effectName, context);
+                    this.remove(target, effectName, context);
 
-                    const timers = this.timedEffects.get(element);
+                    const timers = this.timedEffects.get(targetId);
                     if (timers) {
                         const index = timers.indexOf(timerId);
                         if (index > -1) timers.splice(index, 1);
@@ -100,65 +113,54 @@ export class EffectManager {
                     resolve();
                 }, duration);
 
-                if (!this.timedEffects.has(element)) {
-                    this.timedEffects.set(element, []);
+                if (!this.timedEffects.has(targetId)) {
+                    this.timedEffects.set(targetId, []);
                 }
-                this.timedEffects.get(element)!.push(timerId);
+                this.timedEffects.get(targetId)!.push(timerId);
             });
         }
 
         return Promise.resolve();
     }
 
-    remove(element: HTMLElement, effectName: string, context: GameContext): void {
-        if (!element) return;
+    remove(target: IEffectTarget, effectName: string, context: GameContext): void {
+        if (!target) return;
+        const targetId = target.id;
 
         if (this.dynamicEffects.has(effectName)) {
-            const active = this.activeDynamicEffects.get(element);
+            const active = this.activeDynamicEffects.get(targetId);
             if (active) {
                 const effectIndex = active.findIndex(e => e.name === effectName);
                 if (effectIndex > -1) {
                     const [removedEffect] = active.splice(effectIndex, 1);
-                    removedEffect.logic.onStop(element, context);
+                    removedEffect.logic.onStop(target, context);
                 }
                 if (active.length === 0) {
-                    this.activeDynamicEffects.delete(element);
+                    this.activeDynamicEffects.delete(targetId);
                 }
             }
 
         } else if (this.staticEffects.has(effectName)) {
-            const cssClass = this.staticEffects.get(effectName)!;
-            element.classList.remove(...(Array.isArray(cssClass) ? cssClass : [cssClass]));
-        }
-    }
-
-    applyToSprite(spriteId: string, effectName: string, context: GameContext, duration?: number): Promise<void> {
-        const renderer = context.renderer as SpriteRenderer;
-        if (renderer && typeof renderer.getSprite === 'function') {
-            const spriteElement = renderer.getSprite(spriteId);
-            if (spriteElement) {
-                return this.apply(spriteElement, effectName, context, duration);
-            } else {
-                console.warn(`[EffectManager] Sprite '${spriteId}' not found in renderer.`);
+            const element = target.getRaw() as HTMLElement;
+             if (element && typeof element.classList === 'object') {
+                const cssClass = this.staticEffects.get(effectName)!;
+                element.classList.remove(...(Array.isArray(cssClass) ? cssClass : [cssClass]));
             }
-        } else {
-            console.warn(`[EffectManager] Renderer lacks sprite support.`);
         }
-        return Promise.resolve();
     }
 
-    async sequence(element: HTMLElement, steps: EffectStep[], context: GameContext): Promise<void> {
+    async sequence(target: IEffectTarget, steps: EffectStep[], context: GameContext): Promise<void> {
         for (const step of steps) {
             if ('wait' in step) {
                 await new Promise(r => setTimeout(r, step.wait));
             } else {
-                await this.apply(element, step.name, context, step.duration);
+                await this.apply(target, step.name, context, step.duration);
             }
         }
     }
 
     // --- GLOBAL EFFECTS ---
-
+    // (No changes needed for start/stop GlobalEffect)
     startGlobalEffect(effectName: string, context: GameContext): void {
         if (this.activeGlobalEffects.has(effectName)) return;
 
@@ -180,9 +182,9 @@ export class EffectManager {
     }
 
     stopAllEffects(context: GameContext): void {
-        this.activeDynamicEffects.forEach((effects, element) => {
+        this.activeDynamicEffects.forEach((effects) => {
             effects.forEach(effect => {
-                effect.logic.onStop(element, context);
+                effect.logic.onStop(effect.target, context);
             });
         });
         this.activeDynamicEffects.clear();

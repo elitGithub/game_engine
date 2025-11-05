@@ -8,8 +8,7 @@ import type {InputManager} from '../systems/InputManager';
 import {EventBus} from "@engine/core/EventBus.ts";
 import {AssetManager} from "@engine/systems/AssetManager.ts";
 import {EngineEventMap} from "@engine/types/EngineEventMap.ts";
-import {IRenderer} from "@engine/rendering/IRenderer.ts";
-import {RenderCommand} from "@engine/types/RenderingTypes.ts";
+import {IRenderer, RenderCommand} from "@engine/types/RenderingTypes.ts";
 
 export interface GameConfig {
     debug?: boolean;
@@ -65,7 +64,7 @@ export interface TextStyleConfig {
     color?: string;
     backgroundColor?: string;
     textShadow?: string;
-    textAlign?: string;
+    textAlign?: 'left' | 'center' | 'right';
     textTransform?: string;
     textDecoration?: string;
     margin?: string;
@@ -141,22 +140,6 @@ export interface ActionContext extends GameContext {
     player: any;
 
     [key: string]: any;
-}
-
-export interface IDynamicEffect {
-    onStart(element: HTMLElement, context: GameContext<any>): void;
-
-    onUpdate(element: HTMLElement, context: GameContext<any>, deltaTime: number): void;
-
-    onStop(element: HTMLElement, context: GameContext<any>): void;
-}
-
-export interface IGlobalEffect {
-    onCreate(container: HTMLElement, context: GameContext<any>): void;
-
-    onUpdate(context: GameContext<any>, deltaTime: number): void;
-
-    onDestroy(context: GameContext<any>): void;
 }
 
 export interface ISerializationRegistry {
