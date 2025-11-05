@@ -1,0 +1,80 @@
+tasks.txt
+------------------------------------------------------------------
+
+TASK: Fix all TypeScript compilation errors.
+Explanation:
+- Run 'tsc --noEmit' in the project root to find all type-checking errors.
+- Pay close attention to 'engine/systems/InputManager.ts'. The use of 'as EventListener' is hiding type mismatches.
+- Ensure all class properties that are initialized in 'init()' or 'setContext()' methods use the definite assignment assertion '!' (e.g., 'private context!: GameContext<TGame>').
+- This is the highest priority task. The project must be in a compilable state.
+
+TASK: Remove all 'any' types from the core architecture.
+Explanation:
+- Search the codebase for the 'any' keyword.
+- Target 'engine/types/index.ts'. Remove the '[key: string]: any;' fallback from 'GameContext' and 'ActionContext'.
+- Target 'engine/core/GameStateManager.ts'. Replace 'GameContext<any>' with a proper generic implementation.
+- In 'engine/systems/SaveManager.ts', replace 'metadata?: any' with a generic or a more specific 'Record<string, unknown>'.
+
+TASK: Decouple RenderManager from concrete renderer implementations.
+Explanation:
+- Go to 'engine/core/RenderManager.ts'.
+- Remove the hardcoded 'require()' statements for 'DomRenderer' and 'CanvasRenderer'.
+- Implement a registry pattern. The 'Engine' or 'SystemFactory' should be able to register renderer implementations (e.g., systemRegistry.registerRenderer('dom', DomRenderer)) that 'RenderManager' can then select from based on config.
+
+TASK: Decouple InputManager from DOM events.
+Explanation:
+- 'engine/systems/InputManager.ts' should not directly use 'KeyboardEvent', 'MouseEvent', or 'addEventListener'.
+- Create a separate adapter (e.g., 'DomInputAdapter') that *does* listen to these events.
+- The adapter's job is to translate DOM events into the engine-agnostic event types defined in 'engine/core/InputEvents.ts' (e.g., 'KeyDownEvent', 'ClickEvent').
+- The 'InputManager' should only consume these engine-agnostic events, making it platform-independent.
+
+TASK: Move layout logic from rendering helpers to GameState.
+Explanation:
+- The rendering pipeline should be "dumb". Renderers should not make layout decisions.
+- Go to 'engine/rendering/helpers/UIRenderer.ts' and 'ChoiceLayoutHelper.ts'.
+- Remove all coordinate calculations (e.g., 'xPos', 'yPos', 'currentY', 'itemX').
+- This logic belongs in the 'GameState' (e.g., 'StoryState'). The 'GameState' will calculate the exact (x, y) coordinates for a menu and pass them to the 'UIRenderer' to create the commands.
+
+TASK: Properly implement the SceneRenderer / UIRenderer split.
+Explanation:
+- The current helpers ('SceneRenderer.ts', 'UIRenderer.ts') are a good start but aren't fully integrated.
+- 'RenderManager' should be aware of two distinct pipelines: a world-space pipeline (for 'SceneRenderer') and a screen-space/UI pipeline (for 'UIRenderer').
+- 'RenderManager' should always render the UI pipeline *after* the scene pipeline to ensure UI is on top.
+- 'SceneRenderer' should be the only one concerned with camera/world coordinates. 'UIRenderer' should only use fixed screen coordinates.
+
+TASK: Refactor large, monolithic system files.
+Explanation:
+- Start with 'engine/systems/InputManager.ts'.
+- Move combo-checking logic into its own 'InputComboTracker' class.
+- Move action-binding logic into its own 'InputActionMapper' class.
+- The 'InputManager' should be a smaller facade that coordinates these smaller, single-responsibility classes.
+
+TASK: Fully decouple animation from dialogue data.
+Explanation:
+- Go to 'engine/rendering/DialogueLine.ts'.
+- Remove the 'animate' property from the constructor and options.
+- The 'DialogueLine' data object should not know if it will be animated.
+- The 'GameState' should be responsible for applying a 'TypewriterEffect' (via the 'EffectManager') to the rendered text element *after* it's been created by the 'UIRenderer'.
+
+TASK: Fully decouple interaction logic from renderers.
+Explanation:
+- Go to 'engine/rendering/helpers/ChoiceLayoutHelper.ts'.
+- Remove the hardcoded 'action: \`choice:${index}\`' property from the 'hotspot' command.
+- Instead, use a generic data attribute, e.g., 'data: { clickableId: \`choice_${index}\` }'.
+- The 'InputManager' will report a click on 'clickableId: choice_${index}'.
+- The 'GameState' will be responsible for listening for this event and mapping 'choice_${index}' to the actual game logic (like 'this.goToScene(...)').
+
+TASK: Set up a testing framework and add initial tests.
+Explanation:
+- Integrate Vitest or Jest into the project.
+- Add a 'package.json' script for 'npm run test'.
+- Write initial unit tests for simple, stable utilities like 'engine/utils/ValueTracker.ts' and 'engine/core/EventBus.ts' to ensure the test pipeline is working.
+
+TASK: Refactor the project into a proper Nx monorepo structure.
+Explanation:
+- This is a larger structural change.
+- Create a 'packages/' directory.
+- Move the current 'engine/' code into 'packages/engine/src/'.
+- Create a 'packages/plugins/' directory for 'InventoryManagerPlugin', etc.
+- Create a 'packages/example-game/' directory to build a simple game that *uses* the engine, proving the 'plug-and-develop' concept.
+- This will properly leverage the Nx configuration files.
