@@ -2,6 +2,9 @@
 
 import type {RenderCommand, IRenderer} from '../types/RenderingTypes';
 import {EventBus} from '../core/EventBus';
+import type { SystemRegistry } from './SystemRegistry';
+import { SYSTEMS } from './SystemRegistry';
+import type { AssetManager } from '@engine/systems/AssetManager';
 
 /**
  * RenderManager - Engine-level manager for rendering.
@@ -17,26 +20,36 @@ export class RenderManager {
     private queue: RenderCommand[] = [];
     private eventBus: EventBus;
     private container: HTMLElement;
+    // --- FIX: Store registry to get AssetManager ---
+    private registry: SystemRegistry;
 
     constructor(
         config: { type: 'dom' | 'canvas' | 'svelte' },
         eventBus: EventBus,
-        container: HTMLElement
+        container: HTMLElement,
+        // --- FIX: Need the SystemRegistry ---
+        registry: SystemRegistry
     ) {
         this.eventBus = eventBus;
         this.container = container;
+        this.registry = registry; // Store registry
         this.renderer = this.createRenderer(config.type);
         this.renderer.init(container);
     }
 
     private createRenderer(type: string): IRenderer {
+        // --- FIX: Get the AssetManager to pass to renderers ---
+        const assets = this.registry.get<AssetManager>(SYSTEMS.AssetManager);
+
         switch (type) {
             case 'dom':
                 const {DomRenderer} = require('../rendering/DomRenderer');
-                return new DomRenderer(this.container, this.eventBus);
+                // --- FIX: Pass 'assets' as required by constructor ---
+                return new DomRenderer(assets);
             case 'canvas':
                 const {CanvasRenderer} = require('../rendering/CanvasRenderer');
-                return new CanvasRenderer(this.container, this.eventBus);
+                // --- FIX: Pass 'assets' as required by constructor ---
+                return new CanvasRenderer(assets);
             default:
                 throw new Error(`Unknown renderer type: ${type}`);
         }
@@ -48,13 +61,22 @@ export class RenderManager {
 
     flush(): void {
         if (this.queue.length === 0) return;
-        this.renderer.clear();
-        this.renderer.flush(this.queue);
+
+        // --- FIX: Filter 'clear' commands before flushing ---
+        const commandsToFlush = this.queue.filter(cmd => cmd.type !== 'clear');
+        if (this.queue.some(cmd => cmd.type === 'clear')) {
+            this.renderer.clear();
+        }
+
+        this.renderer.flush(commandsToFlush);
         this.queue = [];
     }
 
     resize(width: number, height: number): void {
-        this.renderer.resize(width, height);
+        // --- FIX: Check if resize is implemented before calling ---
+        if (this.renderer.resize) {
+            this.renderer.resize(width, height);
+        }
     }
 
     dispose(): void {

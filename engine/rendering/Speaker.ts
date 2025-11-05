@@ -3,7 +3,6 @@
  */
 import type { SpeakerConfig, TextStyleConfig } from '@engine/types';
 
-
 export class Speaker {
     public id: string;
     public name: string;

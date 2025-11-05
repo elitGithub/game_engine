@@ -1,8 +1,11 @@
 // engine/rendering/helpers/DialogueLayoutHelper.ts
 
 import type { DialogueLine } from '../DialogueLine';
-import type { RenderCommand } from '../../types/RenderingTypes';
+import type { RenderCommand, TextStyleData } from '../../types/RenderingTypes';
 import type { SpeakerRegistry } from '../SpeakerRegistry';
+// --- FIX: Add necessary imports ---
+import type { TextStyleConfig } from '@engine/types';
+import { TextStyle } from './TextStyle';
 
 /**
  * DialogueLayoutHelper - "Command Factory"
@@ -15,7 +18,7 @@ export class DialogueLayoutHelper {
 
     /**
      * Generates all commands needed to render a dialogue line
-     * in a specific layout (e.g., a "bubble" at the bottom).
+     * in a specific layout (e..g., a "bubble" at the bottom).
      */
     buildCommands(line: DialogueLine, layout: 'bubble' | 'narrative'): RenderCommand[] {
         const speaker = this.speakerRegistry.get(line.speakerId);
@@ -48,7 +51,8 @@ export class DialogueLayoutHelper {
                     text: speaker.displayName,
                     x: 120, // Example values
                     y: 470, // Example values
-                    style: { color: speaker.color, bold: true, font: '18px Arial' },
+                    // --- FIX: Use the moved utility method ---
+                    style: this.textStyleToData(speaker.textStyle, { color: speaker.color, bold: true }),
                     zIndex: 1001
                 });
             }
@@ -60,7 +64,8 @@ export class DialogueLayoutHelper {
                 text: line.text,
                 x: 120, // Example values
                 y: 500, // Example values
-                style: { color: '#ffffff', font: '16px Arial' },
+                // --- FIX: Use the moved utility method ---
+                style: this.textStyleToData(null), // Use default
                 zIndex: 1001
             });
 
@@ -82,5 +87,34 @@ export class DialogueLayoutHelper {
         // TODO: Implement 'narrative' layout
 
         return commands;
+    }
+
+    // --- FIX: Utility method moved here from TextRenderer monolith ---
+    /**
+     * Utility to convert a rich TextStyle/TextStyleConfig object
+     * into the "dumb" TextStyleData for a RenderCommand.
+     */
+    private textStyleToData(style: TextStyle | TextStyleConfig | null, overrides: TextStyleData = {}): TextStyleData {
+        const base: TextStyleData = {
+            font: '16px Arial',
+            color: '#ffffff',
+            align: 'left',
+            bold: false,
+            italic: false
+        };
+
+        if (style) {
+            const fontStyle = style.fontStyle || 'normal';
+            const fontWeight = style.fontWeight || 'normal';
+            const fontSize = style.fontSize || '16px';
+            const fontFamily = style.fontFamily || 'Arial';
+
+            base.font = `${fontStyle} ${fontWeight} ${fontSize} ${fontFamily}`;
+            base.color = style.color || base.color;
+            // This is type-safe because types/index.ts is already correct
+            base.align = style.textAlign || base.align;
+        }
+
+        return { ...base, ...overrides };
     }
 }

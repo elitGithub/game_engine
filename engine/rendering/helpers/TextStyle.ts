@@ -12,7 +12,7 @@ export class TextStyle {
     public letterSpacing: string;
     public color: string;
     public backgroundColor: string;
-    public textAlign: string;
+    public textAlign: 'left' | 'center' | 'right';
     public textTransform: string;
     public textDecoration: string;
     public textShadow: string;
@@ -69,8 +69,6 @@ export class TextStyle {
      *
      * !!! DELETED !!!
      * This logic is renderer-specific and DOM-coupled.
-     * The new TextRenderer helper converts this class to TextStyleData.
-     * The DomRenderer itself implements its own 'applyTextStyle'.
      */
     // apply(element: HTMLElement): void { ... }
 
@@ -110,71 +108,3 @@ export class TextStyle {
         });
     }
 }
-
-/**
- * StylePresets - Common text style presets
- */
-export const StylePresets = {
-    narrative: new TextStyle({
-        fontSize: '1.1rem',
-        lineHeight: '1.8',
-        color: '#e5e7eb',
-        padding: '1rem 0',
-        textAlign: 'left'
-    }),
-
-    dialogue: new TextStyle({
-        fontSize: '1rem',
-        lineHeight: '1.6',
-        color: '#fbbf24',
-        padding: '0.5rem 1rem',
-        backgroundColor: 'rgba(0, 0, 0, 0.3)',
-        border: '3px solid #fbbf24',
-        borderRadius: '0 0.25rem 0.25rem 0'
-    }),
-
-    system: new TextStyle({
-        fontSize: '0.9rem',
-        lineHeight: '1.4',
-        color: '#9ca3af',
-        fontStyle: 'italic',
-        padding: '0.25rem 0'
-    }),
-
-    emphasis: new TextStyle({
-        fontSize: '1.2rem',
-        fontWeight: 'bold',
-        color: '#60a5fa',
-        textShadow: '0 0 10px rgba(96, 165, 250, 0.5)'
-    }),
-
-    choice: new TextStyle({
-        fontSize: '1rem',
-        color: '#34d399',
-        padding: '0.5rem',
-        transition: 'all 0.2s ease',
-        customCSS: {
-            cursor: 'pointer',
-            userSelect: 'none'
-        }
-    }),
-
-    bottomBubble: new TextStyle({
-        fontSize: '1rem',
-        lineHeight: '1.6',
-        color: '#ffffff',
-        backgroundColor: 'rgba(0, 0, 0, 0.85)',
-        padding: '1rem 1.5rem',
-        borderRadius: '0.5rem',
-        position: 'fixed',
-        bottom: '2rem',
-        left: '50%',
-        width: '90%',
-        maxWidth: '800px',
-        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.5)',
-        customCSS: {
-            transform: 'translateX(-50%)',
-            zIndex: '1000'
-        }
-    })
-};
