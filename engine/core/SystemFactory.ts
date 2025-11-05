@@ -19,6 +19,7 @@ import {AudioLoader} from '../systems/asset_loaders/AudioLoader';
 import type {SystemRegistry} from './SystemRegistry';
 import {SYSTEMS} from './SystemRegistry';
 import {RenderManager} from "@engine/core/RenderManager.ts";
+import {JsonLoader} from "@engine/systems/asset_loaders/JsonLoader.ts";
 
 /**
  * System configuration options
@@ -97,6 +98,7 @@ export class SystemFactory {
 
             // Register default asset loaders
             assetManager.registerLoader(new ImageLoader());
+            assetManager.registerLoader(new JsonLoader());
             assetManager.registerLoader(new AudioLoader(audioContext));
 
             registry.register(SYSTEMS.AssetManager, assetManager);

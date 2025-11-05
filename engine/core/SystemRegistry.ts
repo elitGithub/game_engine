@@ -79,6 +79,7 @@ export const SYSTEMS = {
     InputManager: Symbol('InputManager'),
     PluginManager: Symbol('PluginManager'),
     RenderManager: Symbol('RenderManager'),
+    Localization: Symbol('Localization'),
 } as const;
 
 /**

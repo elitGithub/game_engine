@@ -9,6 +9,12 @@ import {EventBus} from "@engine/core/EventBus.ts";
 import {AssetManager} from "@engine/systems/AssetManager.ts";
 import {EngineEventMap} from "@engine/types/EngineEventMap.ts";
 import {IRenderer, RenderCommand} from "@engine/types/RenderingTypes.ts";
+import type {
+    SceneChoice,
+    SceneData,
+    ScenesDataMap,
+    GameData
+} from "@engine/types/EngineEventMap.ts";
 
 export interface GameConfig {
     debug?: boolean;
@@ -26,7 +32,8 @@ export interface GameContext<TGame = Record<string, any>> {
     effects?: EffectManager;
     input?: InputManager;
     renderQueue: RenderCommand[];
-    renderer?: IRenderer;  // Wired readonly
+    renderer?: IRenderer;
+    localization?: LocalizationManager;
 
     [key: string]: any;
 }
@@ -110,30 +117,6 @@ export interface DialogueLineOptions {
     showName?: boolean;
     animate?: boolean;
     style?: string | TextStyleConfig;
-}
-
-export interface SceneChoice {
-    text: string;
-
-    [key: string]: any;
-}
-
-export interface SceneData {
-    type?: string;
-    text?: string;
-    choices?: SceneChoice[];
-
-    [key: string]: any;
-}
-
-export interface ScenesDataMap {
-    [sceneId: string]: SceneData;
-}
-
-export interface GameData {
-    scenes?: ScenesDataMap;
-
-    [key: string]: any;
 }
 
 export interface ActionContext extends GameContext {

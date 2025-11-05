@@ -26,18 +26,18 @@ This document outlines the planned tasks for enhancing the game engine, separati
 * \[x\] **Create a Centralized AssetManager**  
   * **Task:** Build a new AssetManager class.  
   * **Explanation:** This will be the *only* system that loads and caches assets (images, JSON, audio, localization strings). All renderers will become "dumb" and request *already-loaded* assets from this manager (e.g., assetManager.getImage('bg\_forest')) instead of loading them directly.  
-* \[ \] **Split SpriteRenderer into SceneRenderer and UIRenderer**  
+* \[x\] **Split SpriteRenderer into SceneRenderer and UIRenderer**  
   * **Task:** Refactor the existing SpriteRenderer.  
   * **Explanation:** Create two new, specialized renderers.  
     * **SceneRenderer:** Manages only the layered "game world" (e.g., background, characters, foreground, hotspots).  
     * **UIRenderer:** Manages only the 2D interface elements on a separate top layer (e.g., menus, HUD, buttons).  
-* \[ \] **Decouple Text Rendering from Text Animation**  
+* \[x\] **Decouple Text Rendering from Text Animation**  
   * **Task:** Refactor TextRenderer and move animation logic to EffectManager.  
   * **Explanation:** TextRenderer's only job will be to create the styled DOM for dialogue. The TypewriterEffect logic will be moved into the EffectManager as a reusable effect (like TextFadeInEffect). The GameState will be responsible for applying the desired effect *after* rendering the text.  
-* \[ \] **Decouple Interaction from Rendering**  
+* \[x\] **Decouple Interaction from Rendering**  
   * **Task:** Remove all onClick handlers from renderers.  
   * **Explanation:** Renderers will only add data- attributes to clickable elements. The InputManager will listen for clicks and fire generic EventBus events (e.g., scene.object.clicked). The active GameState will listen for these events and handle all game logic.  
-* \[ \] **Implement Localization (i18n) System**  
+* \[x\] **Implement Localization (i18n) System**  
   * **Task:** Create a LocalizationManager.  
   * **Explanation:** This system will be responsible for loading and providing text strings based on a selected language. The AssetManager will load the string files, and this manager will provide an API like loc.getString('ui.main\_menu.start').
 

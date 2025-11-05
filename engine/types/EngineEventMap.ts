@@ -18,19 +18,21 @@ import {InputMode} from "@engine/systems/InputManager.ts";
 // --- GameData definitions (moved from index.ts) ---
 // We move these here because 'game.data.loaded' depends on GameData,
 // and moving them here prevents a circular import with index.ts.
-
-export interface SceneChoice {
-    text: string;
+export interface SceneData {
+    sceneType?: string;
+    textKey?: string;
+    choices?: SceneChoice[];
 
     [key: string]: any;
 }
 
-export interface SceneData {
-    type?: string;
-    text?: string;
-    choices?: SceneChoice[];
+export interface SceneChoice {
+    textKey: string;
 
     [key: string]: any;
+}
+export interface ScenesDataMap {
+    [sceneId: string]: SceneData;
 }
 
 export interface ScenesDataMap {

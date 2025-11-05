@@ -30,6 +30,9 @@ export interface EngineConfig<TGame> {
     gameData?: GameData;
     containerElement?: HTMLElement;
     storageAdapter?: StorageAdapter;
+    localization?: boolean | {
+        initialLanguage?: string;
+    };
 }
 
 /**
@@ -166,6 +169,9 @@ export class Engine<TGame = Record<string, any>> implements ISerializationRegist
 
         if (this.registry.has(SYSTEMS.RenderManager)) {
             ctx.renderer = this.registry.get(SYSTEMS.RenderManager);
+        }
+        if (this.registry.has(SYSTEMS.Localization)) {
+            ctx.loc = this.registry.get(SYSTEMS.Localization);
         }
     }
 
