@@ -36,10 +36,6 @@ export interface ScenesDataMap {
     [sceneId: string]: SceneData;
 }
 
-export interface ScenesDataMap {
-    [sceneId: string]: SceneData;
-}
-
 export interface GameData {
     scenes?: ScenesDataMap;
 

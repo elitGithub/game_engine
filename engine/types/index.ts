@@ -5,16 +5,11 @@ import type {EffectManager} from '../systems/EffectManager';
 import type {AudioManager} from '../systems/AudioManager';
 import type {SaveManager} from '../systems/SaveManager';
 import type {InputManager} from '../systems/InputManager';
-import {EventBus} from "@engine/core/EventBus.ts";
-import {AssetManager} from "@engine/systems/AssetManager.ts";
-import {EngineEventMap} from "@engine/types/EngineEventMap.ts";
-import {IRenderer, RenderCommand} from "@engine/types/RenderingTypes.ts";
-import type {
-    SceneChoice,
-    SceneData,
-    ScenesDataMap,
-    GameData
-} from "@engine/types/EngineEventMap.ts";
+import {EventBus} from "@engine/core/EventBus";
+import {AssetManager} from "@engine/systems/AssetManager";
+import {EngineEventMap} from "@engine/types/EngineEventMap";
+import {IRenderer, RenderCommand} from "@engine/types/RenderingTypes";
+import {LocalizationManager} from "@engine/systems/LocalizationManager";
 
 export interface GameConfig {
     debug?: boolean;

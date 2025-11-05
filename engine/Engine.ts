@@ -1,11 +1,4 @@
-import type {
-    GameContext,
-    GameData,
-    StateData,
-    ISerializable,
-    MigrationFunction,
-    ISerializationRegistry
-} from '@engine/types';
+import type {GameContext, ISerializable, ISerializationRegistry, MigrationFunction, StateData} from '@engine/types';
 import {EventBus} from './core/EventBus';
 import {GameStateManager} from './core/GameStateManager';
 import {SceneManager} from './systems/SceneManager';
@@ -15,11 +8,11 @@ import {AudioManager} from './systems/AudioManager';
 import {EffectManager} from './systems/EffectManager';
 import {InputManager} from './systems/InputManager';
 import {SystemRegistry, SYSTEMS} from './core/SystemRegistry';
-import {SystemFactory, type SystemConfig} from './core/SystemFactory';
+import {type SystemConfig, SystemFactory} from './core/SystemFactory';
 import {PluginManager} from './core/PluginManager';
-import type {AssetManager} from './systems/AssetManager';
-import type {AssetManifestEntry} from './systems/AssetManager';
+import type {AssetManager, AssetManifestEntry} from './systems/AssetManager';
 import type {StorageAdapter} from './core/StorageAdapter';
+import {GameData} from "@engine/types/EngineEventMap";
 
 export interface EngineConfig<TGame> {
     debug?: boolean;
