@@ -1,315 +1,373 @@
-Abstract Game Engine (Svelte + TS + Tailwind)A fully abstract game engine for building browser-based games. The engine provides structure and systems, while you define the game-specific logic.Engine PhilosophyThe engine is abstract and knows nothing about your game.✅ The engine provides: Scene management, state machines, event bus, rendering systems❌ The engine does NOT provide: Player stats, item systems, combat logic, requirement checkingYour game implements all game-specific logic in your GameState classes.Quick Start1. Project Setup# Create new Svelte + TypeScript project
-npm create vite@latest your-game-name -- --template svelte-ts
-cd your-game-name
+# **Abstract Game Engine (TypeScript)**
 
-# Install Tailwind
-npm install -D tailwindcss postcss autoprefixer
-npx tailwindcss init -p
-2. Configurationtailwind.config.jsexport default {
-  content: ["./index.html", "./src/**/*.{js,ts,svelte}"],
-  theme: { extend: {} },
-  plugins: [],
-}
-src/app.css@import "tailwindcss";
+A fully abstract, config-driven game engine for building browser-based games. The engine provides structure and systems, while you define the game-specific logic.
 
-@layer base {
-  * { box-sizing: border-box; }
-  body { margin: 0; min-height: 100vh; }
-}
-vite.config.tsimport { defineConfig } from 'vite'
-import { svelte } from '@sveltejs/vite-plugin-svelte'
-import path from 'path'
+## **Engine Philosophy**
 
-export default defineConfig({
-  plugins: [svelte()],
-  resolve: {
-    alias: {
-      '@engine': path.resolve(__dirname, './src/engine'),
-      '@game': path.resolve(__dirname, './src/game'),
-      '@types': path.resolve(__dirname, './src/types')
-    }
-  }
-})
-tsconfig.json - Add paths:{
-  "compilerOptions": {
-    "baseUrl": ".",
-    "paths": {
-      "@engine/*": ["src/engine/*"],
-      "@game/*": ["src/game/*"],
-      "@types/*": ["src/types/*"]
-    }
-  }
-}
-3. Install Engine FilesCopy the entire engine/ folder and types/index.ts into your project:src/
-├── engine/          # Copy all engine files here
-│   ├── core/
-│   ├── systems/
-│   └── Engine.ts
-└── types/
-    └── index.ts     # Copy engine types here
-4. Define Your Game TypesCreate src/game/types.ts with YOUR game-specific types:// Example for an RPG game
-export interface PlayerStats {
-    health: number;
-    maxHealth: number;
-    mana: number;
-    maxMana: number;
+The engine is abstract and knows nothing about your game. It is config-driven and type-safe.
+
+✅ **The engine provides:**
+
+* A config-driven factory (Engine.create) to build an engine with only the systems you need.  
+* A type-safe generic GameContext\<TGame\> that provides your GameState classes with full autocomplete for your game's data.  
+* A central SystemRegistry (Service Locator) for decoupled access to systems.  
+* Core systems: SceneManager, GameStateManager, EventBus, AssetManager, AudioManager, SaveManager, InputManager, EffectManager.
+
+❌ **The engine does NOT provide:**
+
+* Player stats, item systems, combat logic, or requirement checking.  
+* Hard-coded UI.
+
+Your game implements all game-specific logic in your GameState classes, which consume the GameContext provided by the engine.
+
+## **Quick Start**
+
+*(Assumes a standard Svelte \+ TS \+ Vite setup. See old README for Svelte/Tailwind setup steps.)*
+
+### **1\. Define Your Game's Core Types**
+
+Create src/game/types.ts. This is where you define the interfaces for your game-specific data.
+
+// src/game/types.ts  
+import type { Player } from './entities/Player';  
+import type { Inventory } from './systems/Inventory';  
+import type { GameClock } from '@engine/plugins/GameClockPlugin'; // Example plugin  
+import type { RelationshipPlugin } from '@engine/plugins/RelationshipPlugin'; // Example plugin
+
+/\*\*  
+ \* This is the "TGame" generic.  
+ \* It defines the shape of \`context.game\` for full type-safety.  
+ \*/  
+export interface MyGameState {  
+    player: Player;  
+    inventory: Inventory;  
+    // You can also add systems to your game state  
+    clock?: GameClock;  
+    relationships?: RelationshipPlugin;  
 }
 
-export interface ItemData {
-    id: string;
-    name: string;
-    description: string;
+### **2\. Create Your Game Entities**
+
+Create your Player, Inventory, or other classes. They **must** implement ISerializable if you want them to be saved by the SaveManager.
+
+// src/game/entities/Player.ts  
+import type { ISerializable } from '@engine/types';
+
+export class Player implements ISerializable {  
+    public health: number;  
+    public maxHealth: number;  
+    public flags: Set\<string\>;
+
+    constructor() {  
+        this.health \= 100;  
+        this.maxHealth \= 100;  
+        this.flags \= new Set();  
+    }
+
+    // YOUR game-specific methods  
+    hasFlag(flag: string): boolean {  
+        return this.flags.has(flag);  
+    }
+
+    addFlag(flag: string): void {  
+        this.flags.add(flag);  
+    }
+
+    // \--- ISerializable Implementation \---
+
+    serialize(): any {  
+        // Return a JSON-friendly object of this class's data  
+        return {  
+            health: this.health,  
+            maxHealth: this.maxHealth,  
+            flags: Array.from(this.flags)  
+        };  
+    }
+
+    deserialize(data: any): void {  
+        // Repopulate this instance with the saved data  
+        this.health \= data.health;  
+        this.maxHealth \= data.maxHealth;  
+        this.flags \= new Set(data.flags);  
+    }  
 }
 
-// etc...
-5. Create Your Player ClassCreate src/game/entities/Player.ts. Note how it implements ISerializable to hook into the engine's save system.import type { PlayerStats } from '@game/types';
-import type { ISerializable, GameContext } from '@types';
+### **3\. Implement Your GameState**
 
-export class Player implements ISerializable {
-    private context: GameContext;
-    public stats: PlayerStats;
-    private inventory: Map<string, number>;
-    private flags: Set<string>;
+Create your GameState classes. This is where all your game logic lives. Note how it's generic (GameState\<MyGameState\>) and uses the injected this.context for all operations.
 
-    constructor(context: GameContext) {
-        this.context = context;
-        this.stats = {
-            health: 100,
-            maxHealth: 100,
-            mana: 50,
-            maxMana: 50
-        };
-        this.inventory = new Map();
-        this.flags = new Set();
-    }
-
-    // YOUR game-specific methods
-    hasItem(itemId: string): boolean {
-        return this.inventory.has(itemId);
-    }
-
-    hasFlag(flag: string): boolean {
-        return this.flags.has(flag);
-    }
-
-    addFlag(flag: string): void {
-        this.flags.add(flag);
-    }
-
-    heal(amount: number): void {
-        this.stats.health = Math.min(
-            this.stats.health + amount,
-            this.stats.maxHealth
-        );
-    }
-
-    takeDamage(amount: number): void {
-        this.stats.health = Math.max(0, this.stats.health - amount);
-    }
-    
-    // --- ISerializable Implementation ---
-
-    serialize(): any {
-        // Return a JSON-friendly object of this class's data
-        return {
-            stats: this.stats,
-            inventory: Array.from(this.inventory.entries()),
-            flags: Array.from(this.flags)
-        };
-    }
-
-    deserialize(data: any): void {
-        // Repopulate this instance with the saved data
-        this.stats = data.stats;
-        this.inventory = new Map(data.inventory);
-        this.flags = new Set(data.flags);
-        
-        // ** IMPORTANT **
-        // The Player is responsible for restoring itself
-        // to the global context on load.
-        this.context.player = this;
-    }
-}
-6. Implement Requirements & Effects in Your GameStateThe engine's Scene class is just a data container. YOU check requirements and apply effects in your GameState.Create src/game/states/StoryState.ts:import { GameState } from '@engine/core/GameState';
-import type { Engine } from '@engine/Engine';
+// src/game/states/StoryState.ts  
+import { GameState } from '@engine/core/GameState';  
+import type { GameContext, StateData } from '@engine/types';  
+import type { MyGameState } from '@game/types';  
 import type { Scene } from '@engine/systems/Scene';
-import type { StateData } from '@types';
 
-export class StoryState extends GameState {
-    constructor(private engine: Engine) {
-        super('story');
+// Pass in your game's type to the generic slot  
+export class StoryState extends GameState\<MyGameState\> {  
+      
+    // The context is guaranteed to be typed  
+    protected context\!: GameContext\<MyGameState\>;
+
+    enter(data: StateData \= {}): void {  
+        super.enter(data);  
+        const sceneId \= data.sceneId || 'start';  
+        this.goToScene(sceneId);  
     }
 
-    enter(data: StateData = {}): void {
-        super.enter(data);
-        const sceneId = data.sceneId || 'start';
-        this.goToScene(sceneId);
+    goToScene(sceneId: string): void {  
+        // 1\. Get scene data from the engine  
+        const scene \= this.context.sceneManager.getScene(sceneId);  
+        if (\!scene) return;
+
+        // 2\. YOUR game-specific requirement checking  
+        if (\!this.checkRequirements(scene)) {  
+            console.log("Requirements not met\!");  
+            return;  
+        }
+
+        // 3\. Tell the engine to change scenes  
+        this.context.sceneManager.goToScene(sceneId, this.context);
+
+        // 4\. YOUR game-specific effect application  
+        this.applyEffects(scene);  
     }
 
-    goToScene(sceneId: string): void {
-        const scene = this.engine.sceneManager.getScene(sceneId);
-        if (!scene) return;
+    // YOUR implementation of requirement checking  
+    private checkRequirements(scene: Scene): boolean {  
+        const reqs \= scene.sceneData.requirements || {};  
+          
+        // Access your typed game state\!  
+        const player \= this.context.game.player; 
 
-        // YOUR game-specific requirement checking
-        if (!this.checkRequirements(scene)) {
-            console.log("Requirements not met!");
-            return;
-        }
-
-        // Go to the scene
-        this.engine.sceneManager.goToScene(sceneId, this.engine.context);
-
-        // YOUR game-specific effect application
-        this.applyEffects(scene);
+        if (reqs.hasFlag && \!player.hasFlag(reqs.hasFlag)) {  
+            return false;  
+        }  
+        return true;  
     }
 
-    // YOUR implementation of requirement checking
-    private checkRequirements(scene: Scene): boolean {
-        // Access data directly from the scene's public property
-        const reqs = scene.requirements;
-        const player = this.engine.context.player;
+    // YOUR implementation of effect application  
+    private applyEffects(scene: Scene): void {  
+        const effects \= scene.sceneData.effects || {};  
+        const player \= this.context.game.player;
 
-        if (reqs.hasItem && !player.hasItem(reqs.hasItem)) {
-            return false;
+        if (effects.setFlag) {  
+            player.addFlag(effects.setFlag);  
         }
 
-        if (reqs.hasFlag && !player.hasFlag(reqs.hasFlag)) {
-            return false;
-        }
-
-        return true;
+        if (effects.playSound) {  
+            // Access engine systems from the context  
+            this.context.audio.playSound(effects.playSound);  
+        }  
     }
 
-    // YOUR implementation of effect application
-    private applyEffects(scene: Scene): void {
-        // Access data directly from the scene's public property
-        const effects = scene.effects;
-        const player = this.engine.context.player;
-
-        if (effects.setFlag) {
-            player.addFlag(effects.setFlag);
-        }
-
-        if (effects.heal) {
-            player.heal(effects.heal);
-        }
-
-        if (effects.damage) {
-            player.takeDamage(effects.damage);
-        }
-    }
-
-    handleInput(input: string): void {
-        // YOUR choice handling logic
-        const scene = this.engine.sceneManager.getCurrentScene();
-        const choices = scene?.getChoices(this.engine.context) || [];
-        const choiceIndex = parseInt(input);
-        
-        if (choices[choiceIndex]?.targetScene) {
-            this.goToScene(choices[choiceIndex].targetScene);
-        }
-    }
+    // Example: Handle UI input  
+    handleChoiceClick(choiceIndex: number): void {  
+        const scene \= this.context.sceneManager.getCurrentScene();  
+        const choices \= scene?.getChoices(this.context) || \[\];  
+          
+        if (choices\[choiceIndex\]?.targetScene) {  
+            this.goToScene(choices\[choiceIndex\].targetScene);  
+        }  
+    }  
 }
-7. Create Your Game DataCreate src/game/data/gameData.ts:import type { GameData } from '@types';
 
-export const GAME_DATA: GameData = {
-    scenes: {
-        "start": {
-            text: "You wake up in a dark forest...",
-            choices: [
-                { text: "Go north", targetScene: "forest_north" },
-                { text: "Go south", targetScene: "forest_south" }
-            ],
-            effects: {
-                setFlag: "game_started"
-            }
-        },
-        "forest_north": {
-            text: "You find a healing potion!",
-            requirements: {
-                hasFlag: "game_started"
-            },
-            effects: {
-                heal: 20
-            },
-            choices: [
-                { text: "Continue", targetScene: "start" }
-            ]
-        }
-    }
+### **4\. Create Your Game Data**
+
+Create src/game/data/gameData.ts. This is just a simple data file.
+
+// src/game/data/gameData.ts  
+import type { GameData } from '@engine/types';
+
+export const GAME\_DATA: GameData \= {  
+    scenes: {  
+        "start": {  
+            text: "You wake up in a dark forest...",  
+            choices: \[  
+                { text: "Go north", targetScene: "forest\_north" },  
+                { text: "Go south (req: 'key')", targetScene: "forest\_south" }  
+            \],  
+            effects: {  
+                setFlag: "game\_started",  
+                playSound: "forest\_ambience"  
+            }  
+        },  
+        "forest\_north": {  
+            text: "You find a key\!",  
+            effects: {  
+                setFlag: "key"  
+            },  
+            choices: \[  
+                { text: "Go back", targetScene: "start" }  
+            \]  
+        },  
+        "forest\_south": {  
+            text: "You unlocked the gate\!",  
+            requirements: {  
+                hasFlag: "key"  
+            },  
+            choices: \[  
+                { text: "Go back", targetScene: "start" }  
+            \]  
+        }  
+    }  
 };
-8. Initialize Your GameCreate src/game/main.ts:import { Engine } from '@engine/Engine';
-import { Player } from '@game/entities/Player';
-import { StoryState } from '@game/states/StoryState';
-import { GAME_DATA } from '@game/data/gameData';
 
-export function createGame(): Engine {
-    const engine = new Engine({ debug: true });
+### **5\. Initialize Your Game**
 
-    // 1. Create YOUR systems, passing context
-    const player = new Player(engine.context);
-    // const inventory = new InventoryManager();
-    // const clock = new GameClockManager(engine.eventBus);
+Create src/game/main.ts. This is the single entry point that constructs your game by configuring and creating the engine.
 
-    // 2. Set up YOUR game's context
-    engine.context.player = player;
-    // engine.context.inventory = inventory;
-    // engine.context.clock = clock;
+// src/game/main.ts  
+import { Engine, type EngineConfig } from '@engine/Engine';  
+import type { MyGameState } from '@game/types';  
+import { Player } from '@game/entities/Player';  
+import { Inventory } from '@game/systems/Inventory';  
+import { StoryState } from '@game/states/StoryState';  
+import { GAME\_DATA } from '@game/data/gameData';  
+import { GameClockPlugin } from '@engine/plugins/GameClockPlugin'; // Example plugin  
+import { RelationshipPlugin } from '@engine/plugins/RelationshipPlugin'; // Example plugin
 
-    // 3. Register all serializable systems for saving
-    // This tells the SaveManager to serialize these objects.
-    engine.registerSerializableSystem('player', player);
-    // engine.registerSerializableSystem('inventory', inventory);
-    // engine.registerSerializableSystem('clock', clock);
+export async function createGame(container: HTMLElement): Promise\<Engine\<MyGameState\>\> {  
+      
+    // 1\. Create YOUR game-specific classes  
+    const player \= new Player();  
+    const inventory \= new Inventory();  
+    const clock \= new GameClockPlugin({ unitsPerDay: 24 });  
+    const relationships \= new RelationshipPlugin();
 
-    // 4. Register YOUR game states
-    engine.stateManager.register('story', new StoryState(engine));
+    // 2\. Define YOUR game's initial state  
+    const initialGameState: MyGameState \= {  
+        player,  
+        inventory,  
+        clock,  
+        relationships  
+    };
 
-    // 5. Load YOUR game data
-    engine.loadGameData(GAME_DATA);
+    // 3\. Define the Engine Config  
+    const config: EngineConfig\<MyGameState\> \= {  
+        debug: true,  
+        gameVersion: '1.0.0',  
+          
+        // This is your typed game state  
+        gameState: initialGameState,   
+          
+        // Tell the factory which systems to build  
+        systems: {  
+            audio: true,  
+            assets: true,  
+            save: true,  
+            input: true,  
+            effects: true  
+        },
 
-    return engine;
+        // Pass the DOM element for renderers/input  
+        containerElement: container   
+    };
+
+    // 4\. Create the engine\!  
+    const engine \= await Engine.create\<MyGameState\>(config);
+
+    // 5\. Install Plugins  
+    // Plugins are installed \*after\* creation  
+    engine.pluginManager.register(clock);  
+    engine.pluginManager.install('clock', engine);
+
+    engine.pluginManager.register(relationships);  
+    engine.pluginManager.install('relationships', engine);
+
+    // 6\. Register all serializable systems for saving  
+    // This tells the SaveManager what to serialize.  
+    // The key \*must\* match the key in your save file.  
+    engine.registerSerializableSystem('player', player);  
+    engine.registerSerializableSystem('inventory', inventory);  
+    // Plugins register themselves (e.g., 'clock', 'relationships')
+
+    // 7\. Register YOUR game states  
+    engine.stateManager.register('story', new StoryState());
+
+    // 8\. Load YOUR game data  
+    engine.loadGameData(GAME\_DATA);
+
+    // 9\. (Optional) Preload assets  
+    await engine.preload(\[  
+        { id: 'forest\_ambience', url: '/audio/forest.mp3', type: 'audio' },  
+        { id: 'main\_bg', url: '/img/main\_bg.png', type: 'image' }  
+    \]);
+
+    return engine;  
 }
 
-export function startGame(engine: Engine) {
-    engine.start('story', { sceneId: 'start' });
+export function startGame(engine: Engine\<MyGameState\>) {  
+    engine.start('story', { sceneId: 'start' });  
 }
-9. Create Your UICreate src/App.svelte:<script lang="ts">
-  import { onMount } from 'svelte';
-  import { createGame, startGame } from '@game/main';
-  
-  let game;
-  let sceneText = '';
-  let choices = [];
 
-  onMount(() => {
-    game = createGame();
-    
-    // Listen for the engine's scene.changed event
-    game.eventBus.on('scene.changed', () => {
-      const scene = game.sceneManager.getCurrentScene();
-      sceneText = scene.getText();
-      choices = scene.getChoices(game.context);
-    });
-    
-    startGame(game);
-  });
-  
-  function handleChoiceClick(choiceIndex) {
-    // Pass a simple string to the game
-    // The StoryState will handle the logic
-    game.stateManager.getCurrentState()?.handleInput(String(choiceIndex));
-  }
-</script>
+### **6\. Create Your UI**
 
-<main>
-  <p>{sceneText}</p>
-  {#each choices as choice, i}
-    <button on:click={() => handleChoiceClick(i)}>
-      {choice.text}
-    </button>
-  {/each
-</main>
-10. Run Your Gamenpm install
-npm run dev
-Key PrinciplesThe engine provides structure, your game provides contentRequirements checking = Your GameState's responsibilityEffect application = Your GameState's responsibilityPlayer class = Completely yours to defineScene data = Just data, the engine doesn't interpret itWhat You ControlPlayer stats and abilitiesItem systemCombat systemRequirement logic (what blocks scene access?)Effect logic (what happens when entering a scene?)Save/load data structure (via ISerializable)UI renderingWhat The Engine ProvidesScene management and transitionsState machine for game statesEvent bus for communicationAbstract Save/Load systemText/sprite rendering systemsInput and Audio managersAction registry patternDice utilitiesNeed Help?The engine is abstract by design. If you find yourself asking "how do I make the player have health?" - that's YOUR game's responsibility, not the engine's!
+Create src/App.svelte to listen to the engine and render the UI.
+
+\<\!-- src/App.svelte \--\>  
+\<script lang="ts"\>  
+  import { onMount } from 'svelte';  
+  import type { Engine } from '@engine/Engine';  
+  import type { MyGameState } from '@game/types';  
+  import type { SceneChoice } from '@engine/types';  
+  import { createGame, startGame } from '@game/main';  
+    
+  let engine: Engine\<MyGameState\>;  
+  let sceneText: string \= 'Loading...';  
+  let choices: SceneChoice\[\] \= \[\];  
+  let gameContainer: HTMLElement; // The DOM element for the engine
+
+  onMount(async () \=\> {  
+    // Create the engine, passing the container  
+    engine \= await createGame(gameContainer);  
+      
+    // Listen for the engine's scene.changed event  
+    engine.eventBus.on('scene.changed', (data) \=\> {  
+      const scene \= engine.sceneManager.getScene(data.sceneId);  
+      if (scene) {  
+        sceneText \= scene.getText();  
+        choices \= scene.getChoices(engine.context);  
+      }  
+    });  
+      
+    // Start the game  
+    startGame(engine);  
+  });  
+    
+  function handleChoiceClick(choiceIndex: number) {  
+    // Get the active game state and call its method  
+    const storyState \= engine.stateManager.getCurrentState() as any;  
+    if (storyState && typeof storyState.handleChoiceClick \=== 'function') {  
+      storyState.handleChoiceClick(choiceIndex);  
+    }  
+  }  
+\</script\>
+
+\<\!--   
+  This is the main container.  
+  The engine will attach input listeners and renderers here.  
+\--\>  
+\<main bind:this={gameContainer} class="w-screen h-screen bg-gray-900 text-white"\>  
+    
+  \<\!-- This is just an example UI. Build yours however you want. \--\>  
+  \<div class="p-8"\>  
+    \<p class="text-lg mb-4"\>{sceneText}\</p\>  
+      
+    \<div class="flex flex-col items-start space-y-2"\>  
+      {\#each choices as choice, i}  
+        \<button   
+          on:click={() \=\> handleChoiceClick(i)}  
+          class="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded"  
+        \>  
+          {choice.text}  
+        \</button\>  
+      {/each}  
+    \</div\>  
+  \</div\>
+
+\</main\>
+
+### **7\. Run Your Game**
+
+npm install  
+npm run dev  
