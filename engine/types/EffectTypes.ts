@@ -32,24 +32,24 @@ export interface IEffectTarget {
      * (e.g., HTMLElement, RenderCommand) for effects
      * that need renderer-specific logic.
      */
-    getRaw(): any;
+    getRaw(): HTMLElement | unknown;
 }
 
 /**
  * The refactored, truly generic interface for a dynamic effect.
  * It now operates on an abstract IEffectTarget, not a concrete HTMLElement.
  */
-export interface IDynamicEffect {
-    onStart(target: IEffectTarget, context: GameContext<any>): void;
-    onUpdate(target: IEffectTarget, context: GameContext<any>, deltaTime: number): void;
-    onStop(target: IEffectTarget, context: GameContext<any>): void;
+export interface IDynamicEffect<TGame = Record<string, unknown>> {
+    onStart(target: IEffectTarget, context: GameContext<TGame>): void;
+    onUpdate(target: IEffectTarget, context: GameContext<TGame>, deltaTime: number): void;
+    onStop(target: IEffectTarget, context: GameContext<TGame>): void;
 }
 
 /**
  * The refactored interface for a global effect.
  */
-export interface IGlobalEffect {
-    onCreate(container: HTMLElement, context: GameContext<any>): void; // Container is still DOM
-    onUpdate(context: GameContext<any>, deltaTime: number): void;
-    onDestroy(context: GameContext<any>): void;
+export interface IGlobalEffect<TGame = Record<string, unknown>> {
+    onCreate(container: HTMLElement, context: GameContext<TGame>): void;
+    onUpdate(context: GameContext<TGame>, deltaTime: number): void;
+    onDestroy(context: GameContext<TGame>): void;
 }

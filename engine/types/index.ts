@@ -29,19 +29,19 @@ export interface GameContext<TGame = Record<string, unknown>> {
     renderQueue: RenderCommand[];
     renderer?: IRenderer;
     localization?: LocalizationManager;
-
+    
+    // Allow plugins to add properties dynamically
     [key: string]: unknown;
 }
 
 export type StateData = Record<string, unknown>;
 
 export interface ISerializable {
-    serialize(): any;
-
-    deserialize(data: any): void;
+    serialize(): unknown;
+    deserialize(data: unknown): void;
 }
 
-export type MigrationFunction = (data: any) => any;
+export type MigrationFunction = (data: unknown) => unknown;
 
 export type EffectStep =
     | { name: string; duration: number }
@@ -112,10 +112,8 @@ export interface DialogueLineOptions {
     style?: string | TextStyleConfig;
 }
 
-export interface ActionContext extends GameContext {
-    player: any;
-
-    [key: string]: any;
+export interface ActionContext<TGame = Record<string, unknown>> extends GameContext<TGame> {
+    player: unknown;
 }
 
 export interface ISerializationRegistry {
@@ -124,27 +122,23 @@ export interface ISerializationRegistry {
     readonly gameVersion: string;
 
     getCurrentSceneId(): string;
-
     restoreScene(sceneId: string): void;
 }
 
-
-export interface IEngineHost {
-    context: GameContext<any>;
+export interface IEngineHost<TGame = Record<string, unknown>> {
+    context: GameContext<TGame>;
     eventBus: EventBus;
 
     registerSerializableSystem(key: string, system: ISerializable): void;
 }
 
-export interface IEnginePlugin {
+export interface IEnginePlugin<TGame = Record<string, unknown>> {
     name: string;
     version?: string;
 
-    install(engine: IEngineHost): void;
-
-    uninstall?(engine: IEngineHost): void;
-
-    update?(deltaTime: number, context: GameContext<any>): void;
+    install(engine: IEngineHost<TGame>): void;
+    uninstall?(engine: IEngineHost<TGame>): void;
+    update?(deltaTime: number, context: GameContext<TGame>): void;
 }
 
 /**
@@ -165,9 +159,9 @@ export interface BaseItem {
  * @example
  * // In your game's types file:
  * declare module '@engine/types' {
- * interface EventMap {
- * 'player.tookDamage': { amount: number };
- * }
+ *   interface EventMap {
+ *     'player.tookDamage': { amount: number };
+ *   }
  * }
  */
 export interface EventMap extends EngineEventMap {

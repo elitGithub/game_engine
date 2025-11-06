@@ -4,23 +4,22 @@
 import type {GameContext} from '@engine/types';
 import {SceneChoice, SceneData} from "@engine/types/EngineEventMap";
 
-export class Scene {
+export class Scene<TGame = Record<string, unknown>> {
 
     constructor(public sceneId: string, public sceneType: string, public sceneData: SceneData = {}) {
     }
 
-
     /**
      * Called when scene is entered
      */
-    onEnter(context: GameContext<any>): void {
+    onEnter(context: GameContext<TGame>): void {
         // Override in game systems if needed
     }
 
     /**
      * Called when scene is exited
      */
-    onExit(context: GameContext<any>): void {
+    onExit(context: GameContext<TGame>): void {
         // Override in game systems if needed
     }
 
@@ -34,15 +33,15 @@ export class Scene {
     /**
      * Get available choices/exits from this scene
      */
-    getChoices(context: GameContext<any>): SceneChoice[] {
+    getChoices(context: GameContext<TGame>): SceneChoice[] {
         return this.sceneData?.choices || [];
     }
 
-    canExit() {
+    canExit(): boolean {
         return true;
     }
 
-    canEnter() {
+    canEnter(): boolean {
         return true;
     }
 }

@@ -26,5 +26,5 @@ export interface StorageAdapter {
 export interface SaveSlotMetadata {
     slotId: string;
     timestamp: number;
-    [key: string]: any; // Allow custom metadata
+    [key: string]: unknown; // Allow custom metadata
 }

@@ -7,10 +7,10 @@ import type {StateData, GameContext} from '@engine/types';
 import {GameState} from './GameState';
 import type {EngineInputEvent} from './InputEvents';
 
-export class GameStateManager {
-    public states: Map<string, GameState>;
-    private stateStack: GameState[];
-    private context!: GameContext<any>;
+export class GameStateManager<TGame = Record<string, unknown>> {
+    public states: Map<string, GameState<TGame>>;
+    private stateStack: GameState<TGame>[];
+    private context!: GameContext<TGame>;
 
     constructor() {
         this.states = new Map();
@@ -22,11 +22,11 @@ export class GameStateManager {
      * Called by Engine during initialization
      * @internal
      */
-    setContext(context: GameContext<any>): void {
+    setContext(context: GameContext<TGame>): void {
         this.context = context;
     }
 
-    register(name: string, state: GameState): void {
+    register(name: string, state: GameState<TGame>): void {
         this.states.set(name, state);
 
         // Inject context if available
@@ -86,7 +86,7 @@ export class GameStateManager {
         }
     }
 
-    render(renderer: any): void {
+    render(renderer: unknown): void {
         for (const state of this.stateStack) {
             if (state.isActive) {
                 state.render(renderer);
@@ -107,9 +107,20 @@ export class GameStateManager {
             : null;
     }
 
-    getCurrentState(): GameState | null {
+    getCurrentState(): GameState<TGame> | null {
         return this.stateStack.length > 0
             ? this.stateStack[this.stateStack.length - 1]
             : null;
+    }
+
+    getStateStack(): readonly GameState<TGame>[] {
+        return this.stateStack;
+    }
+
+    dispose(): void {
+        while (this.stateStack.length > 0) {
+            this.popState();
+        }
+        this.states.clear();
     }
 }

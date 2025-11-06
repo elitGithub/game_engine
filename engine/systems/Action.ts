@@ -3,7 +3,7 @@
  */
 import type { ActionContext } from '@engine/types';
 
-export abstract class Action {
+export abstract class Action<TGame = Record<string, unknown>> {
     public id: string;
     public name: string;
     public description: string;
@@ -17,19 +17,19 @@ export abstract class Action {
     /**
      * Check if this action can be executed right now
      */
-    canExecute(context: ActionContext): boolean {
+    canExecute(context: ActionContext<TGame>): boolean {
         return true;
     }
 
     /**
      * Execute the action
      */
-    abstract execute(context: ActionContext): any;
+    abstract execute(context: ActionContext<TGame>): unknown;
 
     /**
      * Get a reason why this action can't be executed
      */
-    getUnavailableReason(context: ActionContext): string {
+    getUnavailableReason(context: ActionContext<TGame>): string {
         return this.canExecute(context) ? '' : 'Action not available';
     }
 }

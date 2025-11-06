@@ -4,9 +4,9 @@
 import type {ActionContext} from '@engine/types';
 import {Action} from './Action';
 
-export class ActionRegistry {
-    private actions: Map<string, Action>;
-    private actionsByType: Map<string, Action[]>;
+export class ActionRegistry<TGame = Record<string, unknown>> {
+    private actions: Map<string, Action<TGame>>;
+    private actionsByType: Map<string, Action<TGame>[]>;
 
     constructor() {
         this.actions = new Map();
@@ -16,7 +16,7 @@ export class ActionRegistry {
     /**
      * Register an action
      */
-    register(action: Action, type: string = 'default'): void {
+    register(action: Action<TGame>, type: string = 'default'): void {
         this.actions.set(action.id, action);
 
         // Group by type
@@ -31,21 +31,21 @@ export class ActionRegistry {
     /**
      * Get an action by ID
      */
-    get(actionId: string): Action | null {
+    get(actionId: string): Action<TGame> | null {
         return this.actions.get(actionId) || null;
     }
 
     /**
      * Get all actions of a specific type
      */
-    getByType(type: string): Action[] {
+    getByType(type: string): Action<TGame>[] {
         return this.actionsByType.get(type) || [];
     }
 
     /**
      * Get all available actions for current context
      */
-    getAvailableActions(type: string, context: ActionContext): Action[] {
+    getAvailableActions(type: string, context: ActionContext<TGame>): Action<TGame>[] {
         const actions = this.getByType(type);
         return actions.filter(action => action.canExecute(context));
     }
@@ -53,7 +53,7 @@ export class ActionRegistry {
     /**
      * Execute an action by ID
      */
-    execute(actionId: string, context: ActionContext): unknown {
+    execute(actionId: string, context: ActionContext<TGame>): unknown {
         const action = this.get(actionId);
         if (!action) {
             console.error(`[ActionRegistry] Action '${actionId}' not found`);

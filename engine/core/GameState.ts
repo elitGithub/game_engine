@@ -6,7 +6,7 @@
 import type { StateData, GameContext } from '@engine/types';
 import type { EngineInputEvent } from './InputEvents';
 
-export abstract class GameState<TGame = any> {
+export abstract class GameState<TGame = Record<string, unknown>> {
     public name: string;
     public isActive: boolean;
     protected context!: GameContext<TGame>;
@@ -75,7 +75,7 @@ export abstract class GameState<TGame = any> {
      * Override this to render your scene. This runs even if not on top,
      * allowing for transparent states (e.g., a HUD or a transparent pause menu).
      */
-    render(renderer: any): void {
+    render(renderer: unknown): void {
         // Override in subclasses
     }
 

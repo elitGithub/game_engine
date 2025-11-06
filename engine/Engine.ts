@@ -111,9 +111,10 @@ export class Engine<TGame = Record<string, any>> implements ISerializationRegist
                 flags: Array.from(this.context.flags),
                 variables: Array.from(this.context.variables.entries()),
             }),
-            deserialize: (data) => {
-                this.context.flags = new Set(data.flags || []);
-                this.context.variables = new Map(data.variables || []);
+            deserialize: (data: unknown) => {
+                const coreData = data as { flags?: string[]; variables?: Array<[string, unknown]> };
+                this.context.flags = new Set(coreData.flags || []);
+                this.context.variables = new Map(coreData.variables || []);
             },
         });
 
@@ -146,7 +147,7 @@ export class Engine<TGame = Record<string, any>> implements ISerializationRegist
      * @private
      */
     private wireContext(): void {
-        const ctx = this.context as Record<string, unknown>;
+        const ctx = this.context;
 
         if (this.registry.has(SYSTEMS.AudioManager)) {
             ctx.audio = this.registry.get(SYSTEMS.AudioManager);

@@ -13,8 +13,6 @@ export interface SaveData {
     metadata?: Record<string, unknown>;
 }
 
-
-
 export class SaveManager {
     private eventBus: EventBus;
     private registry: ISerializationRegistry;
@@ -93,7 +91,8 @@ export class SaveManager {
             const migration = this.registry.migrationFunctions.get(key);
             if (migration) {
                 console.log(`[SaveManager] Applying migration ${key}`);
-                migratedData = migration(migratedData);
+                const result = migration(migratedData);
+                migratedData = result as SaveData;
                 migratedData.version = to;
             } else {
                 console.warn(`[SaveManager] No migration found for ${key}`);
@@ -139,8 +138,8 @@ export class SaveManager {
         return await this.adapter.list();
     }
 
-    private serializeGameState(metadata?: any): SaveData {
-        const systemsData: { [key: string]: any } = {};
+    private serializeGameState(metadata?: Record<string, unknown>): SaveData {
+        const systemsData: Record<string, unknown> = {};
 
         for (const [key, system] of this.registry.serializableSystems.entries()) {
             try {

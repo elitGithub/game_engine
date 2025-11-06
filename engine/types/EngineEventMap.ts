@@ -14,7 +14,6 @@ import type {
     TouchStartEvent,
 } from '@engine/core/InputEvents';
 
-
 export type InputMode = 'gameplay' | 'menu' | 'cutscene' | 'disabled' | string;
 
 // --- GameData definitions (moved from index.ts) ---
@@ -23,15 +22,25 @@ export type InputMode = 'gameplay' | 'menu' | 'cutscene' | 'disabled' | string;
 export interface SceneData {
     sceneType?: string;
     textKey?: string;
+    text?: string;
     choices?: SceneChoice[];
-
-    [key: string]: any;
+    requirements?: Record<string, unknown>;
+    effects?: Record<string, unknown>;
+    layers?: unknown[];
+    backgroundAsset?: string;
+    
+    // Allow game-specific properties
+    [key: string]: unknown;
 }
 
 export interface SceneChoice {
+    text?: string;
     textKey: string;
-
-    [key: string]: any;
+    targetScene?: string;
+    action?: string;
+    
+    // Allow game-specific properties
+    [key: string]: unknown;
 }
 
 export interface ScenesDataMap {
@@ -40,8 +49,6 @@ export interface ScenesDataMap {
 
 export interface GameData {
     scenes?: ScenesDataMap;
-
-    [key: string]: any;
 }
 
 // --- Engine Event Map Definition ---
@@ -53,10 +60,10 @@ export interface GameData {
  */
 export interface EngineEventMap {
     // Engine
-    'engine.started': {};
-    'engine.stopped': {};
-    'engine.paused': {};
-    'engine.unpaused': {};
+    'engine.started': Record<string, never>;
+    'engine.stopped': Record<string, never>;
+    'engine.paused': Record<string, never>;
+    'engine.unpaused': Record<string, never>;
     'game.data.loaded': GameData;
 
     // SceneManager
@@ -68,19 +75,19 @@ export interface EngineEventMap {
 
     // AssetManager
     'assets.manifest.loaded': { count: number };
-    'assets.manifest.failed': { error: any };
-    'assets.loaded': { id: string; type: AssetType; asset: any };
-    'assets.cache.cleared': {};
+    'assets.manifest.failed': { error: unknown };
+    'assets.loaded': { id: string; type: AssetType; asset: unknown };
+    'assets.cache.cleared': Record<string, never>;
 
     // AudioManager
-    'audio.unlocked': {};
+    'audio.unlocked': Record<string, never>;
     'music.started': { trackId: string };
-    'music.paused': {};
-    'music.resumed': {};
-    'music.stopped': {};
+    'music.paused': Record<string, never>;
+    'music.resumed': Record<string, never>;
+    'music.stopped': Record<string, never>;
     'music.crossfaded': { newTrackId: string; duration: number };
     'voice.started': { voiceId: string };
-    'audio.allStopped': {};
+    'audio.allStopped': Record<string, never>;
 
     // InputManager
     'input.keydown': KeyDownEvent;
@@ -101,9 +108,9 @@ export interface EngineEventMap {
 
     // SaveManager
     'save.completed': { slotId: string; timestamp: number };
-    'save.failed': { slotId: string; error: any };
+    'save.failed': { slotId: string; error: unknown };
     'save.loaded': { slotId: string; timestamp: number };
-    'save.loadFailed': { slotId: string; error: any };
+    'save.loadFailed': { slotId: string; error: unknown };
     'save.deleted': { slotId: string };
 
     // GameClockPlugin
@@ -111,7 +118,7 @@ export interface EngineEventMap {
     'clock.timeOfDayChanged': { rangeName: string | null; previousRange: string | null };
     'clock.advanced': { units: number; currentUnit: number; currentDay: number };
 
-    // *** NEW: InventoryManagerPlugin ***
+    // InventoryManagerPlugin
     'inventory.item.added': {
         itemId: string;
         quantityAdded: number;

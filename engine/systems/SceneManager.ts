@@ -2,16 +2,16 @@
 import type { GameContext } from '@engine/types';
 import { Scene } from './Scene';
 import type { EventBus } from '../core/EventBus';
-import {ScenesDataMap} from "@engine/types/EngineEventMap";
+import {ScenesDataMap, SceneData} from "@engine/types/EngineEventMap";
 
-type SceneFactory = (id: string, type: string, data: any) => Scene;
+type SceneFactory<TGame> = (id: string, type: string, data: SceneData) => Scene<TGame>;
 
-export class SceneManager {
+export class SceneManager<TGame = Record<string, unknown>> {
     private eventBus: EventBus;
-    private scenes: Map<string, Scene>;
-    private currentScene: Scene | null;
+    private scenes: Map<string, Scene<TGame>>;
+    private currentScene: Scene<TGame> | null;
     private history: string[];
-    private sceneFactories: Map<string, SceneFactory>;
+    private sceneFactories: Map<string, SceneFactory<TGame>>;
 
     constructor(eventBus: EventBus) {
         this.eventBus = eventBus;
@@ -23,24 +23,24 @@ export class SceneManager {
         this.registerSceneFactory('default', (id, type, data) => new Scene(id, type, data));
     }
 
-    registerSceneFactory(type: string, factory: SceneFactory): void {
+    registerSceneFactory(type: string, factory: SceneFactory<TGame>): void {
         this.sceneFactories.set(type, factory);
     }
 
     loadScenes(scenesData: ScenesDataMap): void {
         for (const [id, sceneData] of Object.entries(scenesData)) {
-            const type = sceneData.type || 'story';
+            const type = sceneData.sceneType || 'story';
             const factory = this.sceneFactories.get(type) || this.sceneFactories.get('default')!;
             const scene = factory(id, type, sceneData);
             this.scenes.set(id, scene);
         }
     }
 
-    getScene(sceneId: string): Scene | null {
+    getScene(sceneId: string): Scene<TGame> | null {
         return this.scenes.get(sceneId) || null;
     }
 
-    goToScene(sceneId: string, context: GameContext<any>): boolean {
+    goToScene(sceneId: string, context: GameContext<TGame>): boolean {
         const scene = this.getScene(sceneId);
 
         if (!scene) {
@@ -65,17 +65,17 @@ export class SceneManager {
         return true;
     }
 
-    goBack(context: GameContext<any>): boolean {
+    goBack(context: GameContext<TGame>): boolean {
         if (this.history.length === 0) return false;
         const previousSceneId = this.history.pop()!;
         return this.goToScene(previousSceneId, context);
     }
 
-    getCurrentScene(): Scene | null {
+    getCurrentScene(): Scene<TGame> | null {
         return this.currentScene;
     }
 
-    getCurrentChoices(context: GameContext<any>): any[] {
+    getCurrentChoices(context: GameContext<TGame>): SceneChoice[] {
         if (!this.currentScene) return [];
         return this.currentScene.getChoices(context);
     }

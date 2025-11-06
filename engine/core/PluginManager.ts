@@ -1,8 +1,8 @@
 // engine/core/PluginManager.ts
 import type { IEngineHost, IEnginePlugin, GameContext } from '../types';
 
-export class PluginManager {
-    private plugins: Map<string, IEnginePlugin>;
+export class PluginManager<TGame = Record<string, unknown>> {
+    private plugins: Map<string, IEnginePlugin<TGame>>;
     private installed: Set<string>;
 
     constructor() {
@@ -10,7 +10,7 @@ export class PluginManager {
         this.installed = new Set();
     }
 
-    register(plugin: IEnginePlugin): void {
+    register(plugin: IEnginePlugin<TGame>): void {
         if (this.plugins.has(plugin.name)) {
             console.warn(`[PluginManager] Plugin '${plugin.name}' already registered. Skipping.`);
             return;
@@ -18,7 +18,7 @@ export class PluginManager {
         this.plugins.set(plugin.name, plugin);
     }
 
-    install(pluginName: string, engine: IEngineHost): boolean {
+    install(pluginName: string, engine: IEngineHost<TGame>): boolean {
         const plugin = this.plugins.get(pluginName);
         if (!plugin) {
             console.error(`[PluginManager] Plugin '${pluginName}' not found.`);
@@ -41,7 +41,7 @@ export class PluginManager {
         }
     }
 
-    uninstall(pluginName: string, engine: IEngineHost): boolean {
+    uninstall(pluginName: string, engine: IEngineHost<TGame>): boolean {
         const plugin = this.plugins.get(pluginName);
         if (!plugin || !this.installed.has(pluginName)) {
             return false;
@@ -63,8 +63,7 @@ export class PluginManager {
         return true;
     }
 
-
-    update(deltaTime: number, context: GameContext<any>): void {
+    update(deltaTime: number, context: GameContext<TGame>): void {
         this.installed.forEach(pluginName => {
             const plugin = this.plugins.get(pluginName);
             if (plugin?.update) {
