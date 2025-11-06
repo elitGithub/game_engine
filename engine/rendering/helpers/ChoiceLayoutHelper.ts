@@ -1,50 +1,44 @@
 // engine/rendering/helpers/ChoiceLayoutHelper.ts
 
-import type { RenderCommand } from '../../types/RenderingTypes';
-import type { SceneChoice } from '@engine/types/EngineEventMap';
+import type { RenderCommand, TextStyleData } from '../../types/RenderingTypes';
+// --- FIX: Import the new PositionedChoice type ---
+import type { PositionedChoice } from '../../types/RenderingTypes';
 
 /**
  * ChoiceLayoutHelper - Pure command factory
  *
  * Generates RenderCommand arrays for laying out choices.
- * DECOUPLED: Uses generic data instead of game-specific action strings.
+ * DECOUPLED: Accepts pre-positioned data.
  */
 export class ChoiceLayoutHelper {
     constructor() {}
 
-    buildCommands(choices: SceneChoice[]): RenderCommand[] {
+    // --- FIX: Method signature changed to accept PositionedChoice[] ---
+    buildCommands(choices: PositionedChoice[]): RenderCommand[] {
         const commands: RenderCommand[] = [];
-        let startY = 300;
-        const choiceSpacing = 50;
-        const choiceX = 150;
+        const defaultStyle: TextStyleData = { color: '#34d399', font: '18px Arial' };
 
-        choices.forEach((choice, index) => {
-            const choiceId = `choice_${index}`;
-            const yPos = startY + (index * choiceSpacing);
-
-            // Text for the choice
+        choices.forEach(choice => {
+            // Text for the choice (uses pre-calculated positions)
             commands.push({
                 type: 'text',
-                id: `${choiceId}_text`,
-                text: choice.text || '',
-                x: choiceX,
-                y: yPos,
-                style: { color: '#34d399', font: '18px Arial' },
+                id: `${choice.id}_text`,
+                text: choice.text,
+                x: choice.textPos.x, // <-- Use provided data
+                y: choice.textPos.y, // <-- Use provided data
+                style: { ...defaultStyle, ...(choice.style || {}) },
                 zIndex: 101
             });
 
             // Hotspot with generic data - no game logic here
             commands.push({
                 type: 'hotspot',
-                id: `${choiceId}_hotspot`,
-                data: {
-                    clickableId: `choice_${index}`,
-                    choiceIndex: index
-                },
-                x: choiceX - 10,
-                y: yPos - 20,
-                width: 300,
-                height: 40,
+                id: `${choice.id}_hotspot`,
+                data: choice.data,
+                x: choice.hotspot.x, // <-- Use provided data
+                y: choice.hotspot.y, // <-- Use provided data
+                width: choice.hotspot.width, // <-- Use provided data
+                height: choice.hotspot.height, // <-- Use provided data
                 zIndex: 102
             });
         });

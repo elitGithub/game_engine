@@ -1,14 +1,6 @@
 tasks.txt
 ------------------------------------------------------------------
 
-TASK: Decouple RenderManager from concrete renderer implementations.
-Explanation:
-- Go to 'engine/core/RenderManager.ts'.
-- Remove the hardcoded 'require()' statements for 'DomRenderer' and 'CanvasRenderer'.
-- Implement a registry pattern. The 'Engine' or 'SystemFactory' should be able to register renderer implementations (e.g., systemRegistry.registerRenderer('dom', DomRenderer)) that 'RenderManager' can then select from based on config.
-
-
-
 TASK: Move layout logic from rendering helpers to GameState.
 Explanation:
 - The rendering pipeline should be "dumb". Renderers should not make layout decisions.

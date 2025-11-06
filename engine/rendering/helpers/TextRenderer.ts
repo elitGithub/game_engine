@@ -5,7 +5,9 @@ import type { DialogueLine } from '../DialogueLine';
 import type { SpeakerRegistry } from '../SpeakerRegistry';
 import { DialogueLayoutHelper } from './DialogueLayoutHelper';
 import { ChoiceLayoutHelper } from './ChoiceLayoutHelper';
-import {SceneChoice} from "@engine/types/EngineEventMap";
+import { SceneChoice } from "@engine/types/EngineEventMap";
+// --- FIX: Import new "dumb" data types ---
+import type { PositionedChoice, PositionedDialogue } from '@engine/types/RenderingTypes';
 
 /**
  * TextRenderer - "Smart Helper" / "Central Entry Point"
@@ -28,15 +30,17 @@ export class TextRenderer {
      * Generates commands for a dialogue line by delegating
      * to the DialogueLayoutHelper.
      */
-    public buildDialogueCommands(line: DialogueLine, layout: 'bubble' | 'narrative'): RenderCommand[] {
-        return this.dialogueHelper.buildCommands(line, layout);
+    // --- FIX: Method signature changed ---
+    public buildDialogueCommands(dialogue: PositionedDialogue): RenderCommand[] {
+        return this.dialogueHelper.buildCommands(dialogue);
     }
 
     /**
      * Generates commands for a list of choices by delegating
      * to the ChoiceLayoutHelper.
      */
-    public buildChoiceCommands(choices: SceneChoice[]): RenderCommand[] {
+    // --- FIX: Method signature changed ---
+    public buildChoiceCommands(choices: PositionedChoice[]): RenderCommand[] {
         return this.choiceHelper.buildCommands(choices);
     }
 }

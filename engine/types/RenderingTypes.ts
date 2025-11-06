@@ -82,36 +82,28 @@ export interface MenuItem {
     id?: string;
 }
 
-export interface MenuData {
-    title?: string;
-    items: MenuItem[];
-    id?: string;
-    layout: {
-        x: number;
-        y: number;
-        width: number;
-        height: number;
-        padding?: number;
-    };
-    style?: {
-        backgroundColor?: string;
-        titleStyle?: TextStyleData;
-        itemStyle?: TextStyleData;
-    };
+export interface PositionedMenuItem {
+    id: string;
+    text: { text: string; x: number; y: number; style: TextStyleData };
+    hotspot: { x: number; y: number; width: number; height: number };
+    /** Generic data for click handlers */
+    data: Record<string, unknown>;
 }
 
-export interface BarData {
-    current: number;
-    max: number;
-    position: { x: number; y: number };
-    size: { width: number; height: number };
-    id?: string;
-    colors?: {
-        background?: string;
-        foreground?: string;
-        text?: string;
-    };
-    label?: string;
+export interface PositionedMenu {
+    id: string;
+    background: { x: number; y: number; width: number; height: number; fill: string };
+    title?: { text: string; x: number; y: number; style: TextStyleData };
+    items: PositionedMenuItem[];
+    zIndex?: number;
+}
+
+// -------------------------------------------------------------------
+export interface PositionedBar {
+    id: string;
+    background: { x: number; y: number; width: number; height: number; fill: string };
+    foreground: { x: number; y: number; width: number; height: number; fill: string };
+    label?: { text: string; x: number; y: number; style: TextStyleData };
     zIndex?: number;
 }
 
@@ -120,5 +112,24 @@ export interface TextDisplayData {
     position: { x: number; y: number };
     id?: string;
     style?: TextStyleData;
+    zIndex?: number;
+}
+
+export interface PositionedChoice {
+    id: string; // e.g., 'choice_0'
+    text: string;
+    textPos: { x: number; y: number };
+    hotspot: { x: number; y: number; width: number; height: number };
+    /** Generic data for click handlers */
+    data: Record<string, unknown>;
+    style?: TextStyleData; // Allow custom styling
+}
+
+export interface PositionedDialogue {
+    id: string;
+    background?: { x: number; y: number; width: number; height: number; fill: string };
+    speaker?: { text: string; x: number; y: number; style: TextStyleData };
+    text: { text: string; x: number; y: number; style: TextStyleData };
+    portrait?: { assetId: string; x: number; y: number; width: number; height: number };
     zIndex?: number;
 }
