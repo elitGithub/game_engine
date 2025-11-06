@@ -9,8 +9,7 @@ import type {
     InputBinding,
     InputCombo
 } from '../core/InputEvents';
-
-export type InputMode = 'gameplay' | 'menu' | 'cutscene' | 'disabled' | string;
+import {InputMode} from "@engine/types/EngineEventMap";
 
 interface InputState {
     keysDown: Set<string>;

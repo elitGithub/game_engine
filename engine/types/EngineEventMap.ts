@@ -13,7 +13,9 @@ import type {
     TouchMoveEvent,
     TouchStartEvent,
 } from '@engine/core/InputEvents';
-import {InputMode} from "@engine/systems/InputManager";
+
+
+export type InputMode = 'gameplay' | 'menu' | 'cutscene' | 'disabled' | string;
 
 // --- GameData definitions (moved from index.ts) ---
 // We move these here because 'game.data.loaded' depends on GameData,
