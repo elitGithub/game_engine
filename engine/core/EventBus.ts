@@ -66,6 +66,3 @@ export class EventBus {
         this.listeners.clear();
     }
 }
-
-// Export a singleton instance
-export const eventBus = new EventBus();

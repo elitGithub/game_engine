@@ -1,13 +1,6 @@
 tasks.txt
 ------------------------------------------------------------------
 
-TASK: Move layout logic from rendering helpers to GameState.
-Explanation:
-- The rendering pipeline should be "dumb". Renderers should not make layout decisions.
-- Go to 'engine/rendering/helpers/UIRenderer.ts' and 'ChoiceLayoutHelper.ts'.
-- Remove all coordinate calculations (e.g., 'xPos', 'yPos', 'currentY', 'itemX').
-- This logic belongs in the 'GameState' (e.g., 'StoryState'). The 'GameState' will calculate the exact (x, y) coordinates for a menu and pass them to the 'UIRenderer' to create the commands.
-
 TASK: Properly implement the SceneRenderer / UIRenderer split.
 Explanation:
 - The current helpers ('SceneRenderer.ts', 'UIRenderer.ts') are a good start but aren't fully integrated.

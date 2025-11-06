@@ -21,7 +21,6 @@ interface SceneLayer {
  * all layered visual scene elements.
  */
 export class SceneRenderer {
-    constructor() {}
 
     /**
      * Generates commands for rendering the entire scene.

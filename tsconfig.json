@@ -15,7 +15,8 @@
       "@engine/*": [
         "./engine/*"
       ]
-    }
+    },
+    "types": ["vitest/globals"]
   },
   "include": [
     "engine/**/*",
