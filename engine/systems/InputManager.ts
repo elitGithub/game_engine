@@ -1,18 +1,8 @@
 // engine/systems/InputManager.ts
-import type {GameStateManager} from '../core/GameStateManager';
-import type {EventBus} from '../core/EventBus';
+import type { GameStateManager } from '../core/GameStateManager';
+import type { EventBus } from '../core/EventBus';
 import type {
     EngineInputEvent,
-    KeyDownEvent,
-    KeyUpEvent,
-    MouseDownEvent,
-    MouseUpEvent,
-    MouseMoveEvent,
-    MouseWheelEvent,
-    ClickEvent,
-    TouchStartEvent,
-    TouchMoveEvent,
-    TouchEndEvent,
     GamepadButtonEvent,
     GamepadAxisEvent,
     InputAction,
@@ -40,10 +30,18 @@ interface BufferedInput {
     timestamp: number;
 }
 
+/**
+ * InputManager - Platform-agnostic input handling
+ *
+ * This manager processes engine-agnostic input events and maintains input state.
+ * It does NOT depend on any platform-specific APIs (DOM, native, etc.).
+ *
+ * Platform-specific adapters (e.g., DomInputAdapter) translate raw events
+ * into engine events and pass them to this manager via processEvent().
+ */
 export class InputManager {
     private stateManager: GameStateManager;
     private eventBus: EventBus;
-    private targetElement: HTMLElement | null;
 
     private state: InputState;
     private enabled: boolean;
@@ -58,17 +56,14 @@ export class InputManager {
     private gamepadPollingInterval: number | null;
     private lastGamepadStates: Map<number, GamepadState>;
 
-    private boundListeners: Map<string, EventListener>;
-
     constructor(stateManager: GameStateManager, eventBus: EventBus) {
         this.stateManager = stateManager;
         this.eventBus = eventBus;
-        this.targetElement = null;
 
         this.state = {
             keysDown: new Set(),
             mouseButtonsDown: new Set(),
-            mousePosition: {x: 0, y: 0},
+            mousePosition: { x: 0, y: 0 },
             touchPoints: new Map(),
             gamepadStates: new Map()
         };
@@ -84,81 +79,111 @@ export class InputManager {
 
         this.gamepadPollingInterval = null;
         this.lastGamepadStates = new Map();
-
-        this.boundListeners = new Map();
     }
 
     // ============================================================================
-    // SETUP AND CLEANUP
+    // EVENT PROCESSING (Core adapter interface)
     // ============================================================================
 
-    attach(element: HTMLElement, options?: { focus?: boolean; tabindex?: string }): void {
-        if (this.targetElement) {
-            this.detach();
-        }
+    /**
+     * Process an engine-agnostic input event
+     * Called by input adapters (DomInputAdapter, GamepadAdapter, etc.)
+     */
+    public processEvent(event: EngineInputEvent): void {
+        if (!this.enabled) return;
 
-        this.targetElement = element;
+        switch (event.type) {
+            case 'keydown':
+                this.state.keysDown.add(event.key);
+                this.addToBuffer(event.key);
+                this.dispatchEvent(event, true);
+                this.checkActionTriggers('key', event.key, {
+                    shift: event.shift,
+                    ctrl: event.ctrl,
+                    alt: event.alt,
+                    meta: event.meta
+                });
+                break;
 
-        if (options?.tabindex !== undefined) {
-            element.setAttribute('tabindex', options.tabindex);
-        } else if (!element.hasAttribute('tabindex')) {
-            element.setAttribute('tabindex', '0');
-        }
+            case 'keyup':
+                this.state.keysDown.delete(event.key);
+                this.dispatchEvent(event, false);
+                break;
 
-        this.attachListeners();
+            case 'mousedown':
+                this.state.mouseButtonsDown.add(event.button);
+                this.addToBuffer(`mouse${event.button}`);
+                this.dispatchEvent(event, true);
+                this.checkActionTriggers('mouse', event.button, {
+                    shift: event.shift,
+                    ctrl: event.ctrl,
+                    alt: event.alt,
+                    meta: event.meta
+                });
+                break;
 
-        if (options?.focus) {
-            element.focus();
+            case 'mouseup':
+                this.state.mouseButtonsDown.delete(event.button);
+                this.dispatchEvent(event, false);
+                break;
+
+            case 'mousemove':
+                this.state.mousePosition = { x: event.x, y: event.y };
+                this.dispatchEvent(event, false);
+                break;
+
+            case 'wheel':
+                this.dispatchEvent(event, false);
+                break;
+
+            case 'click':
+                // Check for action triggers from DOM elements
+                const target = event.target as HTMLElement | null;
+                if (target?.dataset?.action) {
+                    this.eventBus.emit('input.action', { action: target.dataset.action });
+                }
+                this.dispatchEvent(event, false);
+                break;
+
+            case 'touchstart':
+                event.touches.forEach(touch => {
+                    this.state.touchPoints.set(touch.id, { x: touch.x, y: touch.y });
+                });
+                this.addToBuffer(`touch${event.touches.length}`);
+                this.dispatchEvent(event, true);
+                break;
+
+            case 'touchmove':
+                event.touches.forEach(touch => {
+                    this.state.touchPoints.set(touch.id, { x: touch.x, y: touch.y });
+                });
+                this.dispatchEvent(event, false);
+                break;
+
+            case 'touchend':
+                event.touches.forEach(touch => {
+                    this.state.touchPoints.delete(touch.id);
+                });
+                this.dispatchEvent(event, false);
+                break;
+
+            case 'gamepadbutton':
+                if (event.pressed) {
+                    this.addToBuffer(`gamepad${event.gamepadIndex}_button${event.button}`);
+                    this.checkActionTriggers('gamepad', event.button);
+                }
+                this.dispatchEvent(event, event.pressed);
+                break;
+
+            case 'gamepadaxis':
+                this.dispatchEvent(event, false);
+                break;
         }
     }
 
-    detach(): void {
-        if (!this.targetElement) return;
-
-        this.boundListeners.forEach((listener, event) => {
-            this.targetElement!.removeEventListener(event, listener);
-        });
-        this.boundListeners.clear();
-
-        this.targetElement = null;
-    }
-
-    private attachListeners(): void {
-        if (!this.targetElement) return;
-
-        const onKeyDown = this.onKeyDown.bind(this);
-        const onKeyUp = this.onKeyUp.bind(this);
-        const onMouseDown = this.onMouseDown.bind(this);
-        const onMouseUp = this.onMouseUp.bind(this);
-        const onMouseMove = this.onMouseMove.bind(this);
-        const onWheel = this.onWheel.bind(this);
-        const onClick = this.onClick.bind(this);
-        const onTouchStart = this.onTouchStart.bind(this);
-        const onTouchMove = this.onTouchMove.bind(this);
-        const onTouchEnd = this.onTouchEnd.bind(this);
-
-        this.targetElement.addEventListener('keydown', onKeyDown as EventListener);
-        this.targetElement.addEventListener('keyup', onKeyUp as EventListener);
-        this.targetElement.addEventListener('mousedown', onMouseDown as EventListener);
-        this.targetElement.addEventListener('mouseup', onMouseUp as EventListener);
-        this.targetElement.addEventListener('mousemove', onMouseMove as EventListener);
-        this.targetElement.addEventListener('wheel', onWheel as EventListener);
-        this.targetElement.addEventListener('click', onClick as EventListener);
-        this.targetElement.addEventListener('touchstart', onTouchStart as EventListener);
-        this.targetElement.addEventListener('touchmove', onTouchMove as EventListener);
-        this.targetElement.addEventListener('touchend', onTouchEnd as EventListener);
-
-        this.boundListeners.set('keydown', onKeyDown as EventListener);
-        this.boundListeners.set('keyup', onKeyUp as EventListener);
-        this.boundListeners.set('mousedown', onMouseDown as EventListener);
-        this.boundListeners.set('mouseup', onMouseUp as EventListener);
-        this.boundListeners.set('mousemove', onMouseMove as EventListener);
-        this.boundListeners.set('wheel', onWheel as EventListener);
-        this.boundListeners.set('click', onClick as EventListener);
-        this.boundListeners.set('touchstart', onTouchStart as EventListener);
-        this.boundListeners.set('touchmove', onTouchMove as EventListener);
-        this.boundListeners.set('touchend', onTouchEnd as EventListener);
-    }
+    // ============================================================================
+    // GAMEPAD POLLING (Still uses browser API - could be adapted)
+    // ============================================================================
 
     enableGamepadPolling(): void {
         if (this.gamepadPollingInterval !== null) return;
@@ -174,238 +199,6 @@ export class InputManager {
         clearInterval(this.gamepadPollingInterval);
         this.gamepadPollingInterval = null;
     }
-
-    dispose(): void {
-        this.detach();
-        this.disableGamepadPolling();
-    }
-
-    // ============================================================================
-    // KEYBOARD EVENTS
-    // ============================================================================
-
-    private onKeyDown(e: KeyboardEvent): void {
-        if (!this.enabled) return;
-
-        this.state.keysDown.add(e.key);
-
-        const event: KeyDownEvent = {
-            type: 'keydown',
-            timestamp: Date.now(),
-            key: e.key,
-            code: e.code,
-            repeat: e.repeat,
-            shift: e.shiftKey,
-            ctrl: e.ctrlKey,
-            alt: e.altKey,
-            meta: e.metaKey
-        };
-
-        this.addToBuffer(e.key);
-        this.dispatchEvent(event, true);
-        this.checkActionTriggers('key', e.key, {shift: e.shiftKey, ctrl: e.ctrlKey, alt: e.altKey, meta: e.metaKey});
-    }
-
-    private onKeyUp(e: KeyboardEvent): void {
-        if (!this.enabled) return;
-
-        this.state.keysDown.delete(e.key);
-
-        const event: KeyUpEvent = {
-            type: 'keyup',
-            timestamp: Date.now(),
-            key: e.key,
-            code: e.code,
-            shift: e.shiftKey,
-            ctrl: e.ctrlKey,
-            alt: e.altKey,
-            meta: e.metaKey
-        };
-
-        this.dispatchEvent(event, false);
-    }
-
-    // ============================================================================
-    // MOUSE EVENTS
-    // ============================================================================
-
-    private onMouseDown(e: MouseEvent): void {
-        if (!this.enabled) return;
-
-        this.state.mouseButtonsDown.add(e.button);
-
-        const event: MouseDownEvent = {
-            type: 'mousedown',
-            timestamp: Date.now(),
-            button: e.button,
-            x: e.clientX,
-            y: e.clientY,
-            shift: e.shiftKey,
-            ctrl: e.ctrlKey,
-            alt: e.altKey,
-            meta: e.metaKey
-        };
-
-        this.addToBuffer(`mouse${e.button}`);
-        this.dispatchEvent(event, true);
-        this.checkActionTriggers('mouse', e.button, {
-            shift: e.shiftKey,
-            ctrl: e.ctrlKey,
-            alt: e.altKey,
-            meta: e.metaKey
-        });
-    }
-
-    private onMouseUp(e: MouseEvent): void {
-        if (!this.enabled) return;
-
-        this.state.mouseButtonsDown.delete(e.button);
-
-        const event: MouseUpEvent = {
-            type: 'mouseup',
-            timestamp: Date.now(),
-            button: e.button,
-            x: e.clientX,
-            y: e.clientY,
-            shift: e.shiftKey,
-            ctrl: e.ctrlKey,
-            alt: e.altKey,
-            meta: e.metaKey
-        };
-
-        this.dispatchEvent(event, false);
-    }
-
-    private onMouseMove(e: MouseEvent): void {
-        if (!this.enabled) return;
-
-        const deltaX = e.clientX - this.state.mousePosition.x;
-        const deltaY = e.clientY - this.state.mousePosition.y;
-
-        this.state.mousePosition = {x: e.clientX, y: e.clientY};
-
-        const event: MouseMoveEvent = {
-            type: 'mousemove',
-            timestamp: Date.now(),
-            x: e.clientX,
-            y: e.clientY,
-            deltaX,
-            deltaY,
-            buttons: e.buttons
-        };
-
-        this.dispatchEvent(event, false);
-    }
-
-    private onWheel(e: WheelEvent): void {
-        if (!this.enabled) return;
-
-        const event: MouseWheelEvent = {
-            type: 'wheel',
-            timestamp: Date.now(),
-            deltaX: e.deltaX,
-            deltaY: e.deltaY,
-            deltaZ: e.deltaZ,
-            x: e.clientX,
-            y: e.clientY
-        };
-
-        this.dispatchEvent(event, false);
-    }
-
-    private onClick(e: MouseEvent): void {
-        if (!this.enabled) return;
-        const target = e.target as HTMLElement;
-        if (target?.dataset?.action) {
-            this.eventBus.emit('input.action', {action: target.dataset.action});
-        }
-        const event: ClickEvent = {
-            type: 'click',
-            timestamp: Date.now(),
-            button: e.button,
-            x: e.clientX,
-            y: e.clientY,
-            target: e.target
-        };
-
-        this.dispatchEvent(event, false);
-    }
-
-    // ============================================================================
-    // TOUCH EVENTS
-    // ============================================================================
-
-    private onTouchStart(e: TouchEvent): void {
-        if (!this.enabled) return;
-
-        const touches = Array.from(e.touches).map(t => {
-            this.state.touchPoints.set(t.identifier, {x: t.clientX, y: t.clientY});
-            return {
-                id: t.identifier,
-                x: t.clientX,
-                y: t.clientY,
-                force: t.force
-            };
-        });
-
-        const event: TouchStartEvent = {
-            type: 'touchstart',
-            timestamp: Date.now(),
-            touches
-        };
-
-        this.addToBuffer(`touch${touches.length}`);
-        this.dispatchEvent(event, true);
-    }
-
-    private onTouchMove(e: TouchEvent): void {
-        if (!this.enabled) return;
-
-        const touches = Array.from(e.touches).map(t => {
-            this.state.touchPoints.set(t.identifier, {x: t.clientX, y: t.clientY});
-            return {
-                id: t.identifier,
-                x: t.clientX,
-                y: t.clientY,
-                force: t.force
-            };
-        });
-
-        const event: TouchMoveEvent = {
-            type: 'touchmove',
-            timestamp: Date.now(),
-            touches
-        };
-
-        this.dispatchEvent(event, false);
-    }
-
-    private onTouchEnd(e: TouchEvent): void {
-        if (!this.enabled) return;
-
-        Array.from(e.changedTouches).forEach(t => {
-            this.state.touchPoints.delete(t.identifier);
-        });
-
-        const touches = Array.from(e.touches).map(t => ({
-            id: t.identifier,
-            x: t.clientX,
-            y: t.clientY,
-            force: t.force
-        }));
-
-        const event: TouchEndEvent = {
-            type: 'touchend',
-            timestamp: Date.now(),
-            touches
-        };
-
-        this.dispatchEvent(event, false);
-    }
-
-    // ============================================================================
-    // GAMEPAD POLLING
-    // ============================================================================
 
     private pollGamepads(): void {
         if (!this.enabled) return;
@@ -423,7 +216,7 @@ export class InputManager {
             };
 
             gamepad.buttons.forEach((button, index) => {
-                currentState.buttons.set(index, {pressed: button.pressed, value: button.value});
+                currentState.buttons.set(index, { pressed: button.pressed, value: button.value });
 
                 const wasPressed = lastState?.buttons.get(index)?.pressed || false;
 
@@ -437,9 +230,7 @@ export class InputManager {
                         value: button.value
                     };
 
-                    this.addToBuffer(`gamepad${i}_button${index}`);
-                    this.dispatchEvent(event, true);
-                    this.checkActionTriggers('gamepad', index);
+                    this.processEvent(event);
                 }
             });
 
@@ -457,13 +248,17 @@ export class InputManager {
                         value
                     };
 
-                    this.dispatchEvent(event, false);
+                    this.processEvent(event);
                 }
             });
 
             this.lastGamepadStates.set(i, currentState);
             this.state.gamepadStates.set(i, currentState);
         }
+    }
+
+    dispose(): void {
+        this.disableGamepadPolling();
     }
 
     // ============================================================================
@@ -491,7 +286,7 @@ export class InputManager {
     }
 
     getMousePosition(): { x: number; y: number } {
-        return {...this.state.mousePosition};
+        return { ...this.state.mousePosition };
     }
 
     getTouchPoints(): Array<{ id: number; x: number; y: number }> {
@@ -514,7 +309,7 @@ export class InputManager {
     // ============================================================================
 
     registerAction(name: string, bindings: InputBinding[]): void {
-        this.actions.set(name, {name, bindings});
+        this.actions.set(name, { name, bindings });
     }
 
     isActionTriggered(actionName: string): boolean {
@@ -561,7 +356,7 @@ export class InputManager {
             });
 
             if (triggered) {
-                this.eventBus.emit('input.action', {action: name});
+                this.eventBus.emit('input.action', { action: name });
             }
         });
     }
@@ -582,13 +377,13 @@ export class InputManager {
     }
 
     registerCombo(name: string, inputs: string[], timeWindow: number = 1000): void {
-        this.combos.set(name, {inputs, timeWindow});
+        this.combos.set(name, { inputs, timeWindow });
     }
 
     private checkCombos(): void {
         this.combos.forEach((combo, name) => {
             if (this.isComboTriggered(combo)) {
-                this.eventBus.emit('input.combo', {combo: name});
+                this.eventBus.emit('input.combo', { combo: name });
             }
         });
     }
@@ -631,7 +426,7 @@ export class InputManager {
 
     setInputMode(mode: InputMode): void {
         this.currentMode = mode;
-        this.eventBus.emit('input.modeChanged', {mode});
+        this.eventBus.emit('input.modeChanged', { mode });
     }
 
     getInputMode(): InputMode {

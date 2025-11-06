@@ -1,25 +1,30 @@
+// engine/core/SystemFactory.ts
 /**
  * SystemFactory - Creates and wires up engine systems from config
  *
  * Handles dependency injection automatically based on system requirements.
  * Systems are created in the correct order to satisfy dependencies.
+ *
+ * Now platform-agnostic - uses PlatformContainer interface instead of HTMLElement
  */
 
-import {EventBus} from '../core/EventBus';
-import {AssetManager} from '../systems/AssetManager';
-import {AudioManager} from '../systems/AudioManager';
-import {GameStateManager} from '../core/GameStateManager';
-import {SceneManager} from '../systems/SceneManager';
-import {ActionRegistry} from '../systems/ActionRegistry';
-import {EffectManager} from '../systems/EffectManager';
-import {InputManager} from '../systems/InputManager';
-import {PluginManager} from '../core/PluginManager';
-import {ImageLoader} from '../systems/asset_loaders/ImageLoader';
-import {AudioLoader} from '../systems/asset_loaders/AudioLoader';
-import type {SystemRegistry} from './SystemRegistry';
-import {SYSTEMS} from './SystemRegistry';
-import {RenderManager} from "@engine/core/RenderManager";
-import {JsonLoader} from "@engine/systems/asset_loaders/JsonLoader";
+import { EventBus } from '../core/EventBus';
+import { AssetManager } from '../systems/AssetManager';
+import { AudioManager } from '../systems/AudioManager';
+import { GameStateManager } from '../core/GameStateManager';
+import { SceneManager } from '../systems/SceneManager';
+import { ActionRegistry } from '../systems/ActionRegistry';
+import { EffectManager } from '../systems/EffectManager';
+import { InputManager } from '../systems/InputManager';
+import { PluginManager } from '../core/PluginManager';
+import { ImageLoader } from '../systems/asset_loaders/ImageLoader';
+import { AudioLoader } from '../systems/asset_loaders/AudioLoader';
+import { JsonLoader } from '../systems/asset_loaders/JsonLoader';
+import { RenderManager } from './RenderManager';
+import { DomInputAdapter } from './DomInputAdapter';
+import type { SystemRegistry } from './SystemRegistry';
+import { SYSTEMS } from './SystemRegistry';
+import type { PlatformContainer } from './PlatformContainer';
 
 /**
  * System configuration options
@@ -36,7 +41,7 @@ export interface SystemConfig {
     };
     effects?: boolean;
     input?: boolean;
-    renderer?: { type: 'canvas' | 'dom' | 'svelte' };  // Extend as needed
+    renderer?: { type: 'canvas' | 'dom' | 'svelte' };
 }
 
 /**
@@ -53,14 +58,18 @@ export class SystemFactory {
      * 4. AudioManager (depends on EventBus, AssetManager, AudioContext)
      * 5. SceneManager (depends on EventBus)
      * 6. ActionRegistry (no dependencies)
-     * 7. EffectManager (depends on container element)
+     * 7. EffectManager (depends on container)
      * 8. InputManager (depends on StateManager, EventBus)
      * 9. PluginManager (no dependencies)
+     *
+     * @param config System configuration
+     * @param registry System registry for dependency injection
+     * @param container Platform-agnostic container (optional)
      */
     static create(
         config: SystemConfig,
         registry: SystemRegistry,
-        containerElement?: HTMLElement
+        container?: PlatformContainer
     ): void {
         // ====================================================================
         // CORE SYSTEMS (always created)
@@ -135,37 +144,59 @@ export class SystemFactory {
             registry.register(SYSTEMS.AudioManager, audioManager);
         }
 
-        // EffectManager (depends on: containerElement)
-        if (config.effects !== false && containerElement) {
-            const effectManager = new EffectManager(containerElement);
-            registry.register(SYSTEMS.EffectManager, effectManager);
+        // EffectManager (depends on: container with DOM support)
+        if (config.effects !== false && container) {
+            const domElement = container.getDomElement?.();
+            if (domElement) {
+                const effectManager = new EffectManager(domElement);
+                registry.register(SYSTEMS.EffectManager, effectManager);
+            } else {
+                console.warn('[SystemFactory] EffectManager requires DOM element. Skipping.');
+            }
         }
 
-        // Renderer (depends on: EventBus, AssetManager, SystemRegistry, containerElement)
-        if (config.renderer && containerElement) {
+        // Renderer (depends on: EventBus, AssetManager, SystemRegistry, container)
+        if (config.renderer && container) {
             if (!registry.has(SYSTEMS.AssetManager)) {
                 throw new Error('[SystemFactory] Renderer requires AssetManager. Enable assets in config.');
             }
+
             const eventBus = registry.get<EventBus>(SYSTEMS.EventBus);
 
-            // RenderManager needs the registry to get AssetManager, so we pass it
-            const renderManager = new RenderManager(
-                config.renderer,
-                eventBus,
-                containerElement,
-                registry // Pass the whole registry as the file expects
-            );
+            // Check if container supports rendering
+            const domElement = container.getDomElement?.();
+            if (domElement) {
+                const renderManager = new RenderManager(
+                    config.renderer,
+                    eventBus,
+                    domElement,
+                    registry
+                );
 
-            registry.register(SYSTEMS.RenderManager, renderManager);
+                registry.register(SYSTEMS.RenderManager, renderManager);
+            } else {
+                console.warn('[SystemFactory] Renderer requires DOM element. Skipping.');
+            }
         }
 
         // InputManager (depends on: StateManager, EventBus)
+        // Platform-agnostic input manager with optional adapter
         if (config.input !== false) {
             const stateManager = registry.get<GameStateManager>(SYSTEMS.StateManager);
             const eventBus = registry.get<EventBus>(SYSTEMS.EventBus);
 
             const inputManager = new InputManager(stateManager, eventBus);
             registry.register(SYSTEMS.InputManager, inputManager);
+
+            // Create and attach adapter if container supports it
+            if (container) {
+                const domInputAdapter = new DomInputAdapter(inputManager);
+                const attached = domInputAdapter.attachToContainer(container, { tabindex: '0' });
+
+                if (!attached) {
+                    console.warn('[SystemFactory] Could not attach DOM input adapter. Container may not support DOM.');
+                }
+            }
         }
     }
 }

@@ -13,6 +13,7 @@ import {PluginManager} from './core/PluginManager';
 import type {AssetManager, AssetManifestEntry} from './systems/AssetManager';
 import type {StorageAdapter} from './core/StorageAdapter';
 import {GameData} from "@engine/types/EngineEventMap";
+import {PlatformContainer} from "@engine/core/PlatformContainer";
 
 export interface EngineConfig<TGame> {
     debug?: boolean;
@@ -21,7 +22,7 @@ export interface EngineConfig<TGame> {
     systems: SystemConfig;
     gameState: TGame;
     gameData?: GameData;
-    containerElement?: HTMLElement;
+    container?: PlatformContainer;
     storageAdapter?: StorageAdapter;
     localization?: boolean | {
         initialLanguage?: string;
@@ -83,7 +84,7 @@ export class Engine<TGame = Record<string, any>> implements ISerializationRegist
         SystemFactory.create(
             userConfig.systems,
             this.registry,
-            userConfig.containerElement
+            userConfig.container
         );
 
         // Inject context into StateManager
