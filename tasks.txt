@@ -1,13 +1,6 @@
 tasks.txt
 ------------------------------------------------------------------
 
-TASK: Fix all TypeScript compilation errors.
-Explanation:
-- Run 'tsc --noEmit' in the project root to find all type-checking errors.
-- Pay close attention to 'engine/systems/InputManager.ts'. The use of 'as EventListener' is hiding type mismatches.
-- Ensure all class properties that are initialized in 'init()' or 'setContext()' methods use the definite assignment assertion '!' (e.g., 'private context!: GameContext<TGame>').
-- This is the highest priority task. The project must be in a compilable state.
-
 TASK: Remove all 'any' types from the core architecture.
 Explanation:
 - Search the codebase for the 'any' keyword.
@@ -21,12 +14,7 @@ Explanation:
 - Remove the hardcoded 'require()' statements for 'DomRenderer' and 'CanvasRenderer'.
 - Implement a registry pattern. The 'Engine' or 'SystemFactory' should be able to register renderer implementations (e.g., systemRegistry.registerRenderer('dom', DomRenderer)) that 'RenderManager' can then select from based on config.
 
-TASK: Decouple InputManager from DOM events.
-Explanation:
-- 'engine/systems/InputManager.ts' should not directly use 'KeyboardEvent', 'MouseEvent', or 'addEventListener'.
-- Create a separate adapter (e.g., 'DomInputAdapter') that *does* listen to these events.
-- The adapter's job is to translate DOM events into the engine-agnostic event types defined in 'engine/core/InputEvents.ts' (e.g., 'KeyDownEvent', 'ClickEvent').
-- The 'InputManager' should only consume these engine-agnostic events, making it platform-independent.
+
 
 TASK: Move layout logic from rendering helpers to GameState.
 Explanation:
