@@ -1,47 +1,9 @@
 // engine/rendering/helpers/UIRenderer.ts
-import type { RenderCommand, TextStyleData } from '@engine/types/RenderingTypes';
-import type { GameContext } from '@engine/types';
+import type {BarData, MenuData, RenderCommand, TextDisplayData, TextStyleData} from '@engine/types/RenderingTypes';
 import type { DialogueLine } from '../DialogueLine';
 import type { SpeakerRegistry } from '../SpeakerRegistry';
 import { TextRenderer } from './TextRenderer';
 import {SceneChoice} from "@engine/types/EngineEventMap";
-
-/**
- * Defines the contract for a menu button.
- * Your GameState can create an array of these
- * to be rendered by the UIRenderer.
- */
-export interface MenuItem {
-    /** The text to display on the button */
-    label: string;
-    /** The action string for the 'hotspot' command */
-    action: string;
-    /** Optional: unique ID for the render command */
-    id?: string;
-}
-
-/**
- * Defines the data structure for a generic menu.
- */
-export interface MenuData {
-    title?: string;
-    items: MenuItem[];
-    /** Optional: A unique ID for the menu background */
-    id?: string;
-    /** Position and size of the menu */
-    layout: {
-        x: number;
-        y: number;
-        width: number;
-        height: number;
-        padding?: number;
-    };
-    style?: {
-        backgroundColor?: string;
-        titleStyle?: TextStyleData;
-        itemStyle?: TextStyleData;
-    };
-}
 
 /**
  * "Smart Helper" for Screen-Space rendering.
@@ -49,6 +11,10 @@ export interface MenuData {
  * This class is a utility used by your GameState. It owns the
  * TextRenderer and provides methods to build all UI element commands
  * (Dialogue, Choices, HUD, Menus) at fixed screen coordinates.
+ *
+ * CRITICAL: This is a TRANSLATION LAYER. It converts game data
+ * into primitive render commands. It does NOT know about game structure
+ * or access GameContext. All data must be passed explicitly.
  */
 export class UIRenderer {
     private textRenderer: TextRenderer;
@@ -66,6 +32,10 @@ export class UIRenderer {
     /**
      * Generates commands for a dialogue line.
      * (Delegates to TextRenderer)
+     *
+     * @param line - The dialogue line data
+     * @param layout - The layout style ('bubble' or 'narrative')
+     * @returns Array of render commands
      */
     buildDialogueCommands(line: DialogueLine, layout: 'bubble' | 'narrative'): RenderCommand[] {
         return this.textRenderer.buildDialogueCommands(line, layout);
@@ -74,73 +44,103 @@ export class UIRenderer {
     /**
      * Generates commands for a list of choices.
      * (Delegates to TextRenderer)
+     *
+     * @param choices - Array of choice data
+     * @returns Array of render commands
      */
     buildChoiceCommands(choices: SceneChoice[]): RenderCommand[] {
         return this.textRenderer.buildChoiceCommands(choices);
     }
 
     /**
-     * Generates commands for the Heads-Up Display (HUD).
+     * Generates commands for a resource bar (health, mana, stamina, etc.).
      *
-     * This is an example implementation for a health bar.
-     * Your game's GameState would call this in its render() loop.
+     * This is a pure translation function. The game passes bar data,
+     * and this method returns the render commands.
+     *
+     * @param barData - The bar data (current, max, position, size, colors)
+     * @returns Array of render commands for the bar
      */
-    buildHudCommands(context: GameContext): RenderCommand[] {
+    buildBarCommands(barData: BarData): RenderCommand[] {
         const commands: RenderCommand[] = [];
-        const player = context.game.player; // Assumes player is on the context
+        const { current, max, position, size, id = 'bar', colors = {}, zIndex = 10000 } = barData;
 
-        // --- Example: Health Bar ---
-        if (player && typeof player.health === 'number' && typeof player.maxHealth === 'number') {
-            const barWidth = 200;
-            const barHeight = 20;
-            const xPos = 20;
-            const yPos = 20;
-            const zIndex = 10000; // UI is always on top
+        const percentage = Math.max(0, Math.min(1, current / max));
 
-            // 1. Health bar background
-            commands.push({
-                type: 'rect',
-                id: 'hud_health_bg',
-                x: xPos,
-                y: yPos,
-                width: barWidth,
-                height: barHeight,
-                fill: '#440000', // Dark red
-                zIndex: zIndex
-            });
+        // Background
+        commands.push({
+            type: 'rect',
+            id: `${id}_bg`,
+            x: position.x,
+            y: position.y,
+            width: size.width,
+            height: size.height,
+            fill: colors.background || '#440000',
+            zIndex: zIndex
+        });
 
-            // 2. Health bar foreground
-            const healthPercentage = Math.max(0, player.health / player.maxHealth);
-            commands.push({
-                type: 'rect',
-                id: 'hud_health_fg',
-                x: xPos,
-                y: yPos,
-                width: barWidth * healthPercentage,
-                height: barHeight,
-                fill: '#00cc00', // Bright green
-                zIndex: zIndex + 1 // On top of the background
-            });
+        // Foreground (current value)
+        commands.push({
+            type: 'rect',
+            id: `${id}_fg`,
+            x: position.x,
+            y: position.y,
+            width: size.width * percentage,
+            height: size.height,
+            fill: colors.foreground || '#00cc00',
+            zIndex: zIndex + 1
+        });
 
-            // 3. Health text
-            commands.push({
-                type: 'text',
-                id: 'hud_health_text',
-                text: `HP: ${player.health} / ${player.maxHealth}`,
-                x: xPos + 5,
-                y: yPos + (barHeight / 2) + 5, // Simple vertical center
-                style: { color: 'white', font: '12px Arial' },
-                zIndex: zIndex + 2
-            });
-        }
-
-        // ... Add commands for other HUD elements (e.g., score, clock) ...
+        // Text overlay
+        const displayText = barData.label || `${current} / ${max}`;
+        commands.push({
+            type: 'text',
+            id: `${id}_text`,
+            text: displayText,
+            x: position.x + 5,
+            y: position.y + (size.height / 2) + 5,
+            style: {
+                color: colors.text || 'white',
+                font: '12px Arial'
+            },
+            zIndex: zIndex + 2
+        });
 
         return commands;
     }
 
     /**
+     * Generates commands for a text display element.
+     *
+     * @param textData - The text display data
+     * @returns Array of render commands
+     */
+    buildTextDisplayCommands(textData: TextDisplayData): RenderCommand[] {
+        const { text, position, id = 'text_display', style = {}, zIndex = 10000 } = textData;
+
+        return [{
+            type: 'text',
+            id: id,
+            text: text,
+            x: position.x,
+            y: position.y,
+            style: {
+                font: '14px Arial',
+                color: 'white',
+                ...style
+            },
+            zIndex: zIndex
+        }];
+    }
+
+    /**
      * Generates commands for a generic game menu (e.g., Pause, Main Menu).
+     *
+     * This is a pure translation function. The game passes menu data,
+     * and this method returns the render commands.
+     *
+     * @param menuData - The menu data structure
+     * @returns Array of render commands for the menu
      */
     buildMenuCommands(menuData: MenuData): RenderCommand[] {
         const commands: RenderCommand[] = [];
