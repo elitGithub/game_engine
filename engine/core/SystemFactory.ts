@@ -37,7 +37,7 @@ export interface SystemConfig {
     };
     assets?: boolean;
     save?: boolean | {
-        adapter?: any;
+        adapter?: unknown;
     };
     effects?: boolean;
     input?: boolean;

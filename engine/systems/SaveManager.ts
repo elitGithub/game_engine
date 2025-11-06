@@ -9,13 +9,10 @@ export interface SaveData {
     version: string;
     timestamp: number;
     currentSceneId: string;
-    systems: {
-        [key: string]: any;
-    };
-    metadata?: {
-        [key: string]: any;
-    };
+    systems: Record<string, unknown>;
+    metadata?: Record<string, unknown>;
 }
+
 
 
 export class SaveManager {
@@ -33,7 +30,7 @@ export class SaveManager {
         this.adapter = adapter || new LocalStorageAdapter();
     }
 
-    async saveGame(slotId: string, metadata?: any): Promise<boolean> {
+    async saveGame(slotId: string, metadata?: Record<string, unknown>): Promise<boolean> {
         try {
             const saveData = this.serializeGameState(metadata);
             const json = JSON.stringify(saveData);

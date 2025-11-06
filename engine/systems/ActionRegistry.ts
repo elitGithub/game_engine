@@ -1,8 +1,8 @@
 /**
  * ActionRegistry - Central registry for all game actions
  */
-import type { ActionContext } from '@engine/types';
-import { Action } from './Action';
+import type {ActionContext} from '@engine/types';
+import {Action} from './Action';
 
 export class ActionRegistry {
     private actions: Map<string, Action>;
@@ -18,13 +18,13 @@ export class ActionRegistry {
      */
     register(action: Action, type: string = 'default'): void {
         this.actions.set(action.id, action);
-        
+
         // Group by type
         if (!this.actionsByType.has(type)) {
             this.actionsByType.set(type, []);
         }
         this.actionsByType.get(type)!.push(action);
-        
+
         console.log(`[ActionRegistry] Registered action: ${action.id} (type: ${type})`);
     }
 
@@ -53,7 +53,7 @@ export class ActionRegistry {
     /**
      * Execute an action by ID
      */
-    execute(actionId: string, context: ActionContext): any {
+    execute(actionId: string, context: ActionContext): unknown {
         const action = this.get(actionId);
         if (!action) {
             console.error(`[ActionRegistry] Action '${actionId}' not found`);
@@ -61,8 +61,8 @@ export class ActionRegistry {
         }
 
         if (!action.canExecute(context)) {
-            console.warn(`[ActionRegistry] Action '${actionId}' cannot be executed:`, 
-                         action.getUnavailableReason(context));
+            console.warn(`[ActionRegistry] Action '${actionId}' cannot be executed:`,
+                action.getUnavailableReason(context));
             return null;
         }
 

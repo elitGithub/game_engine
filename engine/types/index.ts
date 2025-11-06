@@ -17,10 +17,10 @@ export interface GameConfig {
     gameVersion?: string;
 }
 
-export interface GameContext<TGame = Record<string, any>> {
+export interface GameContext<TGame = Record<string, unknown>> {
     game: TGame;
     flags: Set<string>;
-    variables: Map<string, any>;
+    variables: Map<string, unknown>;
     assets?: AssetManager;
     audio?: AudioManager;
     saveManager?: SaveManager;
@@ -30,12 +30,10 @@ export interface GameContext<TGame = Record<string, any>> {
     renderer?: IRenderer;
     localization?: LocalizationManager;
 
-    [key: string]: any;
+    [key: string]: unknown;
 }
 
-export interface StateData {
-    [key: string]: any;
-}
+export type StateData = Record<string, unknown>;
 
 export interface ISerializable {
     serialize(): any;

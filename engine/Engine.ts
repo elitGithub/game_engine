@@ -146,7 +146,7 @@ export class Engine<TGame = Record<string, any>> implements ISerializationRegist
      * @private
      */
     private wireContext(): void {
-        const ctx = this.context as any;
+        const ctx = this.context as Record<string, unknown>;
 
         if (this.registry.has(SYSTEMS.AudioManager)) {
             ctx.audio = this.registry.get(SYSTEMS.AudioManager);
