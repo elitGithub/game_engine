@@ -62,36 +62,4 @@ export class SceneRenderer {
 
         return commands;
     }
-
-    /**
-     * Generates commands for hotspots in the scene.
-     */
-    buildHotspotCommands(scene: Scene): RenderCommand[] {
-        const commands: RenderCommand[] = [];
-        const hotspots = scene.sceneData.hotspots as Array<{
-            id: string;
-            x: number;
-            y: number;
-            width: number;
-            height: number;
-            action?: string;
-        }> | undefined;
-
-        if (hotspots && Array.isArray(hotspots)) {
-            hotspots.forEach((hotspot) => {
-                commands.push({
-                    type: 'hotspot',
-                    id: hotspot.id,
-                    action: hotspot.action || hotspot.id,
-                    x: hotspot.x,
-                    y: hotspot.y,
-                    width: hotspot.width,
-                    height: hotspot.height,
-                    zIndex: 50
-                });
-            });
-        }
-
-        return commands;
-    }
 }
