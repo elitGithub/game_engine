@@ -1,13 +1,6 @@
 tasks.txt
 ------------------------------------------------------------------
 
-TASK: Remove all 'any' types from the core architecture.
-Explanation:
-- Search the codebase for the 'any' keyword.
-- Target 'engine/types/index.ts'. Remove the '[key: string]: any;' fallback from 'GameContext' and 'ActionContext'.
-- Target 'engine/core/GameStateManager.ts'. Replace 'GameContext<any>' with a proper generic implementation.
-- In 'engine/systems/SaveManager.ts', replace 'metadata?: any' with a generic or a more specific 'Record<string, unknown>'.
-
 TASK: Decouple RenderManager from concrete renderer implementations.
 Explanation:
 - Go to 'engine/core/RenderManager.ts'.
@@ -44,13 +37,6 @@ Explanation:
 - The 'DialogueLine' data object should not know if it will be animated.
 - The 'GameState' should be responsible for applying a 'TypewriterEffect' (via the 'EffectManager') to the rendered text element *after* it's been created by the 'UIRenderer'.
 
-TASK: Fully decouple interaction logic from renderers.
-Explanation:
-- Go to 'engine/rendering/helpers/ChoiceLayoutHelper.ts'.
-- Remove the hardcoded 'action: \`choice:${index}\`' property from the 'hotspot' command.
-- Instead, use a generic data attribute, e.g., 'data: { clickableId: \`choice_${index}\` }'.
-- The 'InputManager' will report a click on 'clickableId: choice_${index}'.
-- The 'GameState' will be responsible for listening for this event and mapping 'choice_${index}' to the actual game logic (like 'this.goToScene(...)').
 
 TASK: Set up a testing framework and add initial tests.
 Explanation:

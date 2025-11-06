@@ -3,8 +3,6 @@
 import type {RenderCommand, IRenderer} from '../types/RenderingTypes';
 import {EventBus} from '../core/EventBus';
 import type { SystemRegistry } from './SystemRegistry';
-import { SYSTEMS } from './SystemRegistry';
-import type { AssetManager } from '@engine/systems/AssetManager';
 
 /**
  * RenderManager - Engine-level manager for rendering.
@@ -18,8 +16,6 @@ import type { AssetManager } from '@engine/systems/AssetManager';
 export class RenderManager {
     private renderer: IRenderer;
     private queue: RenderCommand[] = [];
-    private eventBus: EventBus;
-    private container: HTMLElement;
     private registry: SystemRegistry;
 
     constructor(
@@ -28,26 +24,10 @@ export class RenderManager {
         container: HTMLElement,
         registry: SystemRegistry
     ) {
-        this.eventBus = eventBus;
-        this.container = container;
+
         this.registry = registry; // Store registry
-        this.renderer = this.createRenderer(config.type);
+        this.renderer = this.registry.getRenderer(config.type);
         this.renderer.init(container);
-    }
-
-    private createRenderer(type: string): IRenderer {
-        const assets = this.registry.get<AssetManager>(SYSTEMS.AssetManager);
-
-        switch (type) {
-            case 'dom':
-                const {DomRenderer} = require('../rendering/DomRenderer');
-                return new DomRenderer(assets);
-            case 'canvas':
-                const {CanvasRenderer} = require('../rendering/CanvasRenderer');
-                return new CanvasRenderer(assets);
-            default:
-                throw new Error(`Unknown renderer type: ${type}`);
-        }
     }
 
     pushCommand(command: RenderCommand): void {

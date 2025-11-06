@@ -8,23 +8,26 @@
  * Now platform-agnostic - uses PlatformContainer interface instead of HTMLElement
  */
 
-import { EventBus } from '../core/EventBus';
-import { AssetManager } from '../systems/AssetManager';
-import { AudioManager } from '../systems/AudioManager';
-import { GameStateManager } from '../core/GameStateManager';
-import { SceneManager } from '../systems/SceneManager';
-import { ActionRegistry } from '../systems/ActionRegistry';
-import { EffectManager } from '../systems/EffectManager';
-import { InputManager } from '../systems/InputManager';
-import { PluginManager } from '../core/PluginManager';
-import { ImageLoader } from '../systems/asset_loaders/ImageLoader';
-import { AudioLoader } from '../systems/asset_loaders/AudioLoader';
-import { JsonLoader } from '../systems/asset_loaders/JsonLoader';
-import { RenderManager } from './RenderManager';
-import { DomInputAdapter } from './DomInputAdapter';
-import type { SystemRegistry } from './SystemRegistry';
-import { SYSTEMS } from './SystemRegistry';
-import type { PlatformContainer } from './PlatformContainer';
+import {EventBus} from '../core/EventBus';
+import {AssetManager} from '../systems/AssetManager';
+import {AudioManager} from '../systems/AudioManager';
+import {GameStateManager} from '../core/GameStateManager';
+import {SceneManager} from '../systems/SceneManager';
+import {ActionRegistry} from '../systems/ActionRegistry';
+import {EffectManager} from '../systems/EffectManager';
+import {InputManager} from '../systems/InputManager';
+import {PluginManager} from '../core/PluginManager';
+import {ImageLoader} from '../systems/asset_loaders/ImageLoader';
+import {AudioLoader} from '../systems/asset_loaders/AudioLoader';
+import {JsonLoader} from '../systems/asset_loaders/JsonLoader';
+import {RenderManager} from './RenderManager';
+import {DomInputAdapter} from './DomInputAdapter';
+import type {SystemRegistry} from './SystemRegistry';
+import {SYSTEMS} from './SystemRegistry';
+import type {PlatformContainer} from './PlatformContainer';
+import {DomRenderer} from '../rendering/DomRenderer';
+import {CanvasRenderer} from '../rendering/CanvasRenderer';
+
 
 /**
  * System configuration options
@@ -161,22 +164,25 @@ export class SystemFactory {
                 throw new Error('[SystemFactory] Renderer requires AssetManager. Enable assets in config.');
             }
 
-            const eventBus = registry.get<EventBus>(SYSTEMS.EventBus);
-
-            // Check if container supports rendering
             const domElement = container.getDomElement?.();
-            if (domElement) {
-                const renderManager = new RenderManager(
-                    config.renderer,
-                    eventBus,
-                    domElement,
-                    registry
-                );
-
-                registry.register(SYSTEMS.RenderManager, renderManager);
-            } else {
+            if (!domElement) {
                 console.warn('[SystemFactory] Renderer requires DOM element. Skipping.');
+                return; // + Exit early if no DOM element
             }
+
+            const eventBus = registry.get<EventBus>(SYSTEMS.EventBus);
+            const assets = registry.get<AssetManager>(SYSTEMS.AssetManager);
+
+            registry.registerRenderer('dom', new DomRenderer(assets));
+            registry.registerRenderer('canvas', new CanvasRenderer(assets));
+            const renderManager = new RenderManager(
+                config.renderer,
+                eventBus,
+                domElement,
+                registry
+            );
+
+            registry.register(SYSTEMS.RenderManager, renderManager);
         }
 
         // InputManager (depends on: StateManager, EventBus)
@@ -191,7 +197,7 @@ export class SystemFactory {
             // Create and attach adapter if container supports it
             if (container) {
                 const domInputAdapter = new DomInputAdapter(inputManager);
-                const attached = domInputAdapter.attachToContainer(container, { tabindex: '0' });
+                const attached = domInputAdapter.attachToContainer(container, {tabindex: '0'});
 
                 if (!attached) {
                     console.warn('[SystemFactory] Could not attach DOM input adapter. Container may not support DOM.');

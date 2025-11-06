@@ -1,5 +1,7 @@
+import type { IRenderer } from "@engine/types/RenderingTypes";
 export class SystemRegistry {
      private systems = new Map<symbol, unknown>();
+     private renderers = new Map<string, IRenderer>();
 
     /**
      * Register a system instance
@@ -22,6 +24,28 @@ export class SystemRegistry {
             throw new Error(`[SystemRegistry] System not found: ${key.description || 'unknown'}`);
         }
         return system as T;
+    }
+
+    /**
+     * Register a renderer instance
+     */
+    registerRenderer(type: string, instance: IRenderer): void {
+        if (this.renderers.has(type)) {
+            console.warn(`[SystemRegistry] Overwriting renderer: ${type}`);
+        }
+        this.renderers.set(type, instance);
+    }
+
+    /**
+     * Get a registered renderer instance
+     * @throws Error if renderer not found
+     */
+    getRenderer(type: string): IRenderer {
+        const renderer = this.renderers.get(type);
+        if (!renderer) {
+            throw new Error(`[SystemRegistry] Renderer not found: ${type}`);
+        }
+        return renderer;
     }
 
     /**
