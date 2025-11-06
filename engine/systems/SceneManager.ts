@@ -2,7 +2,7 @@
 import type { GameContext } from '@engine/types';
 import { Scene } from './Scene';
 import type { EventBus } from '../core/EventBus';
-import {ScenesDataMap, SceneData} from "@engine/types/EngineEventMap";
+import {ScenesDataMap, SceneData, SceneChoice} from "@engine/types/EngineEventMap";
 
 type SceneFactory<TGame> = (id: string, type: string, data: SceneData) => Scene<TGame>;
 

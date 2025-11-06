@@ -1,3 +1,4 @@
+// engine/types/EngineEventMap.ts
 import type {AssetType} from '@engine/core/IAssetLoader';
 import type {
     ClickEvent,
@@ -17,8 +18,6 @@ import type {
 export type InputMode = 'gameplay' | 'menu' | 'cutscene' | 'disabled' | string;
 
 // --- GameData definitions (moved from index.ts) ---
-// We move these here because 'game.data.loaded' depends on GameData,
-// and moving them here prevents a circular import with index.ts.
 export interface SceneData {
     sceneType?: string;
     textKey?: string;
@@ -29,7 +28,6 @@ export interface SceneData {
     layers?: unknown[];
     backgroundAsset?: string;
     
-    // Allow game-specific properties
     [key: string]: unknown;
 }
 
@@ -39,7 +37,6 @@ export interface SceneChoice {
     targetScene?: string;
     action?: string;
     
-    // Allow game-specific properties
     [key: string]: unknown;
 }
 
@@ -55,8 +52,6 @@ export interface GameData {
 
 /**
  * Defines the type-safe mapping for all events used by the core engine.
- * A game developer can extend the final 'EventMap' (in index.ts)
- * to add game-specific events.
  */
 export interface EngineEventMap {
     // Engine
@@ -102,6 +97,7 @@ export interface EngineEventMap {
     'input.touchend': TouchEndEvent;
     'input.gamepadbutton': GamepadButtonEvent;
     'input.gamepadaxis': GamepadAxisEvent;
+    'input.hotspot': { element: HTMLElement; data: Record<string, string> };
     'input.action': { action: string };
     'input.combo': { combo: string };
     'input.modeChanged': { mode: InputMode };

@@ -1,14 +1,17 @@
+// engine/rendering/DomRenderer.ts
+
 import type { IRenderer, RenderCommand, TextStyleData } from '../types/RenderingTypes';
 import type { AssetManager } from '@engine/systems/AssetManager.ts';
 
+/**
+ * DomRenderer - DOM-based renderer implementation
+ * DECOUPLED: Applies generic data-* attributes without interpreting them
+ */
 export class DomRenderer implements IRenderer {
     private elements: Map<string, HTMLElement> = new Map();
-    private container!: HTMLElement; // Initialized in init()
+    private container!: HTMLElement;
 
-    constructor(
-        // AssetManager is required to resolve asset IDs
-        private assets: AssetManager
-    ) {}
+    constructor(private assets: AssetManager) {}
 
     init(container: HTMLElement): void {
         this.container = container;
@@ -24,19 +27,16 @@ export class DomRenderer implements IRenderer {
     flush(commands: RenderCommand[]): void {
         this.clear();
 
-        // Type-safe helper to get zIndex
         const getZ = (cmd: RenderCommand): number => {
             if (cmd.type === 'clear') return -Infinity;
             return cmd.zIndex || 0;
         }
 
-        // Filter out 'clear' commands to guarantee all other commands have the properties we need
         const renderableCommands = commands.filter(cmd => cmd.type !== 'clear');
-
         const sortedCommands = renderableCommands.sort((a, b) => getZ(a) - getZ(b));
 
         for (const cmd of sortedCommands) {
-            let el: HTMLElement; // Guaranteed to be one of the types below
+            let el: HTMLElement;
 
             switch (cmd.type) {
                 case 'image':
@@ -44,7 +44,7 @@ export class DomRenderer implements IRenderer {
                     const imgEl = document.createElement('img');
                     const imgAsset = this.assets.get<HTMLImageElement>(cmd.assetId);
                     if (imgAsset) {
-                        imgEl.src = imgAsset.src; // This is now safe
+                        imgEl.src = imgAsset.src;
                     }
                     imgEl.style.width = cmd.width ? `${cmd.width}px` : 'auto';
                     imgEl.style.height = cmd.height ? `${cmd.height}px` : 'auto';
@@ -75,7 +75,14 @@ export class DomRenderer implements IRenderer {
 
                 case 'hotspot': {
                     const spotEl = document.createElement('div');
-                    spotEl.dataset.action = cmd.action;
+
+                    // Apply all data-* attributes from the data object
+                    if (cmd.data) {
+                        for (const [key, value] of Object.entries(cmd.data)) {
+                            spotEl.dataset[key] = String(value);
+                        }
+                    }
+
                     spotEl.style.cursor = 'pointer';
                     spotEl.style.width = `${cmd.width}px`;
                     spotEl.style.height = `${cmd.height}px`;
@@ -84,8 +91,6 @@ export class DomRenderer implements IRenderer {
                 }
             }
 
-            // All properties below are now safe to access
-            // because 'clear' type was filtered out.
             el.id = cmd.id;
             el.style.position = 'absolute';
             el.style.left = `${cmd.x}px`;

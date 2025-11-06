@@ -1,10 +1,10 @@
 // engine/systems/InputManager.ts
-import type { GameStateManager } from '../core/GameStateManager';
-import type { EventBus } from '../core/EventBus';
+import type {GameStateManager} from '../core/GameStateManager';
+import type {EventBus} from '../core/EventBus';
 import type {
     EngineInputEvent,
-    GamepadButtonEvent,
     GamepadAxisEvent,
+    GamepadButtonEvent,
     InputAction,
     InputBinding,
     InputCombo
@@ -62,7 +62,7 @@ export class InputManager {
         this.state = {
             keysDown: new Set(),
             mouseButtonsDown: new Set(),
-            mousePosition: { x: 0, y: 0 },
+            mousePosition: {x: 0, y: 0},
             touchPoints: new Map(),
             gamepadStates: new Map()
         };
@@ -127,26 +127,34 @@ export class InputManager {
                 break;
 
             case 'mousemove':
-                this.state.mousePosition = { x: event.x, y: event.y };
+                this.state.mousePosition = {x: event.x, y: event.y};
                 this.dispatchEvent(event, false);
                 break;
 
             case 'wheel':
                 this.dispatchEvent(event, false);
                 break;
-
             case 'click':
-                // Check for action triggers from DOM elements
                 const target = event.target as HTMLElement | null;
-                if (target?.dataset?.action) {
-                    this.eventBus.emit('input.action', { action: target.dataset.action });
+                if (target?.dataset && Object.keys(target.dataset).length > 0) {
+                    // Filter out undefined values from DOMStringMap
+                    const data: Record<string, string> = {};
+                    for (const [key, value] of Object.entries(target.dataset)) {
+                        if (value !== undefined) {
+                            data[key] = value;
+                        }
+                    }
+                    this.eventBus.emit('input.hotspot', {
+                        element: target,
+                        data
+                    });
                 }
                 this.dispatchEvent(event, false);
                 break;
 
             case 'touchstart':
                 event.touches.forEach(touch => {
-                    this.state.touchPoints.set(touch.id, { x: touch.x, y: touch.y });
+                    this.state.touchPoints.set(touch.id, {x: touch.x, y: touch.y});
                 });
                 this.addToBuffer(`touch${event.touches.length}`);
                 this.dispatchEvent(event, true);
@@ -154,7 +162,7 @@ export class InputManager {
 
             case 'touchmove':
                 event.touches.forEach(touch => {
-                    this.state.touchPoints.set(touch.id, { x: touch.x, y: touch.y });
+                    this.state.touchPoints.set(touch.id, {x: touch.x, y: touch.y});
                 });
                 this.dispatchEvent(event, false);
                 break;
@@ -215,7 +223,7 @@ export class InputManager {
             };
 
             gamepad.buttons.forEach((button, index) => {
-                currentState.buttons.set(index, { pressed: button.pressed, value: button.value });
+                currentState.buttons.set(index, {pressed: button.pressed, value: button.value});
 
                 const wasPressed = lastState?.buttons.get(index)?.pressed || false;
 
@@ -285,7 +293,7 @@ export class InputManager {
     }
 
     getMousePosition(): { x: number; y: number } {
-        return { ...this.state.mousePosition };
+        return {...this.state.mousePosition};
     }
 
     getTouchPoints(): Array<{ id: number; x: number; y: number }> {
@@ -308,7 +316,7 @@ export class InputManager {
     // ============================================================================
 
     registerAction(name: string, bindings: InputBinding[]): void {
-        this.actions.set(name, { name, bindings });
+        this.actions.set(name, {name, bindings});
     }
 
     isActionTriggered(actionName: string): boolean {
@@ -355,7 +363,7 @@ export class InputManager {
             });
 
             if (triggered) {
-                this.eventBus.emit('input.action', { action: name });
+                this.eventBus.emit('input.action', {action: name});
             }
         });
     }
@@ -376,13 +384,13 @@ export class InputManager {
     }
 
     registerCombo(name: string, inputs: string[], timeWindow: number = 1000): void {
-        this.combos.set(name, { inputs, timeWindow });
+        this.combos.set(name, {inputs, timeWindow});
     }
 
     private checkCombos(): void {
         this.combos.forEach((combo, name) => {
             if (this.isComboTriggered(combo)) {
-                this.eventBus.emit('input.combo', { combo: name });
+                this.eventBus.emit('input.combo', {combo: name});
             }
         });
     }
@@ -425,7 +433,7 @@ export class InputManager {
 
     setInputMode(mode: InputMode): void {
         this.currentMode = mode;
-        this.eventBus.emit('input.modeChanged', { mode });
+        this.eventBus.emit('input.modeChanged', {mode});
     }
 
     getInputMode(): InputMode {

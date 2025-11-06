@@ -1,12 +1,10 @@
+// engine/types/RenderingTypes.ts
+
 export interface IRenderer {
     init(container: HTMLElement): void;
-
     clear(): void;
-
     flush(commands: RenderCommand[]): void;
-
     resize?(width: number, height: number): void;
-
     dispose(): void;
 }
 
@@ -51,7 +49,6 @@ export type RenderCommand =
     zIndex?: number;
 }
     | {
-    /** Renders a simple colored rectangle */
     type: 'rect';
     id: string;
     x: number;
@@ -69,33 +66,26 @@ export type RenderCommand =
     y: number;
     width: number;
     height: number;
-    action: string;
+    /** Generic data for click handlers - engine doesn't interpret this */
+    data?: Record<string, unknown>;
     zIndex?: number;
 };
 
 /**
- * Defines the contract for a menu button.
- * Your GameState can create an array of these
- * to be rendered by the UIRenderer.
+ * MenuItem - Defines a menu button
+ * GameState provides these to UIRenderer for rendering
  */
 export interface MenuItem {
-    /** The text to display on the button */
     label: string;
-    /** The action string for the 'hotspot' command */
-    action: string;
-    /** Optional: unique ID for the render command */
+    /** Generic data passed to click handlers */
+    data?: Record<string, unknown>;
     id?: string;
 }
 
-/**
- * Defines the data structure for a generic menu.
- */
 export interface MenuData {
     title?: string;
     items: MenuItem[];
-    /** Optional: A unique ID for the menu background */
     id?: string;
-    /** Position and size of the menu */
     layout: {
         x: number;
         y: number;
@@ -110,46 +100,25 @@ export interface MenuData {
     };
 }
 
-/**
- * Defines the data structure for a health/resource bar.
- * Your GameState extracts values from its own player/entity
- * and passes this pure data to UIRenderer.
- */
 export interface BarData {
-    /** Current value (e.g., current health) */
     current: number;
-    /** Maximum value (e.g., max health) */
     max: number;
-    /** Position on screen */
     position: { x: number; y: number };
-    /** Size of the bar */
     size: { width: number; height: number };
-    /** Optional: unique ID for the render commands */
     id?: string;
-    /** Optional: custom colors */
     colors?: {
         background?: string;
         foreground?: string;
         text?: string;
     };
-    /** Optional: display text (if not provided, shows "current / max") */
     label?: string;
-    /** Optional: z-index override */
     zIndex?: number;
 }
 
-/**
- * Defines the data structure for a text display element.
- */
 export interface TextDisplayData {
-    /** The text to display */
     text: string;
-    /** Position on screen */
     position: { x: number; y: number };
-    /** Optional: unique ID */
     id?: string;
-    /** Optional: text style */
     style?: TextStyleData;
-    /** Optional: z-index override */
     zIndex?: number;
 }

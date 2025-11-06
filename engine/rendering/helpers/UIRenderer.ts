@@ -1,73 +1,38 @@
 // engine/rendering/helpers/UIRenderer.ts
-import type {BarData, MenuData, RenderCommand, TextDisplayData, TextStyleData} from '@engine/types/RenderingTypes';
+
+import type { BarData, MenuData, RenderCommand, TextDisplayData, TextStyleData } from '@engine/types/RenderingTypes';
 import type { DialogueLine } from '../DialogueLine';
 import type { SpeakerRegistry } from '../SpeakerRegistry';
 import { TextRenderer } from './TextRenderer';
-import {SceneChoice} from "@engine/types/EngineEventMap";
+import type { SceneChoice } from '@engine/types/EngineEventMap';
 
 /**
- * "Smart Helper" for Screen-Space rendering.
+ * UIRenderer - Screen-space rendering helper
  *
- * This class is a utility used by your GameState. It owns the
- * TextRenderer and provides methods to build all UI element commands
- * (Dialogue, Choices, HUD, Menus) at fixed screen coordinates.
- *
- * CRITICAL: This is a TRANSLATION LAYER. It converts game data
- * into primitive render commands. It does NOT know about game structure
- * or access GameContext. All data must be passed explicitly.
+ * DECOUPLED: Pure translation layer. Converts game data into render commands.
+ * Does NOT know about game structure or access GameContext.
  */
 export class UIRenderer {
     private textRenderer: TextRenderer;
 
-    /**
-     * Creates a new UIRenderer.
-     * @param speakerRegistry A reference to the game's SpeakerRegistry,
-     * which is required by the internal TextRenderer.
-     */
     constructor(speakerRegistry: SpeakerRegistry) {
-        // UIRenderer owns the TextRenderer, passing its dependency
         this.textRenderer = new TextRenderer(speakerRegistry);
     }
 
-    /**
-     * Generates commands for a dialogue line.
-     * (Delegates to TextRenderer)
-     *
-     * @param line - The dialogue line data
-     * @param layout - The layout style ('bubble' or 'narrative')
-     * @returns Array of render commands
-     */
     buildDialogueCommands(line: DialogueLine, layout: 'bubble' | 'narrative'): RenderCommand[] {
         return this.textRenderer.buildDialogueCommands(line, layout);
     }
 
-    /**
-     * Generates commands for a list of choices.
-     * (Delegates to TextRenderer)
-     *
-     * @param choices - Array of choice data
-     * @returns Array of render commands
-     */
     buildChoiceCommands(choices: SceneChoice[]): RenderCommand[] {
         return this.textRenderer.buildChoiceCommands(choices);
     }
 
-    /**
-     * Generates commands for a resource bar (health, mana, stamina, etc.).
-     *
-     * This is a pure translation function. The game passes bar data,
-     * and this method returns the render commands.
-     *
-     * @param barData - The bar data (current, max, position, size, colors)
-     * @returns Array of render commands for the bar
-     */
     buildBarCommands(barData: BarData): RenderCommand[] {
         const commands: RenderCommand[] = [];
         const { current, max, position, size, id = 'bar', colors = {}, zIndex = 10000 } = barData;
 
         const percentage = Math.max(0, Math.min(1, current / max));
 
-        // Background
         commands.push({
             type: 'rect',
             id: `${id}_bg`,
@@ -79,7 +44,6 @@ export class UIRenderer {
             zIndex: zIndex
         });
 
-        // Foreground (current value)
         commands.push({
             type: 'rect',
             id: `${id}_fg`,
@@ -91,7 +55,6 @@ export class UIRenderer {
             zIndex: zIndex + 1
         });
 
-        // Text overlay
         const displayText = barData.label || `${current} / ${max}`;
         commands.push({
             type: 'text',
@@ -109,12 +72,6 @@ export class UIRenderer {
         return commands;
     }
 
-    /**
-     * Generates commands for a text display element.
-     *
-     * @param textData - The text display data
-     * @returns Array of render commands
-     */
     buildTextDisplayCommands(textData: TextDisplayData): RenderCommand[] {
         const { text, position, id = 'text_display', style = {}, zIndex = 10000 } = textData;
 
@@ -134,22 +91,17 @@ export class UIRenderer {
     }
 
     /**
-     * Generates commands for a generic game menu (e.g., Pause, Main Menu).
-     *
-     * This is a pure translation function. The game passes menu data,
-     * and this method returns the render commands.
-     *
-     * @param menuData - The menu data structure
-     * @returns Array of render commands for the menu
+     * Build menu commands - DECOUPLED from game logic
+     * Uses generic data instead of action strings
      */
     buildMenuCommands(menuData: MenuData): RenderCommand[] {
         const commands: RenderCommand[] = [];
-        const zIndex = 20000; // Menus on top of HUD
+        const zIndex = 20000;
         const layout = menuData.layout;
         const style = menuData.style || {};
         const padding = layout.padding || 20;
 
-        // 1. Menu Background
+        // Menu background
         commands.push({
             type: 'rect',
             id: menuData.id || 'menu_background',
@@ -163,7 +115,7 @@ export class UIRenderer {
 
         let currentY = layout.y + padding;
 
-        // 2. Menu Title
+        // Menu title
         if (menuData.title) {
             commands.push({
                 type: 'text',
@@ -179,23 +131,23 @@ export class UIRenderer {
                 },
                 zIndex: zIndex + 1
             });
-            currentY += 40; // Space for title
+            currentY += 40;
         }
 
-        // 3. Menu Items (Buttons)
+        // Menu items
         const itemStyle: TextStyleData = {
             font: '18px Arial',
             color: 'white',
             align: 'left',
             ...style.itemStyle
         };
-        const itemHeight = 40; // Height of each button's hotspot
+        const itemHeight = 40;
 
         menuData.items.forEach((item, index) => {
             const itemX = layout.x + padding;
             const itemY = currentY + (index * itemHeight);
 
-            // Button Text
+            // Button text
             commands.push({
                 type: 'text',
                 id: item.id ? `${item.id}_text` : `menu_item_${index}_text`,
@@ -206,16 +158,16 @@ export class UIRenderer {
                 zIndex: zIndex + 1
             });
 
-            // Button Hotspot
+            // Hotspot with generic data - no game logic
             commands.push({
                 type: 'hotspot',
                 id: item.id ? `${item.id}_hotspot` : `menu_item_${index}_hotspot`,
-                action: item.action, // Action for the InputManager
+                data: item.data || { clickableId: item.id || `menu_item_${index}` },
                 x: itemX,
                 y: itemY,
                 width: layout.width - (padding * 2),
                 height: itemHeight,
-                zIndex: zIndex + 2 // Hotspot on top of text
+                zIndex: zIndex + 2
             });
         });
 
