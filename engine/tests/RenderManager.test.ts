@@ -1,0 +1,115 @@
+ // engine/tests/RenderManager.test.ts
+
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { RenderManager } from '@engine/core/RenderManager';
+import { EventBus } from '@engine/core/EventBus';
+import { SystemRegistry } from '@engine/core/SystemRegistry';
+import type { IRenderer, RenderCommand } from '@engine/types/RenderingTypes';
+
+// Mock dependencies
+vi.mock('@engine/core/EventBus');
+
+const mockRenderer: IRenderer = {
+    init: vi.fn(),
+    clear: vi.fn(),
+    flush: vi.fn(),
+    resize: vi.fn(),
+    dispose: vi.fn(),
+};
+
+describe('RenderManager', () => {
+    let renderManager: RenderManager;
+    let mockEventBus: EventBus;
+    let mockRegistry: SystemRegistry;
+    let mockContainer: HTMLElement;
+
+    beforeEach(() => {
+        vi.clearAllMocks();
+
+        mockEventBus = new EventBus();
+        mockRegistry = new SystemRegistry();
+        mockContainer = document.createElement('div');
+
+        // Register the mock renderer
+        mockRegistry.registerRenderer('dom', mockRenderer);
+
+        renderManager = new RenderManager(
+            { type: 'dom' },
+            mockEventBus,
+            mockContainer,
+            mockRegistry
+        );
+    });
+
+    it('should initialize the correct renderer', () => {
+        expect(mockRegistry.getRenderer).toHaveBeenCalledWith('dom');
+        expect(mockRenderer.init).toHaveBeenCalledWith(mockContainer);
+    });
+
+    it('should push commands to scene and UI queues', () => {
+        const sceneCmd: RenderCommand = { type: 'sprite', id: 's1', assetId: 'a', x: 0, y: 0 };
+        const uiCmd: RenderCommand = { type: 'text', id: 't1', text: 'hi', x: 0, y: 0, style: {} };
+
+        renderManager.pushSceneCommand(sceneCmd);
+        renderManager.pushUICommand(uiCmd);
+
+        expect((renderManager as any).sceneQueue).toContain(sceneCmd);
+        expect((renderManager as any).uiQueue).toContain(uiCmd);
+    });
+
+    it('should call renderer.clear() if a clear command exists', () => {
+        renderManager.pushSceneCommand({ type: 'clear' });
+        renderManager.pushUICommand({ type: 'text', id: 't1', text: 'hi', x: 0, y: 0, style: {} });
+
+        renderManager.flush();
+
+        expect(mockRenderer.clear).toHaveBeenCalledOnce();
+        expect(mockRenderer.flush).toHaveBeenCalledTimes(1); // UI queue
+    });
+
+    it('should flush queues in order: scene then UI', () => {
+        const sceneCmd: RenderCommand = { type: 'sprite', id: 's1', assetId: 'a', x: 0, y: 0 };
+        const uiCmd: RenderCommand = { type: 'text', id: 't1', text: 'hi', x: 0, y: 0, style: {} };
+
+        renderManager.pushSceneCommand(sceneCmd);
+        renderManager.pushUICommand(uiCmd);
+
+        renderManager.flush();
+
+        // Flushed twice: once for scene, once for UI
+        expect(mockRenderer.flush).toHaveBeenCalledTimes(2);
+        expect(mockRenderer.flush).toHaveBeenNthCalledWith(1, [sceneCmd]);
+        expect(mockRenderer.flush).toHaveBeenNthCalledWith(2, [uiCmd]);
+
+        // Queues should be empty
+        expect((renderManager as any).sceneQueue).toHaveLength(0);
+        expect((renderManager as any).uiQueue).toHaveLength(0);
+    });
+
+    it('should sort commands by zIndex before flushing', () => {
+        const cmd1: RenderCommand = { type: 'sprite', id: 's1', assetId: 'a', x: 0, y: 0, zIndex: 10 };
+        const cmd2: RenderCommand = { type: 'sprite', id: 's2', assetId: 'b', x: 0, y: 0, zIndex: 5 };
+        const cmd3: RenderCommand = { type: 'sprite', id: 's3', assetId: 'c', x: 0, y: 0 }; // zIndex 0
+        const clearCmd: RenderCommand = { type: 'clear' };
+
+        renderManager.pushSceneCommand(cmd1);
+        renderManager.pushSceneCommand(cmd2);
+        renderManager.pushSceneCommand(cmd3);
+        renderManager.pushSceneCommand(clearCmd); // Should be filtered
+
+        renderManager.flush();
+
+        expect(mockRenderer.clear).toHaveBeenCalled();
+        expect(mockRenderer.flush).toHaveBeenCalledWith([cmd3, cmd2, cmd1]); // Sorted by zIndex
+    });
+
+    it('should call resize on renderer', () => {
+        renderManager.resize(800, 600);
+        expect(mockRenderer.resize).toHaveBeenCalledWith(800, 600);
+    });
+
+    it('should call dispose on renderer', () => {
+        renderManager.dispose();
+        expect(mockRenderer.dispose).toHaveBeenCalledOnce();
+    });
+});
