@@ -1,22 +1,22 @@
 // engine/tests/SystemFactory.test.ts
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { SystemFactory } from '@engine/core/SystemFactory';
-import { SystemRegistry, SYSTEMS } from '@engine/core/SystemRegistry';
-import { EventBus } from '@engine/core/EventBus';
-import { GameStateManager } from '@engine/core/GameStateManager';
-import { SceneManager } from '@engine/systems/SceneManager';
-import { ActionRegistry } from '@engine/systems/ActionRegistry';
-import { PluginManager } from '@engine/core/PluginManager';
-import { AssetManager } from '@engine/systems/AssetManager';
-import { AudioManager } from '@engine/systems/AudioManager';
-import { EffectManager } from '@engine/systems/EffectManager';
-import { RenderManager } from '@engine/core/RenderManager';
-import { InputManager } from '@engine/systems/InputManager';
-import { DomInputAdapter } from '@engine/core/DomInputAdapter';
+import {beforeEach, describe, expect, it, vi} from 'vitest';
 // --- FIX: Corrected the import paths ---
-import type { SystemConfig } from '@engine/core/SystemFactory';
-import type { PlatformContainer } from '@engine/core/PlatformContainer';
+import type {SystemConfig} from '@engine/core/SystemFactory';
+import {SystemFactory} from '@engine/core/SystemFactory';
+import {SystemRegistry, SYSTEMS} from '@engine/core/SystemRegistry';
+import {EventBus} from '@engine/core/EventBus';
+import {GameStateManager} from '@engine/core/GameStateManager';
+import {SceneManager} from '@engine/systems/SceneManager';
+import {ActionRegistry} from '@engine/systems/ActionRegistry';
+import {PluginManager} from '@engine/core/PluginManager';
+import {AssetManager} from '@engine/systems/AssetManager';
+import {AudioManager} from '@engine/systems/AudioManager';
+import {EffectManager} from '@engine/systems/EffectManager';
+import {RenderManager} from '@engine/core/RenderManager';
+import {InputManager} from '@engine/systems/InputManager';
+import {DomInputAdapter} from '@engine/core/DomInputAdapter';
+import type {PlatformContainer} from '@engine/core/PlatformContainer';
 // ---
 
 // Mock all dependencies
@@ -75,7 +75,7 @@ describe('SystemFactory', () => {
     });
 
     it('should create AssetManager if config.assets is true', () => {
-        const config: SystemConfig = { assets: true };
+        const config: SystemConfig = {assets: true};
         SystemFactory.create(config, registry);
 
         expect(registry.has(SYSTEMS.AssetManager)).toBe(true);
@@ -83,7 +83,7 @@ describe('SystemFactory', () => {
     });
 
     it('should create AudioManager if config.audio is true', () => {
-        const config: SystemConfig = { assets: true, audio: true };
+        const config: SystemConfig = {assets: true, audio: true};
         SystemFactory.create(config, registry);
 
         expect(registry.has(SYSTEMS.AudioManager)).toBe(true);
@@ -91,12 +91,12 @@ describe('SystemFactory', () => {
     });
 
     it('should throw if AudioManager is enabled but AssetManager is not', () => {
-        const config: SystemConfig = { assets: false, audio: true };
+        const config: SystemConfig = {assets: false, audio: true};
         expect(() => SystemFactory.create(config, registry)).toThrow('AudioManager requires AssetManager');
     });
 
     it('should create EffectManager if config.effects is true and container is provided', () => {
-        const config: SystemConfig = { effects: true };
+        const config: SystemConfig = {effects: true};
         SystemFactory.create(config, registry, mockContainer);
 
         expect(registry.has(SYSTEMS.EffectManager)).toBe(true);
@@ -112,7 +112,8 @@ describe('SystemFactory', () => {
     });
 
     it('should throw if RenderManager is enabled but AssetManager is not', () => {
-        const config: SystemConfig = { assets: false, renderer: { type: 'dom' } };
+        // --- FIX: Explicitly disable audio to isolate the renderer check ---
+        const config: SystemConfig = {assets: false, audio: false, renderer: {type: 'dom'}};
         expect(() => SystemFactory.create(config, registry, mockContainer)).toThrow('Renderer requires AssetManager');
     });
 

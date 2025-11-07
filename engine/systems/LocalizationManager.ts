@@ -83,7 +83,6 @@ export class LocalizationManager implements ISerializable {
 
     deserialize(data: any): void {
         this.currentLanguage = data.currentLanguage || 'en';
-        // Note: After loading, the game must manually reload the
-        // string data for the 'currentLanguage' from the AssetManager.
+        this.strings.clear();
     }
 }

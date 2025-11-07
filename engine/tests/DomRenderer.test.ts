@@ -1,6 +1,6 @@
 // engine/tests/DomRenderer.test.ts
 
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { DomRenderer } from '@engine/rendering/DomRenderer';
 import { AssetManager } from '@engine/systems/AssetManager';
 import type { RenderCommand } from '@engine/types/RenderingTypes';
@@ -123,7 +123,7 @@ describe('DomRenderer', () => {
             y: 20,
             width: 100,
             height: 50,
-            data: { 'action': 'go-north', 'target-id': 123 }
+          data: { 'action': 'go-north', 'targetId': 123 }
         };
 
         renderer.flush([cmd]);

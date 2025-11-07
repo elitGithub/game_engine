@@ -1,10 +1,10 @@
- // engine/tests/RenderManager.test.ts
+// engine/tests/RenderManager.test.ts
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { RenderManager } from '@engine/core/RenderManager';
-import { EventBus } from '@engine/core/EventBus';
-import { SystemRegistry } from '@engine/core/SystemRegistry';
-import type { IRenderer, RenderCommand } from '@engine/types/RenderingTypes';
+import {beforeEach, describe, expect, it, vi} from 'vitest';
+import {RenderManager} from '@engine/core/RenderManager';
+import {EventBus} from '@engine/core/EventBus';
+import {SystemRegistry} from '@engine/core/SystemRegistry';
+import type {IRenderer, RenderCommand} from '@engine/types/RenderingTypes';
 
 // Mock dependencies
 vi.mock('@engine/core/EventBus');
@@ -22,6 +22,7 @@ describe('RenderManager', () => {
     let mockEventBus: EventBus;
     let mockRegistry: SystemRegistry;
     let mockContainer: HTMLElement;
+// engine/tests/RenderManager.test.ts
 
     beforeEach(() => {
         vi.clearAllMocks();
@@ -33,8 +34,11 @@ describe('RenderManager', () => {
         // Register the mock renderer
         mockRegistry.registerRenderer('dom', mockRenderer);
 
+        // --- FIX: Spy on the method *before* it gets called ---
+        vi.spyOn(mockRegistry, 'getRenderer');
+
         renderManager = new RenderManager(
-            { type: 'dom' },
+            {type: 'dom'},
             mockEventBus,
             mockContainer,
             mockRegistry
@@ -47,8 +51,8 @@ describe('RenderManager', () => {
     });
 
     it('should push commands to scene and UI queues', () => {
-        const sceneCmd: RenderCommand = { type: 'sprite', id: 's1', assetId: 'a', x: 0, y: 0 };
-        const uiCmd: RenderCommand = { type: 'text', id: 't1', text: 'hi', x: 0, y: 0, style: {} };
+        const sceneCmd: RenderCommand = {type: 'sprite', id: 's1', assetId: 'a', x: 0, y: 0};
+        const uiCmd: RenderCommand = {type: 'text', id: 't1', text: 'hi', x: 0, y: 0, style: {}};
 
         renderManager.pushSceneCommand(sceneCmd);
         renderManager.pushUICommand(uiCmd);
@@ -58,8 +62,8 @@ describe('RenderManager', () => {
     });
 
     it('should call renderer.clear() if a clear command exists', () => {
-        renderManager.pushSceneCommand({ type: 'clear' });
-        renderManager.pushUICommand({ type: 'text', id: 't1', text: 'hi', x: 0, y: 0, style: {} });
+        renderManager.pushSceneCommand({type: 'clear'});
+        renderManager.pushUICommand({type: 'text', id: 't1', text: 'hi', x: 0, y: 0, style: {}});
 
         renderManager.flush();
 
@@ -68,8 +72,8 @@ describe('RenderManager', () => {
     });
 
     it('should flush queues in order: scene then UI', () => {
-        const sceneCmd: RenderCommand = { type: 'sprite', id: 's1', assetId: 'a', x: 0, y: 0 };
-        const uiCmd: RenderCommand = { type: 'text', id: 't1', text: 'hi', x: 0, y: 0, style: {} };
+        const sceneCmd: RenderCommand = {type: 'sprite', id: 's1', assetId: 'a', x: 0, y: 0};
+        const uiCmd: RenderCommand = {type: 'text', id: 't1', text: 'hi', x: 0, y: 0, style: {}};
 
         renderManager.pushSceneCommand(sceneCmd);
         renderManager.pushUICommand(uiCmd);
@@ -87,10 +91,10 @@ describe('RenderManager', () => {
     });
 
     it('should sort commands by zIndex before flushing', () => {
-        const cmd1: RenderCommand = { type: 'sprite', id: 's1', assetId: 'a', x: 0, y: 0, zIndex: 10 };
-        const cmd2: RenderCommand = { type: 'sprite', id: 's2', assetId: 'b', x: 0, y: 0, zIndex: 5 };
-        const cmd3: RenderCommand = { type: 'sprite', id: 's3', assetId: 'c', x: 0, y: 0 }; // zIndex 0
-        const clearCmd: RenderCommand = { type: 'clear' };
+        const cmd1: RenderCommand = {type: 'sprite', id: 's1', assetId: 'a', x: 0, y: 0, zIndex: 10};
+        const cmd2: RenderCommand = {type: 'sprite', id: 's2', assetId: 'b', x: 0, y: 0, zIndex: 5};
+        const cmd3: RenderCommand = {type: 'sprite', id: 's3', assetId: 'c', x: 0, y: 0}; // zIndex 0
+        const clearCmd: RenderCommand = {type: 'clear'};
 
         renderManager.pushSceneCommand(cmd1);
         renderManager.pushSceneCommand(cmd2);

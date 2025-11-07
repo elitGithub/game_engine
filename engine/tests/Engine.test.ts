@@ -1,16 +1,18 @@
 // engine/tests/Engine.test.ts
 
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest'; // FIX: Removed 'afterEach'
 import { Engine, type EngineConfig } from '@engine/Engine';
 import { GameStateManager } from '@engine/core/GameStateManager';
 import { EventBus } from '@engine/core/EventBus';
 import { SystemFactory } from '@engine/core/SystemFactory';
 import { SceneManager } from '@engine/systems/SceneManager';
-import { SaveManager } from '@engine/systems/SaveManager';
+// FIX: Removed unused import: import { SaveManager } from '@engine/systems/SaveManager';
 import { AudioManager } from '@engine/systems/AudioManager';
-// --- FIX: Import AssetManager for mocking ---
+import { PluginManager } from '@engine/core/PluginManager'; // <-- ADDED
+import { ActionRegistry } from '@engine/systems/ActionRegistry'; // <-- ADDED
 import { AssetManager } from '@engine/systems/AssetManager';
 import type { ISerializable } from '@engine/types';
+import { SYSTEMS } from '@engine/core/SystemRegistry'; // <-- ADDED
 
 // Mock entire modules
 vi.mock('@engine/core/GameStateManager');
@@ -19,8 +21,9 @@ vi.mock('@engine/core/SystemFactory');
 vi.mock('@engine/systems/SceneManager');
 vi.mock('@engine/systems/SaveManager');
 vi.mock('@engine/systems/AudioManager');
-// --- FIX: Mock AssetManager ---
 vi.mock('@engine/systems/AssetManager');
+vi.mock('@engine/core/PluginManager'); // <-- ADDED
+vi.mock('@engine/systems/ActionRegistry'); // <-- ADDED
 
 // Mock a sample serializable system
 const mockPlayer: ISerializable = {
@@ -30,11 +33,11 @@ const mockPlayer: ISerializable = {
 
 describe('Engine', () => {
     let config: EngineConfig<{ player: ISerializable }>;
-    // --- FIX: Add <any> generic ---
     let mockStateManager: GameStateManager<any>;
     let mockSceneManager: SceneManager;
     let mockAudioManager: AudioManager;
-    // --- FIX: Add mocks for constructor args ---
+    let mockPluginManager: PluginManager; // <-- ADDED
+    let mockActionRegistry: ActionRegistry; // <-- ADDED
     let mockEventBus: EventBus;
     let mockAssetManager: AssetManager;
     let mockAudioContext: AudioContext;
@@ -43,25 +46,28 @@ describe('Engine', () => {
     beforeEach(async () => {
         vi.clearAllMocks();
 
-        // --- FIX: Create mock instances for constructor args ---
         mockEventBus = new (vi.mocked(EventBus))();
-        mockAssetManager = new (vi.mocked(AssetManager))(mockEventBus); // AssetManager needs an EventBus
-        mockAudioContext = { resume: vi.fn() } as any; // Simple mock for AudioContext
+        mockAssetManager = new (vi.mocked(AssetManager))(mockEventBus);
+        mockAudioContext = { resume: vi.fn() } as any;
 
-        // --- FIX: Provide args to mock constructors and add generic ---
         mockStateManager = new (vi.mocked(GameStateManager<any>))();
         mockSceneManager = new (vi.mocked(SceneManager))(mockEventBus);
         mockAudioManager = new (vi.mocked(AudioManager))(mockEventBus, mockAssetManager, mockAudioContext);
+        mockPluginManager = new (vi.mocked(PluginManager))(); // <-- ADDED
+        mockActionRegistry = new (vi.mocked(ActionRegistry))(); // <-- ADDED
 
         // Mock SystemFactory.create to *not* do anything,
         // but mock the registry to *return* our mocks
         vi.mocked(SystemFactory.create).mockImplementation((config, registry) => {
-            // --- FIX: Use the instances we created above ---
-            registry.register('EventBus' as any, mockEventBus);
-            registry.register('StateManager' as any, mockStateManager);
-            registry.register('SceneManager' as any, mockSceneManager);
+            // --- FIX: Register ALL 5 core systems ---
+            registry.register(SYSTEMS.EventBus, mockEventBus);
+            registry.register(SYSTEMS.StateManager, mockStateManager);
+            registry.register(SYSTEMS.SceneManager, mockSceneManager);
+            registry.register(SYSTEMS.PluginManager, mockPluginManager); // <-- ADDED
+            registry.register(SYSTEMS.ActionRegistry, mockActionRegistry); // <-- ADDED
+
             if (config.audio) {
-                registry.register('AudioManager' as any, mockAudioManager);
+                registry.register(SYSTEMS.AudioManager, mockAudioManager);
             }
         });
 
@@ -141,6 +147,7 @@ describe('Engine', () => {
 
         vi.advanceTimersByTime(1000); // Emulate game loop
         expect(mockStateManager.update).toHaveBeenCalled();
+        expect(mockPluginManager.update).toHaveBeenCalled(); // <-- This was the failing part
 
         vi.useRealTimers();
     });
