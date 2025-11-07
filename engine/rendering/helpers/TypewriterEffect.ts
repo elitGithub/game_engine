@@ -1,5 +1,5 @@
-import type { GameContext } from '@engine/types';
-import type { IDynamicEffect, IEffectTarget } from '@engine/types/EffectTypes';
+import type {GameContext} from '@engine/types';
+import type {IDynamicEffect, IEffectTarget} from '@engine/types/EffectTypes';
 
 export class TypewriterEffect implements IDynamicEffect {
     private fullText: string = '';
@@ -20,16 +20,19 @@ export class TypewriterEffect implements IDynamicEffect {
         this.timePerChar = 1.0 / this.charsPerSecond; // Time in seconds per char
     }
 
-    // FIX: Prefixed unused 'context' parameter with '_' to satisfy TS6133
+
     onStart(target: IEffectTarget, _context: GameContext<any>): void {
-        const element = target.getRaw() as HTMLElement;
-        if (!element || typeof element.textContent === 'undefined') {
-            console.warn('[TypewriterEffect] Target is not an HTMLElement. Skipping.');
+        // Use the IEffectTarget interface, not getRaw()
+        const fullText = target.getProperty<string>('textContent');
+
+        // Check if the property exists on the target
+        if (typeof fullText === 'undefined') {
+            console.warn(`[TypewriterEffect] Target '${target.id}' does not have a 'textContent' property. Skipping.`);
             return;
         }
 
         // Initialize or re-initialize state
-        this.fullText = element.textContent || '';
+        this.fullText = fullText || ''; // Use the value from the interface
         this.charIndex = 0;
         this.timeAccumulator = 0;
         this.currentDelay = this.timePerChar;

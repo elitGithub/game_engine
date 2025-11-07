@@ -1,10 +1,8 @@
 // engine/rendering/helpers/DialogueLayoutHelper.ts
 
-import type { RenderCommand, TextStyleData } from '../../types/RenderingTypes';
-import type { SpeakerRegistry } from '../SpeakerRegistry';
-import type { TextStyleConfig } from '@engine/types';
-import { TextStyle } from './TextStyle';
-import type { PositionedDialogue } from '../../types/RenderingTypes';
+import type {PositionedDialogue, RenderCommand, TextStyleData} from '../../types/RenderingTypes';
+import type {SpeakerRegistry} from '../SpeakerRegistry';
+import type {TextStyleConfig} from '@engine/types';
 
 
 /**
@@ -81,7 +79,7 @@ export class DialogueLayoutHelper {
     }
 
     // --- (textStyleToData helper method remains unchanged) ---
-    private textStyleToData(style: TextStyle | TextStyleConfig | null, overrides: TextStyleData = {}): TextStyleData {
+    private textStyleToData(style: TextStyleConfig | null, overrides: TextStyleData = {}): TextStyleData { // <-- REMOVED 'TextStyle |'
         const base: TextStyleData = {
             font: '16px Arial',
             color: '#ffffff',
@@ -91,6 +89,7 @@ export class DialogueLayoutHelper {
         };
 
         if (style) {
+            // This code works perfectly because TextStyleConfig has all these properties
             const fontStyle = style.fontStyle || 'normal';
             const fontWeight = style.fontWeight || 'normal';
             const fontSize = style.fontSize || '16px';
@@ -98,10 +97,9 @@ export class DialogueLayoutHelper {
 
             base.font = `${fontStyle} ${fontWeight} ${fontSize} ${fontFamily}`;
             base.color = style.color || base.color;
-            // This is type-safe because types/index.ts is already correct
             base.align = style.textAlign || base.align;
         }
 
-        return { ...base, ...overrides };
+        return {...base, ...overrides};
     }
 }

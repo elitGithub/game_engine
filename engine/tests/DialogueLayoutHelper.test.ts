@@ -1,118 +1,93 @@
-// engine/tests/UIRenderer.test.ts
+// engine/tests/DialogueLayoutHelper.test.ts
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { UIRenderer } from '@engine/rendering/helpers/UIRenderer';
-import { SpeakerRegistry } from '@engine/rendering/SpeakerRegistry';
-import { TextRenderer } from '@engine/rendering/helpers/TextRenderer';
-import type { PositionedBar, PositionedDialogue, PositionedChoice, RenderCommand } from '@engine/types/RenderingTypes'; // <-- Import RenderCommand
+// 'vi' is removed as it's not used
+import { describe, it, expect, beforeEach } from 'vitest';
+import { DialogueLayoutHelper } from '@engine/rendering/helpers/DialogueLayoutHelper';
+import type { PositionedDialogue, RenderCommand } from '@engine/types/RenderingTypes';
 
-// Mock dependencies
-vi.mock('@engine/rendering/SpeakerRegistry');
-vi.mock('@engine/rendering/helpers/TextRenderer');
-
-describe('UIRenderer', () => {
-    let uiRenderer: UIRenderer;
-    let mockSpeakerRegistry: SpeakerRegistry;
-    let mockTextRenderer: TextRenderer;
+describe('DialogueLayoutHelper', () => {
+    let helper: DialogueLayoutHelper;
 
     beforeEach(() => {
-        vi.clearAllMocks();
-        mockSpeakerRegistry = new (vi.mocked(SpeakerRegistry))();
-
-        // Get the mock instance of TextRenderer
-        mockTextRenderer = new (vi.mocked(TextRenderer))(mockSpeakerRegistry);
-
-        // Mock the TextRenderer constructor to return our instance
-        vi.mocked(TextRenderer).mockImplementation(() => mockTextRenderer);
-
-        // Spy on the helper methods
-        vi.spyOn(mockTextRenderer, 'buildDialogueCommands').mockReturnValue([]);
-        vi.spyOn(mockTextRenderer, 'buildChoiceCommands').mockReturnValue([]);
-
-        uiRenderer = new UIRenderer(mockSpeakerRegistry);
+        // The constructor's 'speakerRegistry' is not used by buildCommands,
+        // so we can safely pass a mock.
+        helper = new DialogueLayoutHelper(null as any);
     });
 
-    it('should delegate dialogue rendering to TextRenderer', () => {
-        const dialogueData = { id: 'diag1' } as PositionedDialogue;
-        uiRenderer.buildDialogueCommands(dialogueData);
-        expect(mockTextRenderer.buildDialogueCommands).toHaveBeenCalledWith(dialogueData);
-    });
-
-    it('should delegate choice rendering to TextRenderer', () => {
-        const choiceData = [{ id: 'choice1' }] as PositionedChoice[];
-        uiRenderer.buildChoiceCommands(choiceData);
-        expect(mockTextRenderer.buildChoiceCommands).toHaveBeenCalledWith(choiceData);
-    });
-
-    it('should build commands for a bar', () => {
-        const barData: PositionedBar = {
-            id: 'health_bar',
-            background: { x: 10, y: 10, width: 100, height: 20, fill: 'red' },
-            foreground: { x: 10, y: 10, width: 50, height: 20, fill: 'green' },
-            label: { text: 'HP', x: 15, y: 25, style: {} }
+    it('should build commands for a full dialogue line', () => {
+        const dialogueData: PositionedDialogue = {
+            id: 'diag1',
+            background: { x: 10, y: 400, width: 780, height: 200, fill: 'black' },
+            speaker: { text: 'Player', x: 20, y: 420, style: { color: '#FFF' } },
+            text: { text: 'Hello world', x: 20, y: 450, style: { color: '#FFF' } },
+            portrait: { assetId: 'player_portrait', x: 600, y: 300, width: 100, height: 100 },
+            zIndex: 1000
         };
 
-        const commands = uiRenderer.buildBarCommands(barData);
+        const commands = helper.buildCommands(dialogueData);
 
-        expect(commands).toHaveLength(3);
+        expect(commands).toHaveLength(4);
 
-        // --- FIX: Cast the type after finding ---
-        const bgCmd = commands.find(c => (c as any).id === 'health_bar_bg') as Extract<RenderCommand, { type: 'rect' }>;
-        const fgCmd = commands.find(c => (c as any).id === 'health_bar_fg') as Extract<RenderCommand, { type: 'rect' }>;
-        const textCmd = commands.find(c => (c as any).id === 'health_bar_text') as Extract<RenderCommand, { type: 'text' }>;
+        // --- FIX: Use a type-safe check to find commands ---
+        // This ensures we only find commands that have an 'id' property.
+        const bg = commands.find(c => 'id' in c && c.id === 'diag1_bg') as Extract<RenderCommand, { type: 'rect' }>;
+        const speaker = commands.find(c => 'id' in c && c.id === 'diag1_speaker') as Extract<RenderCommand, { type: 'text' }>;
+        const text = commands.find(c => 'id' in c && c.id === 'diag1_text') as Extract<RenderCommand, { type: 'text' }>;
+        const portrait = commands.find(c => 'id' in c && c.id === 'diag1_portrait') as Extract<RenderCommand, { type: 'sprite' }>;
 
-        expect(bgCmd).toBeDefined();
-        expect(fgCmd).toBeDefined();
-        expect(textCmd).toBeDefined();
+        // Check that all commands were found
+        expect(bg).toBeDefined();
+        expect(speaker).toBeDefined();
+        expect(text).toBeDefined();
+        expect(portrait).toBeDefined();
 
-        expect(bgCmd.zIndex).toBe(10000);
-        expect(fgCmd.zIndex).toBe(10001);
-        expect(textCmd.zIndex).toBe(10002);
+        // Check z-indexing (now type-safe)
+        expect(bg.zIndex).toBe(1000);
+        expect(speaker.zIndex).toBe(1001);
+        expect(text.zIndex).toBe(1001);
+        expect(portrait.zIndex).toBe(1001);
+
+        // Check content
+        expect(text.text).toBe('Hello world');
+        expect(portrait.assetId).toBe('player_portrait');
     });
 
-    it('should build commands for a text display', () => {
-        const commands = uiRenderer.buildTextDisplayCommands({
-            text: 'Hello',
-            position: { x: 100, y: 50 }
-        });
+    it('should build commands for a minimal dialogue line (e.g., narrator)', () => {
+        const dialogueData: PositionedDialogue = {
+            id: 'diag2',
+            text: { text: 'The wind blows...', x: 20, y: 450, style: { color: '#CCC' } },
+            zIndex: 2000
+        };
+
+        const commands = helper.buildCommands(dialogueData);
 
         expect(commands).toHaveLength(1);
 
-        // --- FIX: Cast the type ---
-        const cmd = commands[0] as Extract<RenderCommand, { type: 'text' }>;
+        const text = commands[0] as Extract<RenderCommand, { type: 'text' }>;
 
-        expect(cmd.type).toBe('text');
-        expect(cmd.text).toBe('Hello');
-        expect(cmd.x).toBe(100);
-        expect(cmd.y).toBe(50);
+        expect(text.id).toBe('diag2_text');
+        expect(text.text).toBe('The wind blows...');
+        expect(text.zIndex).toBe(2001);
     });
 
-    it('should build commands for a menu', () => {
-        const commands = uiRenderer.buildMenuCommands({
-            id: 'main_menu',
-            background: { x: 0, y: 0, width: 200, height: 300, fill: 'gray' },
-            title: { text: 'Menu', x: 100, y: 20, style: {} },
-            items: [
-                {
-                    id: 'item1',
-                    text: { text: 'Start', x: 100, y: 50, style: {} },
-                    hotspot: { x: 50, y: 40, width: 100, height: 30 },
-                    data: { action: 'start' }
-                }
-            ]
-        });
+    it('should handle missing zIndex', () => {
+        const dialogueData: PositionedDialogue = {
+            id: 'diag3',
+            background: { x: 0, y: 0, width: 100, height: 100, fill: 'black' },
+            text: { text: 'No zIndex', x: 10, y: 10, style: {} }
+            // zIndex is undefined
+        };
 
-        expect(commands).toHaveLength(4); // bg, title, item1_text, item1_hotspot
+        const commands = helper.buildCommands(dialogueData);
 
-        // --- FIX: Cast the types ---
-        const bg = commands.find(c => (c as any).id === 'main_menu_bg') as Extract<RenderCommand, { type: 'rect' }>;
-        const title = commands.find(c => (c as any).id === 'main_menu_title') as Extract<RenderCommand, { type: 'text' }>;
-        const itemText = commands.find(c => (c as any).id === 'item1_text') as Extract<RenderCommand, { type: 'text' }>;
-        const itemHotspot = commands.find(c => (c as any).id === 'item1_hotspot') as Extract<RenderCommand, { type: 'hotspot' }>;
+        expect(commands).toHaveLength(2);
 
-        expect(bg.zIndex).toBe(20000);
-        expect(title.zIndex).toBe(20001);
-        expect(itemText.zIndex).toBe(20001);
-        expect(itemHotspot.zIndex).toBe(20002);
+        // --- FIX: Use the same type-safe find ---
+        const bg = commands.find(c => 'id' in c && c.id === 'diag3_bg') as Extract<RenderCommand, { type: 'rect' }>;
+        const text = commands.find(c => 'id' in c && c.id === 'diag3_text') as Extract<RenderCommand, { type: 'text' }>;
+
+        // Should default to 1000 and 1001
+        expect(bg.zIndex).toBe(1000);
+        expect(text.zIndex).toBe(1001);
     });
 });

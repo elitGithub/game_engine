@@ -102,49 +102,62 @@ export class SystemFactory {
         // OPTIONAL SYSTEMS (created based on config)
         // ====================================================================
 
-        // AssetManager (depends on: EventBus)
-        if (config.assets !== false) {
-            const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+        let audioContext: AudioContext | undefined;
+        // Create the AudioContext only if assets or audio will be used
+        if (config.assets !== false || config.audio !== false) {
+            try {
+                audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+            } catch (e) {
+                console.warn('[SystemFactory] Web Audio API not supported. Audio will be disabled.');
+            }
+        }
 
+        if (config.assets !== false) {
             const assetManager = new AssetManager(eventBus);
 
             // Register default asset loaders
             assetManager.registerLoader(new ImageLoader());
             assetManager.registerLoader(new JsonLoader());
-            assetManager.registerLoader(new AudioLoader(audioContext));
+            // Pass the AudioContext if it was successfully created
+            if (audioContext) {
+                assetManager.registerLoader(new AudioLoader(audioContext));
+            }
 
             registry.register(SYSTEMS.AssetManager, assetManager);
-
-            // Store AudioContext for AudioManager
-            (registry as any)._audioContext = audioContext;
         }
 
-        // AudioManager (depends on: EventBus, AssetManager, AudioContext)
         if (config.audio !== false) {
             if (!registry.has(SYSTEMS.AssetManager)) {
                 throw new Error('[SystemFactory] AudioManager requires AssetManager. Enable assets in config.');
             }
 
-            const eventBus = registry.get<EventBus>(SYSTEMS.EventBus);
-            const assetManager = registry.get<AssetManager>(SYSTEMS.AssetManager);
-            const audioContext = (registry as any)._audioContext;
+            // 3. Check if the local variable was created successfully
+            if (!audioContext) {
+                console.warn('[SystemFactory] AudioContext failed to initialize. AudioManager will be disabled.');
+                // Do not proceed to create AudioManager
+            } else {
+                // 4. Pass the type-safe local variable directly
+                const eventBus = registry.get<EventBus>(SYSTEMS.EventBus);
+                const assetManager = registry.get<AssetManager>(SYSTEMS.AssetManager);
 
-            const audioManager = new AudioManager(eventBus, assetManager, audioContext);
+                // This is now 100% type-safe, no 'any' cast needed.
+                const audioManager = new AudioManager(eventBus, assetManager, audioContext);
 
-            // Apply audio config
-            if (typeof config.audio === 'object') {
-                if (config.audio.volume !== undefined) {
-                    audioManager.setMasterVolume(config.audio.volume);
+                // Apply audio config
+                if (typeof config.audio === 'object') {
+                    if (config.audio.volume !== undefined) {
+                        audioManager.setMasterVolume(config.audio.volume);
+                    }
+                    if (config.audio.musicVolume !== undefined) {
+                        audioManager.setMusicVolume(config.audio.musicVolume);
+                    }
+                    if (config.audio.sfxVolume !== undefined) {
+                        audioManager.setSFXVolume(config.audio.sfxVolume);
+                    }
                 }
-                if (config.audio.musicVolume !== undefined) {
-                    audioManager.setMusicVolume(config.audio.musicVolume);
-                }
-                if (config.audio.sfxVolume !== undefined) {
-                    audioManager.setSFXVolume(config.audio.sfxVolume);
-                }
+
+                registry.register(SYSTEMS.AudioManager, audioManager);
             }
-
-            registry.register(SYSTEMS.AudioManager, audioManager);
         }
 
         // EffectManager (depends on: container with DOM support)

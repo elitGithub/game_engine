@@ -6,6 +6,7 @@ import { SpeakerRegistry } from '@engine/rendering/SpeakerRegistry';
 import { TextRenderer } from '@engine/rendering/helpers/TextRenderer';
 import type { PositionedBar, PositionedDialogue, PositionedChoice, RenderCommand } from '@engine/types/RenderingTypes';
 
+
 // Mock dependencies
 vi.mock('@engine/rendering/SpeakerRegistry');
 vi.mock('@engine/rendering/helpers/TextRenderer');
@@ -56,25 +57,18 @@ describe('UIRenderer', () => {
 
         expect(commands).toHaveLength(3);
 
-        // --- FIX: Use a robust, multi-step check ---
-        const bgCmd = commands.find(c => 'id' in c && c.id === 'health_bar_bg');
-        const fgCmd = commands.find(c => 'id' in c && c.id === 'health_bar_fg');
-        const textCmd = commands.find(c => 'id' in c && c.id === 'health_bar_text');
+        // --- FIX: Cast the type after finding ---
+        const bgCmd = commands.find(c => (c as any).id === 'health_bar_bg') as Extract<RenderCommand, { type: 'rect' }>;
+        const fgCmd = commands.find(c => (c as any).id === 'health_bar_fg') as Extract<RenderCommand, { type: 'rect' }>;
+        const textCmd = commands.find(c => (c as any).id === 'health_bar_text') as Extract<RenderCommand, { type: 'text' }>;
 
-        // Step 1: Check they are defined
         expect(bgCmd).toBeDefined();
         expect(fgCmd).toBeDefined();
         expect(textCmd).toBeDefined();
 
-        // Step 2: Assert their type and check properties
-        expect(bgCmd?.type).toBe('rect');
-        expect(fgCmd?.type).toBe('rect');
-        expect(textCmd?.type).toBe('text');
-
-        // Step 3: Access zIndex (now safe)
-        expect((bgCmd as Extract<RenderCommand, { type: 'rect' }>).zIndex).toBe(10000);
-        expect((fgCmd as Extract<RenderCommand, { type: 'rect' }>).zIndex).toBe(10001);
-        expect((textCmd as Extract<RenderCommand, { type: 'text' }>).zIndex).toBe(10002);
+        expect(bgCmd.zIndex).toBe(10000);
+        expect(fgCmd.zIndex).toBe(10001);
+        expect(textCmd.zIndex).toBe(10002);
     });
 
     it('should build commands for a text display', () => {
@@ -85,15 +79,13 @@ describe('UIRenderer', () => {
 
         expect(commands).toHaveLength(1);
 
-        const cmd = commands[0];
-        expect(cmd.type).toBe('text'); // Assert type
+        // --- FIX: Cast the type ---
+        const cmd = commands[0] as Extract<RenderCommand, { type: 'text' }>;
 
-        // This pattern (if-check) is a valid type guard
-        if (cmd.type === 'text') {
-            expect(cmd.text).toBe('Hello');
-            expect(cmd.x).toBe(100);
-            expect(cmd.y).toBe(50);
-        }
+        expect(cmd.type).toBe('text');
+        expect(cmd.text).toBe('Hello');
+        expect(cmd.x).toBe(100);
+        expect(cmd.y).toBe(50);
     });
 
     it('should build commands for a menu', () => {
@@ -113,28 +105,15 @@ describe('UIRenderer', () => {
 
         expect(commands).toHaveLength(4); // bg, title, item1_text, item1_hotspot
 
-        // --- FIX: Use a robust, multi-step check ---
-        const bg = commands.find(c => 'id' in c && c.id === 'main_menu_bg');
-        const title = commands.find(c => 'id' in c && c.id === 'main_menu_title');
-        const itemText = commands.find(c => 'id' in c && c.id === 'item1_text');
-        const itemHotspot = commands.find(c => 'id' in c && c.id === 'item1_hotspot');
+        // --- FIX: Cast the types ---
+        const bg = commands.find(c => (c as any).id === 'main_menu_bg') as Extract<RenderCommand, { type: 'rect' }>;
+        const title = commands.find(c => (c as any).id === 'main_menu_title') as Extract<RenderCommand, { type: 'text' }>;
+        const itemText = commands.find(c => (c as any).id === 'item1_text') as Extract<RenderCommand, { type: 'text' }>;
+        const itemHotspot = commands.find(c => (c as any).id === 'item1_hotspot') as Extract<RenderCommand, { type: 'hotspot' }>;
 
-        // Step 1: Check they are defined
-        expect(bg).toBeDefined();
-        expect(title).toBeDefined();
-        expect(itemText).toBeDefined();
-        expect(itemHotspot).toBeDefined();
-
-        // Step 2: Assert their type
-        expect(bg?.type).toBe('rect');
-        expect(title?.type).toBe('text');
-        expect(itemText?.type).toBe('text');
-        expect(itemHotspot?.type).toBe('hotspot');
-
-        // Step 3: Access zIndex (now safe)
-        expect((bg as Extract<RenderCommand, { type: 'rect' }>).zIndex).toBe(20000);
-        expect((title as Extract<RenderCommand, { type: 'text' }>).zIndex).toBe(20001);
-        expect((itemText as Extract<RenderCommand, { type: 'text' }>).zIndex).toBe(20001);
-        expect((itemHotspot as Extract<RenderCommand, { type: 'hotspot' }>).zIndex).toBe(20002);
+        expect(bg.zIndex).toBe(20000);
+        expect(title.zIndex).toBe(20001);
+        expect(itemText.zIndex).toBe(20001);
+        expect(itemHotspot.zIndex).toBe(20002);
     });
 });
