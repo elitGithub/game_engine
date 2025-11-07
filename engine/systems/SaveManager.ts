@@ -3,7 +3,7 @@ import type { StorageAdapter, SaveSlotMetadata } from '../core/StorageAdapter';
 import type { EventBus } from '../core/EventBus';
 import { LocalStorageAdapter } from './LocalStorageAdapter';
 import type {ISerializationRegistry} from '../types';
-import semver from 'semver';
+import { MigrationManager } from "./MigrationManager";
 
 export interface SaveData {
     version: string;
@@ -17,6 +17,7 @@ export class SaveManager {
     private eventBus: EventBus;
     private registry: ISerializationRegistry;
     private adapter: StorageAdapter;
+    private migrationManager: MigrationManager;
 
     constructor(
         eventBus: EventBus,
@@ -26,6 +27,7 @@ export class SaveManager {
         this.eventBus = eventBus;
         this.registry = registry;
         this.adapter = adapter || new LocalStorageAdapter();
+         this.migrationManager = new MigrationManager(this.registry.migrationFunctions);
     }
 
     async saveGame(slotId: string, metadata?: Record<string, unknown>): Promise<boolean> {
@@ -55,7 +57,8 @@ export class SaveManager {
             if (!json) return false;
 
             let saveData: SaveData = JSON.parse(json);
-            saveData = this.migrateIfNeeded(saveData);
+            saveData = this.migrationManager.migrate(saveData, this.registry.gameVersion);
+
             this.restoreGameState(saveData);
 
             this.eventBus.emit('save.loaded', {
@@ -68,62 +71,6 @@ export class SaveManager {
             this.eventBus.emit('save.loadFailed', { slotId, error });
             return false;
         }
-    }
-
-    private migrateIfNeeded(saveData: SaveData): SaveData {
-        const saveVersion = saveData.version || '1.0.0';
-        const currentVersion = this.registry.gameVersion;
-
-        if (saveVersion === currentVersion) {
-            return saveData;
-        }
-
-        console.log(`[SaveManager] Migrating save from ${saveVersion} to ${currentVersion}`);
-
-        let migratedData = saveData;
-        const versions = this.getVersionPath(saveVersion, currentVersion);
-
-        for (let i = 0; i < versions.length - 1; i++) {
-            const from = versions[i];
-            const to = versions[i + 1];
-            const key = `${from}_to_${to}`;
-
-            const migration = this.registry.migrationFunctions.get(key);
-            if (migration) {
-                console.log(`[SaveManager] Applying migration ${key}`);
-                const result = migration(migratedData);
-                migratedData = result as SaveData;
-                migratedData.version = to;
-            } else {
-                console.warn(`[SaveManager] No migration found for ${key}`);
-            }
-        }
-
-        return migratedData;
-    }
-
-    private getVersionPath(from: string, to: string): string[] {
-        const allVersions = new Set<string>([from, to]);
-
-        this.registry.migrationFunctions.forEach((_, key) => {
-            const [fromV, toV] = key.split('_to_');
-            allVersions.add(fromV);
-            allVersions.add(toV);
-        });
-
-        const sorted = Array.from(allVersions)
-            .filter(v => semver.valid(v))
-            .sort(semver.compare);
-
-        const fromIndex = sorted.indexOf(from);
-        const toIndex = sorted.indexOf(to);
-
-        if (fromIndex === -1 || toIndex === -1) {
-            console.warn(`[SaveManager] Invalid version in migration path: from=${from}, to=${to}`);
-            return [from, to];
-        }
-
-        return sorted.slice(fromIndex, toIndex + 1);
     }
 
     async deleteSave(slotId: string): Promise<boolean> {
