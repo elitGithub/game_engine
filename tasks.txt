@@ -1,19 +1,14 @@
 tasks.txt
 ------------------------------------------------------------------
 
-TASK: Properly implement the SceneRenderer / UIRenderer split.
-Explanation:
-- The current helpers ('SceneRenderer.ts', 'UIRenderer.ts') are a good start but aren't fully integrated.
-- 'RenderManager' should be aware of two distinct pipelines: a world-space pipeline (for 'SceneRenderer') and a screen-space/UI pipeline (for 'UIRenderer').
-- 'RenderManager' should always render the UI pipeline *after* the scene pipeline to ensure UI is on top.
-- 'SceneRenderer' should be the only one concerned with camera/world coordinates. 'UIRenderer' should only use fixed screen coordinates.
-
 TASK: Refactor large, monolithic system files.
 Explanation:
 - Start with 'engine/systems/InputManager.ts'.
 - Move combo-checking logic into its own 'InputComboTracker' class.
 - Move action-binding logic into its own 'InputActionMapper' class.
 - The 'InputManager' should be a smaller facade that coordinates these smaller, single-responsibility classes.
+- engine/systems/AudioManager.ts: split this into an AudioManager facade that coordinates smaller, specialized classes like MusicPlayer, SfxPool, and VoicePlayer.
+- engine/systems/SaveManager.ts: The migration logic (migrateIfNeeded, getVersionPath) could be extracted into its own dedicated MigrationManager class, which the SaveManager would then use.
 
 TASK: Refactor the project into a proper Nx monorepo structure.
 Explanation:
