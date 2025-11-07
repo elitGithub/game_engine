@@ -108,7 +108,6 @@ export interface SpeakerConfig {
 export interface DialogueLineOptions {
     showPortrait?: boolean;
     showName?: boolean;
-    animate?: boolean;
     style?: string | TextStyleConfig;
 }
 

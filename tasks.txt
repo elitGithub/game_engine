@@ -15,20 +15,6 @@ Explanation:
 - Move action-binding logic into its own 'InputActionMapper' class.
 - The 'InputManager' should be a smaller facade that coordinates these smaller, single-responsibility classes.
 
-TASK: Fully decouple animation from dialogue data.
-Explanation:
-- Go to 'engine/rendering/DialogueLine.ts'.
-- Remove the 'animate' property from the constructor and options.
-- The 'DialogueLine' data object should not know if it will be animated.
-- The 'GameState' should be responsible for applying a 'TypewriterEffect' (via the 'EffectManager') to the rendered text element *after* it's been created by the 'UIRenderer'.
-
-
-TASK: Set up a testing framework and add initial tests.
-Explanation:
-- Integrate Vitest or Jest into the project.
-- Add a 'package.json' script for 'npm run test'.
-- Write initial unit tests for simple, stable utilities like 'engine/utils/ValueTracker.ts' and 'engine/core/EventBus.ts' to ensure the test pipeline is working.
-
 TASK: Refactor the project into a proper Nx monorepo structure.
 Explanation:
 - This is a larger structural change.

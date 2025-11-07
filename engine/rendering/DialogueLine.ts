@@ -14,7 +14,6 @@ export class DialogueLine {
         this.options = {
             showPortrait: options.showPortrait !== false,
             showName: options.showName !== false,
-            animate: options.animate !== false,
             style: options.style,
             ...options
         };
