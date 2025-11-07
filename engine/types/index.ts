@@ -8,8 +8,9 @@ import type {InputManager} from '../systems/InputManager';
 import {EventBus} from "@engine/core/EventBus";
 import {AssetManager} from "@engine/systems/AssetManager";
 import {EngineEventMap} from "@engine/types/EngineEventMap";
-import {IRenderer, RenderCommand} from "@engine/types/RenderingTypes";
+import {IRenderer} from "@engine/types/RenderingTypes";
 import {LocalizationManager} from "@engine/systems/LocalizationManager";
+import {RenderManager} from "@engine/core/RenderManager";
 
 export interface GameConfig {
     debug?: boolean;
@@ -26,7 +27,7 @@ export interface GameContext<TGame = Record<string, unknown>> {
     saveManager?: SaveManager;
     effects?: EffectManager;
     input?: InputManager;
-    renderQueue: RenderCommand[];
+    renderManager?: RenderManager;
     renderer?: IRenderer;
     localization?: LocalizationManager;
     

@@ -71,15 +71,6 @@ export abstract class GameState<TGame = Record<string, unknown>> {
     }
 
     /**
-     * Called by the GameStateManager every frame for *all* active states in the stack.
-     * Override this to render your scene. This runs even if not on top,
-     * allowing for transparent states (e.g., a HUD or a transparent pause menu).
-     */
-    render(renderer: unknown): void {
-        // Override in subclasses
-    }
-
-    /**
      * Called by the GameStateManager if this state is on top of the stack.
      * Override this to handle all keyboard, mouse, touch, and gamepad events.
      */

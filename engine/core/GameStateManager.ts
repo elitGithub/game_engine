@@ -86,14 +86,6 @@ export class GameStateManager<TGame = Record<string, unknown>> {
         }
     }
 
-    render(renderer: unknown): void {
-        for (const state of this.stateStack) {
-            if (state.isActive) {
-                state.render(renderer);
-            }
-        }
-    }
-
     handleEvent(event: EngineInputEvent): void {
         const currentState = this.getCurrentState();
         if (currentState && currentState.isActive) {

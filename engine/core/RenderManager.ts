@@ -1,21 +1,12 @@
-// engine/systems/RenderManager.ts
-
+// --- AFTER ---
 import type {RenderCommand, IRenderer} from '../types/RenderingTypes';
 import {EventBus} from '../core/EventBus';
 import type { SystemRegistry } from './SystemRegistry';
 
-/**
- * RenderManager - Engine-level manager for rendering.
- *
- * Responsibilities:
- * 1. Owns one IRenderer instance (swappable via config)
- * 2. Owns the render command queue
- * 3. Called by Engine.gameLoop() to flush
- * 4. Exposed to GameContext as `context.render`
- */
 export class RenderManager {
     private renderer: IRenderer;
-    private queue: RenderCommand[] = [];
+    private sceneQueue: RenderCommand[] = [];
+    private uiQueue: RenderCommand[] = [];
     private registry: SystemRegistry;
 
     constructor(
@@ -30,19 +21,48 @@ export class RenderManager {
         this.renderer.init(container);
     }
 
-    pushCommand(command: RenderCommand): void {
-        this.queue.push(command);
+    pushSceneCommand(command: RenderCommand): void {
+        this.sceneQueue.push(command);
+    }
+
+    pushUICommand(command: RenderCommand): void {
+        this.uiQueue.push(command);
+    }
+
+    private sortCommands(commands: RenderCommand[]): RenderCommand[] {
+        const getZ = (cmd: RenderCommand): number => {
+            if (cmd.type === 'clear') return -Infinity;
+            return cmd.zIndex || 0;
+        }
+        return commands
+            .filter(cmd => cmd.type !== 'clear')
+            .sort((a, b) => getZ(a) - getZ(b));
     }
 
     flush(): void {
-        if (this.queue.length === 0) return;
-        const commandsToFlush = this.queue.filter(cmd => cmd.type !== 'clear');
-        if (this.queue.some(cmd => cmd.type === 'clear')) {
+        // Check if either queue has a 'clear' command
+        const needsClear = this.sceneQueue.some(cmd => cmd.type === 'clear') ||
+                           this.uiQueue.some(cmd => cmd.type === 'clear');
+
+        if (needsClear) {
             this.renderer.clear();
         }
 
-        this.renderer.flush(commandsToFlush);
-        this.queue = [];
+        // 1. Sort and flush the SCENE queue
+        const sortedSceneCommands = this.sortCommands(this.sceneQueue);
+        if (sortedSceneCommands.length > 0) {
+            this.renderer.flush(sortedSceneCommands);
+        }
+
+        // 2. Sort and flush the UI queue
+        const sortedUICommands = this.sortCommands(this.uiQueue);
+        if (sortedUICommands.length > 0) {
+            this.renderer.flush(sortedUICommands);
+        }
+
+        // 3. Clear both queues
+        this.sceneQueue = [];
+        this.uiQueue = [];
     }
 
     resize(width: number, height: number): void {

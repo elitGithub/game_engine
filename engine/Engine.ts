@@ -14,6 +14,7 @@ import type {AssetManager, AssetManifestEntry} from './systems/AssetManager';
 import type {StorageAdapter} from './core/StorageAdapter';
 import {GameData} from "@engine/types/EngineEventMap";
 import {PlatformContainer} from "@engine/core/PlatformContainer";
+import {RenderManager} from "@engine/core/RenderManager";
 
 export interface EngineConfig<TGame> {
     debug?: boolean;
@@ -164,6 +165,7 @@ export class Engine<TGame = Record<string, any>> implements ISerializationRegist
 
         if (this.registry.has(SYSTEMS.RenderManager)) {
             ctx.renderer = this.registry.get(SYSTEMS.RenderManager);
+            ctx.renderManager = this.registry.get(SYSTEMS.RenderManager);
         }
         if (this.registry.has(SYSTEMS.Localization)) {
             ctx.loc = this.registry.get(SYSTEMS.Localization);
@@ -274,7 +276,7 @@ export class Engine<TGame = Record<string, any>> implements ISerializationRegist
 
             this.pluginManager.update(deltaTime, this.context);
 
-            this.stateManager.render(this.context.renderer || null);
+            this.registry.getOptional<RenderManager>(SYSTEMS.RenderManager)?.flush();
         }
 
         this.frameCount++;
