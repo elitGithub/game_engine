@@ -9,7 +9,7 @@ vi.mock('@engine/core/EventBus');
 vi.mock('@engine/systems/AssetManager');
 
 // Mock browser Audio API components
-const mockBufferSource = {
+const createMockBufferSource = () => ({
     start: vi.fn(),
     stop: vi.fn(),
     connect: vi.fn(),
@@ -17,7 +17,9 @@ const mockBufferSource = {
     onended: null as (() => void) | null,
     buffer: null as AudioBuffer | null,
     loop: false,
-};
+});
+
+let mockBufferSource = createMockBufferSource();
 
 const mockGainNode = {
     connect: vi.fn(),
@@ -31,7 +33,10 @@ const mockGainNode = {
 // Mock AudioContext
 const MockAudioContext = vi.fn(() => ({
     createGain: vi.fn(() => mockGainNode),
-    createBufferSource: vi.fn(() => mockBufferSource),
+    createBufferSource: vi.fn(() => {
+        mockBufferSource = createMockBufferSource();
+        return mockBufferSource;
+    }),
     destination: {},
     currentTime: 0,
     state: 'running',
@@ -58,13 +63,6 @@ describe('VoicePlayer', () => {
         mockAudioContext = new MockAudioContext();
         mockOutputGain = mockAudioContext.createGain(); // This is the 'voiceGain'
 
-        // Reset spies on mock objects
-        mockBufferSource.start.mockClear();
-        mockBufferSource.stop.mockClear();
-        mockBufferSource.connect.mockClear();
-        mockBufferSource.disconnect.mockClear();
-        mockGainNode.connect.mockClear();
-
         // Spy on EventBus.emit
         vi.spyOn(mockEventBus, 'emit');
 
@@ -86,14 +84,38 @@ describe('VoicePlayer', () => {
 
     it('should not pool voice lines', async () => {
         await voicePlayer.playVoice('voice_line_1');
+        const source1 = mockBufferSource;
         expect(mockAudioContext.createBufferSource).toHaveBeenCalledTimes(1);
 
         // Manually trigger onended
-        if(mockBufferSource.onended) mockBufferSource.onended();
-        expect(mockBufferSource.disconnect).toHaveBeenCalledOnce();
+        if(source1.onended) source1.onended();
+        expect(source1.disconnect).toHaveBeenCalledOnce();
 
         await voicePlayer.playVoice('voice_line_2');
         // A new source is created
         expect(mockAudioContext.createBufferSource).toHaveBeenCalledTimes(2);
+    });
+
+    // --- NEW TEST ---
+    it('should stop all active voices', async () => {
+        await voicePlayer.playVoice('voice_line_1');
+        const source1 = mockBufferSource;
+
+        await voicePlayer.playVoice('voice_line_2');
+        const source2 = mockBufferSource;
+
+        voicePlayer.stopAll();
+
+        expect(source1.stop).toHaveBeenCalledOnce();
+        expect(source1.onended).toBe(null); // onended is cleared
+        expect(source2.stop).toHaveBeenCalledOnce();
+        expect(source2.onended).toBe(null);
+    });
+
+    // --- NEW TEST ---
+    it('should dispose (which calls stopAll)', () => {
+        const stopAllSpy = vi.spyOn(voicePlayer, 'stopAll');
+        voicePlayer.dispose();
+        expect(stopAllSpy).toHaveBeenCalledOnce();
     });
 });

@@ -4,12 +4,32 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { InputManager } from '@engine/systems/InputManager';
 import { EventBus } from '@engine/core/EventBus';
 import { GameStateManager } from '@engine/core/GameStateManager';
-import type { KeyDownEvent } from '@engine/core/InputEvents';
+import type { KeyDownEvent, KeyUpEvent } from '@engine/core/InputEvents';
 import type { GameState } from '@engine/core/GameState';
 
 // Mock dependencies
 vi.mock('@engine/core/EventBus');
 vi.mock('@engine/core/GameStateManager');
+
+// --- NEW: Define a mock gamepad state ---
+const mockGamepad = {
+    index: 0,
+    connected: true,
+    buttons: [
+        { pressed: false, value: 0 }, // Button 0
+        { pressed: false, value: 0 }, // Button 1
+    ],
+    axes: [0, 0, 0, 0], // Axes 0, 1, 2, 3
+    mapping: 'standard',
+    timestamp: Date.now(),
+    id: 'Mock Gamepad',
+    vibrationActuator: null
+};
+
+// --- NEW: Mock navigator.getGamepads ---
+vi.stubGlobal('navigator', {
+    getGamepads: vi.fn(() => [mockGamepad]),
+});
 
 describe('InputManager', () => {
     let inputManager: InputManager;
@@ -34,6 +54,11 @@ describe('InputManager', () => {
 
         // Mock Date.now() for time-sensitive combo tests
         vi.useFakeTimers();
+
+        // --- NEW: Reset mock gamepad state ---
+        mockGamepad.buttons[0].pressed = false;
+        mockGamepad.axes[0] = 0;
+        vi.mocked(navigator.getGamepads).mockClear();
     });
 
     afterEach(() => {
@@ -57,6 +82,18 @@ describe('InputManager', () => {
         inputManager.processEvent(event);
     };
 
+    // Helper to simulate a keyup event
+    const releaseKey = (key: string) => {
+        const event: KeyUpEvent = {
+            type: 'keyup',
+            key,
+            code: `Key${key.toUpperCase()}`,
+            shift: false, ctrl: false, alt: false, meta: false,
+            timestamp: Date.now(),
+        };
+        inputManager.processEvent(event);
+    };
+
     it('should process a keydown event and update state', () => {
         pressKey('w');
 
@@ -70,7 +107,7 @@ describe('InputManager', () => {
         expect(mockEventBus.emit).toHaveBeenCalledWith('input.keydown', expect.any(Object));
     });
 
-    describe('Action Mapping', () => {
+    describe('Action Mapping (Event-based)', () => {
         it('should register and trigger a simple action', () => {
             inputManager.registerAction('move_forward', [
                 { type: 'key', input: 'w' }
@@ -120,6 +157,55 @@ describe('InputManager', () => {
 
             // The 'type_s' action should NOT be triggered
             expect(mockEventBus.emit).not.toHaveBeenCalledWith('input.action', { action: 'type_s' });
+        });
+    });
+
+    describe('isActionTriggered (State-based)', () => {
+        it('should correctly report triggered state', () => {
+            inputManager.registerAction('move', [{ type: 'key', input: 'w' }]);
+
+            pressKey('w');
+            expect(inputManager.isActionTriggered('move')).toBe(true);
+
+            releaseKey('w');
+            expect(inputManager.isActionTriggered('move')).toBe(false);
+        });
+
+        it('should correctly check modifiers', () => {
+            inputManager.registerAction('save', [{ type: 'key', input: 's', modifiers: { ctrl: true } }]);
+
+            pressKey('s');
+            expect(inputManager.isActionTriggered('save')).toBe(false); // Ctrl not down
+
+            pressKey('Control');
+            expect(inputManager.isActionTriggered('save')).toBe(true); // 's' and 'Control' are down
+
+            releaseKey('s');
+            expect(inputManager.isActionTriggered('save')).toBe(false); // 's' is up
+        });
+
+        it('should fail if an extra modifier is pressed', () => {
+            inputManager.registerAction('save', [{ type: 'key', input: 's', modifiers: { ctrl: true } }]);
+
+            pressKey('Control');
+            pressKey('Shift');
+            pressKey('s');
+
+            // Action requires *only* Ctrl, but Shift is also pressed.
+            expect(inputManager.isActionTriggered('save')).toBe(false);
+        });
+
+        it('should fail if a modifier is required but not pressed', () => {
+            inputManager.registerAction('save', [{ type: 'key', input: 's', modifiers: { ctrl: true } }]);
+            pressKey('s');
+            expect(inputManager.isActionTriggered('save')).toBe(false);
+        });
+
+        it('should fail if no modifier is required but one is pressed', () => {
+            inputManager.registerAction('move', [{ type: 'key', input: 'w' }]);
+            pressKey('Control');
+            pressKey('w');
+            expect(inputManager.isActionTriggered('move')).toBe(false);
         });
     });
 
@@ -190,6 +276,90 @@ describe('InputManager', () => {
             // The last 3 inputs match the combo
             expect(inputManager.getInputBuffer()).toEqual(['x', 'y', 'a', 'a', 'd']);
             expect(mockEventBus.emit).toHaveBeenCalledWith('input.combo', { combo: 'hadoken' });
+        });
+    });
+
+    // --- NEW TEST SUITE ---
+    describe('Gamepad Polling', () => {
+        beforeEach(() => {
+            // Spy on window.setInterval/clearInterval
+            vi.spyOn(window, 'setInterval');
+            vi.spyOn(window, 'clearInterval');
+        });
+
+        it('should start polling when enabled', () => {
+            inputManager.enableGamepadPolling();
+            expect(window.setInterval).toHaveBeenCalledOnce();
+        });
+
+        it('should stop polling when disabled', () => {
+            inputManager.enableGamepadPolling();
+            inputManager.disableGamepadPolling();
+            expect(window.clearInterval).toHaveBeenCalledOnce();
+        });
+
+        it('should detect a button press event', () => {
+            inputManager.enableGamepadPolling();
+
+            // 1. First poll (button not pressed)
+            vi.advanceTimersByTime(16); // Trigger one interval
+            expect(mockEventBus.emit).not.toHaveBeenCalledWith('input.gamepadbutton', expect.any(Object));
+
+            // 2. Simulate button press
+            mockGamepad.buttons[0].pressed = true;
+
+            // 3. Second poll (button is pressed)
+            vi.advanceTimersByTime(16); // Trigger next interval
+
+            // Check that processEvent was called, which in turn emits
+            expect(mockEventBus.emit).toHaveBeenCalledWith('input.gamepadbutton', expect.objectContaining({
+                type: 'gamepadbutton',
+                gamepadIndex: 0,
+                button: 0,
+                pressed: true
+            }));
+
+            // 4. Third poll (button is still held, should not fire again)
+            vi.clearAllMocks(); // Clear emit history
+            vi.advanceTimersByTime(16);
+            expect(mockEventBus.emit).not.toHaveBeenCalledWith('input.gamepadbutton', expect.any(Object));
+        });
+
+        it('should detect an axis move event', () => {
+            inputManager.enableGamepadPolling();
+
+            // 1. First poll (axis at 0)
+            vi.advanceTimersByTime(16);
+            expect(mockEventBus.emit).not.toHaveBeenCalledWith('input.gamepadaxis', expect.any(Object));
+
+            // 2. Simulate axis move (over deadzone)
+            mockGamepad.axes[0] = 0.8;
+
+            // 3. Second poll (axis moved)
+            vi.advanceTimersByTime(16);
+            expect(mockEventBus.emit).toHaveBeenCalledWith('input.gamepadaxis', expect.objectContaining({
+                type: 'gamepadaxis',
+                gamepadIndex: 0,
+                axis: 0,
+                value: 0.8
+            }));
+        });
+
+        it('should respect axis deadzone', () => {
+            inputManager.enableGamepadPolling();
+            mockGamepad.axes[0] = 0.8;
+
+            // 1. First poll (axis at 0.8)
+            vi.advanceTimersByTime(16);
+            expect(mockEventBus.emit).toHaveBeenCalledWith('input.gamepadaxis', expect.any(Object));
+
+            // 2. Simulate small move (within 0.1 deadzone)
+            vi.clearAllMocks();
+            mockGamepad.axes[0] = 0.85;
+
+            // 3. Second poll (no event)
+            vi.advanceTimersByTime(16);
+            expect(mockEventBus.emit).not.toHaveBeenCalledWith('input.gamepadaxis', expect.any(Object));
         });
     });
 });

@@ -1,0 +1,90 @@
+// engine/tests/TypewriterEffect.test.ts
+
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { TypewriterEffect } from '@engine/rendering/helpers/TypewriterEffect';
+import type { IEffectTarget } from '@engine/types/EffectTypes';
+
+// Mock IEffectTarget
+const mockTarget: IEffectTarget = {
+    id: 'testTarget',
+    getProperty: vi.fn(),
+    setProperty: vi.fn(),
+    getRaw: vi.fn(),
+};
+
+describe('TypewriterEffect', () => {
+    let effect: TypewriterEffect;
+    // 5 chars per second = 200ms (0.2s) per char
+    const charsPerSecond = 5;
+    const timePerChar = 1.0 / charsPerSecond; // 0.2s
+    const punctuationDelay = 0.3; // 300ms
+
+    beforeEach(() => {
+        vi.clearAllMocks();
+        // --- FIX: Pass delay as 300ms ---
+        effect = new TypewriterEffect({ charsPerSecond: charsPerSecond, punctuationDelay: 300 });
+        vi.mocked(mockTarget.getProperty).mockReturnValue('Hello!');
+        effect.onStart(mockTarget, {} as any);
+    });
+
+    it('should start with blank text', () => {
+        expect(mockTarget.getProperty).toHaveBeenCalledWith('textContent');
+        expect(mockTarget.setProperty).toHaveBeenCalledWith('textContent', '');
+        expect((effect as any).fullText).toBe('Hello!');
+    });
+
+    it('should add one character per update tick', () => {
+        effect.onUpdate(mockTarget, {} as any, timePerChar); // 0.2s
+        expect(mockTarget.setProperty).toHaveBeenLastCalledWith('textContent', 'H');
+
+        effect.onUpdate(mockTarget, {} as any, timePerChar); // 0.4s
+        expect(mockTarget.setProperty).toHaveBeenLastCalledWith('textContent', 'He');
+    });
+
+    it('should handle multiple characters in one long frame', () => {
+        effect.onUpdate(mockTarget, {} as any, timePerChar * 3); // 0.6s
+        // Should process 3 chars: 'H', 'e', 'l'
+        expect(mockTarget.setProperty).toHaveBeenLastCalledWith('textContent', 'Hel');
+    });
+
+    it('should add punctuation delay', () => {
+        const text = "Hi. Bye";
+        vi.mocked(mockTarget.getProperty).mockReturnValue(text);
+
+        effect.onStart(mockTarget, {} as any); // fullText is "Hi. Bye"
+
+        effect.onUpdate(mockTarget, {} as any, timePerChar); // "H"
+        effect.onUpdate(mockTarget, {} as any, timePerChar); // "Hi"
+
+        // --- FIX: Test logic revised ---
+
+        // After this call, the last text is "Hi".
+        // The *next* character is '.', so the delay is now (timePerChar + punctuationDelay)
+        expect(mockTarget.setProperty).toHaveBeenLastCalledWith('textContent', 'Hi');
+
+        // This update is NOT enough to overcome the punctuation delay
+        effect.onUpdate(mockTarget, {} as any, timePerChar);
+        expect(mockTarget.setProperty).toHaveBeenLastCalledWith('textContent', 'Hi'); // Still "Hi"
+
+        // This update *is* enough time
+        // (timePerChar for the char itself + punctuationDelay)
+        effect.onUpdate(mockTarget, {} as any, punctuationDelay);
+
+        // Now it should have processed the "."
+        expect(mockTarget.setProperty).toHaveBeenLastCalledWith('textContent', 'Hi.');
+    });
+
+    it('should complete text onStop', () => {
+        effect.onUpdate(mockTarget, {} as any, timePerChar); // "H"
+        effect.onStop(mockTarget, {} as any);
+        expect(mockTarget.setProperty).toHaveBeenLastCalledWith('textContent', 'Hello!');
+    });
+
+    it('should do nothing on update if complete', () => {
+        effect.onStop(mockTarget, {} as any); // Completes text
+        vi.clearAllMocks(); // Clear setProperty calls
+
+        effect.onUpdate(mockTarget, {} as any, 1.0);
+        expect(mockTarget.setProperty).not.toHaveBeenCalled();
+    });
+});

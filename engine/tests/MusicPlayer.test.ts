@@ -130,4 +130,72 @@ describe('MusicPlayer', () => {
         expect(musicPlayer.getMusicState()).toBe('stopped');
         expect(mockEventBus.emit).toHaveBeenCalledWith('music.stopped', {});
     });
+
+    // --- NEW TEST ---
+    it('should crossfade music', async () => {
+        // Mock a different buffer for the new track
+        const mockAudioBuffer2 = { duration: 10.0 } as AudioBuffer;
+        vi.mocked(mockAssetManager.get).mockReturnValueOnce(mockAudioBuffer).mockReturnValueOnce(mockAudioBuffer2);
+
+        await musicPlayer.playMusic('track1');
+        vi.clearAllMocks();
+
+        // Spy on the public methods
+        const stopSpy = vi.spyOn(musicPlayer, 'stopMusic').mockResolvedValue();
+        const playSpy = vi.spyOn(musicPlayer, 'playMusic').mockResolvedValue();
+
+        await musicPlayer.crossfadeMusic('track2', 1.5);
+
+        expect(stopSpy).toHaveBeenCalledWith(1.5);
+        expect(playSpy).toHaveBeenCalledWith('track2', true, 1.5);
+        expect(mockEventBus.emit).toHaveBeenCalledWith('music.crossfaded', { newTrackId: 'track2', duration: 1.5 });
+    });
+
+    // --- NEW TEST ---
+    it('should get music position', async () => {
+        await musicPlayer.playMusic('track1');
+
+        // State: playing
+        mockAudioContext.currentTime = 5.0;
+        // Manually set internal state for test
+        (musicPlayer as any).currentMusic.startTime = 0.0;
+
+        expect(musicPlayer.getMusicPosition()).toBeCloseTo(5.0);
+
+        // State: paused
+        musicPlayer.pauseMusic(); // This sets pausedAt
+        mockAudioContext.currentTime = 8.0; // Time moves on, but position should be stored
+
+        expect(musicPlayer.getMusicState()).toBe('paused');
+        expect(musicPlayer.getMusicPosition()).toBeCloseTo(5.0); // Stays at paused position
+    });
+
+    // --- NEW TEST ---
+    it('should set music position while playing', async () => {
+        await musicPlayer.playMusic('track1');
+
+        const pauseSpy = vi.spyOn(musicPlayer, 'pauseMusic');
+        const resumeSpy = vi.spyOn(musicPlayer, 'resumeMusic');
+
+        musicPlayer.setMusicPosition(3.0);
+
+        expect(pauseSpy).toHaveBeenCalledOnce();
+        expect((musicPlayer as any).currentMusic.pausedAt).toBe(3.0);
+        expect(resumeSpy).toHaveBeenCalledOnce();
+    });
+
+    // --- NEW TEST ---
+    it('should set music position while paused', async () => {
+        await musicPlayer.playMusic('track1');
+        musicPlayer.pauseMusic(); // state is now 'paused'
+
+        const pauseSpy = vi.spyOn(musicPlayer, 'pauseMusic');
+        const resumeSpy = vi.spyOn(musicPlayer, 'resumeMusic');
+
+        musicPlayer.setMusicPosition(4.0);
+
+        expect(pauseSpy).not.toHaveBeenCalled(); // Was already paused
+        expect((musicPlayer as any).currentMusic.pausedAt).toBe(4.0);
+        expect(resumeSpy).not.toHaveBeenCalled(); // Stays paused
+    });
 });

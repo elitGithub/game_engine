@@ -46,4 +46,36 @@ describe('ChoiceLayoutHelper', () => {
         expect(hotspotCmd.data).toEqual({ target: 'scene_2' });
         expect(hotspotCmd.zIndex).toBe(102);
     });
+
+    // --- NEW TEST ---
+    it('should generate commands for multiple choices', () => {
+        const helper = new ChoiceLayoutHelper();
+        const choices: PositionedChoice[] = [
+            {
+                id: 'choice_1',
+                text: 'Go North',
+                textPos: { x: 100, y: 150 },
+                hotspot: { x: 90, y: 130, width: 200, height: 40 },
+                data: { target: 'scene_2' }
+            },
+            {
+                id: 'choice_2',
+                text: 'Go South',
+                textPos: { x: 100, y: 200 },
+                hotspot: { x: 90, y: 180, width: 200, height: 40 },
+                data: { target: 'scene_3' }
+            }
+        ];
+
+        const commands = helper.buildCommands(choices);
+
+        // Should create 4 commands: 2 text, 2 hotspot
+        expect(commands).toHaveLength(4);
+        expect(commands.filter(c => c.type === 'text')).toHaveLength(2);
+        expect(commands.filter(c => c.type === 'hotspot')).toHaveLength(2);
+
+        const text2 = commands.find(c => (c as any).id === 'choice_2_text') as Extract<RenderCommand, { type: 'text' }>;
+        expect(text2).toBeDefined();
+        expect(text2.y).toBe(200);
+    });
 });
