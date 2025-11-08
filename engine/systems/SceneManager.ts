@@ -21,6 +21,10 @@ export class SceneManager<TGame = Record<string, unknown>> {
         this.sceneFactories = new Map();
 
         this.registerSceneFactory('default', (id, type, data) => new Scene(id, type, data));
+
+        // --- FIX: Register 'story' type as an alias for 'default' ---
+        // This will fix the test failures where 'story' was expected.
+        this.registerSceneFactory('story', (id, type, data) => new Scene(id, type, data));
     }
 
     registerSceneFactory(type: string, factory: SceneFactory<TGame>): void {
@@ -29,6 +33,7 @@ export class SceneManager<TGame = Record<string, unknown>> {
 
     loadScenes(scenesData: ScenesDataMap): void {
         for (const [id, sceneData] of Object.entries(scenesData)) {
+            // --- FIX: Default to 'story' as seen in the code ---
             const type = sceneData.sceneType || 'story';
             const factory = this.sceneFactories.get(type) || this.sceneFactories.get('default')!;
             const scene = factory(id, type, sceneData);
@@ -40,7 +45,8 @@ export class SceneManager<TGame = Record<string, unknown>> {
         return this.scenes.get(sceneId) || null;
     }
 
-    goToScene(sceneId: string, context: GameContext<TGame>): boolean {
+    // --- FIX: Added 'isNavigatingBack' parameter ---
+    goToScene(sceneId: string, context: GameContext<TGame>, isNavigatingBack: boolean = false): boolean {
         const scene = this.getScene(sceneId);
 
         if (!scene) {
@@ -50,7 +56,10 @@ export class SceneManager<TGame = Record<string, unknown>> {
 
         if (this.currentScene) {
             this.currentScene.onExit(context);
-            this.history.push(this.currentScene.sceneId);
+            // --- FIX: Only add to history on forward navigation ---
+            if (!isNavigatingBack) {
+                this.history.push(this.currentScene.sceneId);
+            }
         }
 
         this.currentScene = scene;
@@ -58,6 +67,7 @@ export class SceneManager<TGame = Record<string, unknown>> {
 
         this.eventBus.emit('scene.changed', {
             sceneId: scene.sceneId,
+            // --- FIX: Use the actual determined type ---
             type: scene.sceneType,
             previousScene: this.history[this.history.length - 1] || null
         });
@@ -68,7 +78,8 @@ export class SceneManager<TGame = Record<string, unknown>> {
     goBack(context: GameContext<TGame>): boolean {
         if (this.history.length === 0) return false;
         const previousSceneId = this.history.pop()!;
-        return this.goToScene(previousSceneId, context);
+        // --- FIX: Pass 'true' for isNavigatingBack ---
+        return this.goToScene(previousSceneId, context, true);
     }
 
     getCurrentScene(): Scene<TGame> | null {
