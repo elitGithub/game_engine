@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } from 'vitest';
 import { CanvasRenderer } from '@engine/rendering/CanvasRenderer';
 import { AssetManager } from '@engine/systems/AssetManager';
 import type { RenderCommand } from '@engine/types/RenderingTypes';
@@ -19,17 +19,19 @@ const mockContext = {
     fillText: vi.fn(),
     fillRect: vi.fn(),
     strokeRect: vi.fn(),
-    set fillStyle(_val: string) {},
-    set strokeStyle(_val: string) {},
-    set font(_val: string) {},
-    set textAlign(_val: string) {},
+    set fillStyle(_val: string) {
+    },
+    set strokeStyle(_val: string) {
+    },
+    set font(_val: string) {
+    },
+    set textAlign(_val: string) {
+    },
 };
 
-// Spy on the setters
-const fillStyleSpy = vi.spyOn(mockContext, 'fillStyle', 'set');
-const strokeStyleSpy = vi.spyOn(mockContext, 'strokeStyle', 'set');
-const fontSpy = vi.spyOn(mockContext, 'font', 'set');
-const textAlignSpy = vi.spyOn(mockContext, 'textAlign', 'set');
+// --- REMOVE SPY DEFINITIONS FROM HERE ---
+// const fillStyleSpy = vi.spyOn(mockContext, 'fillStyle', 'set');
+// ... (and the other 3 spies) ...
 
 describe('CanvasRenderer', () => {
     let renderer: CanvasRenderer;
@@ -37,13 +39,32 @@ describe('CanvasRenderer', () => {
     let container: HTMLElement;
     let canvas: HTMLCanvasElement;
 
-    beforeEach(() => {
-        vi.clearAllMocks();
+    // --- FIX 1: Define ALL spies here as 'let' ---
+    let fillStyleSpy: MockInstance;
+    let strokeStyleSpy: MockInstance;
+    let fontSpy: MockInstance;
+    let textAlignSpy: MockInstance;
+    let contextSpy: MockInstance;
+    let canvasRemoveSpy: MockInstance;
 
-        fillStyleSpy.mockClear();
-        strokeStyleSpy.mockClear();
-        fontSpy.mockClear();
-        textAlignSpy.mockClear();
+    beforeEach(() => {
+        // --- FIX 2: Create spies inside beforeEach ---
+        fillStyleSpy = vi.spyOn(mockContext, 'fillStyle', 'set');
+        strokeStyleSpy = vi.spyOn(mockContext, 'strokeStyle', 'set');
+        fontSpy = vi.spyOn(mockContext, 'font', 'set');
+        textAlignSpy = vi.spyOn(mockContext, 'textAlign', 'set');
+        contextSpy = vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(mockContext as any);
+
+        // --- FIX 3: Use mockReset() for vi.fn() mocks ---
+        mockContext.clearRect.mockReset();
+        mockContext.save.mockReset();
+        mockContext.restore.mockReset();
+        mockContext.drawImage.mockReset();
+        mockContext.fillText.mockReset();
+        mockContext.fillRect.mockReset(); // This clears .calls AND .invocationCallOrder
+        mockContext.strokeRect.mockReset();
+
+        // No need to .mockClear() spies we just created
 
         mockAssets = new (vi.mocked(AssetManager))(null as any);
         vi.mocked(mockAssets.get).mockReturnValue(mockImage as any);
@@ -52,31 +73,28 @@ describe('CanvasRenderer', () => {
         document.body.appendChild(container);
 
         renderer = new CanvasRenderer(mockAssets);
-        renderer.init(container); // Let init run (it will create a real canvas)
+        renderer.init(container); // This will now succeed!
 
-        // --- THIS IS THE FIX ---
-        // Manually overwrite the renderer's internal context with our mock.
-        // This is safer than mocking the prototype.
-        (renderer as any).ctx = mockContext;
-        // --- END OF FIX ---
-
-        // Find the real canvas that init() created
         canvas = container.querySelector('canvas')!;
 
-        // Spy on the real canvas's remove method for the dispose test
-        vi.spyOn(canvas, 'remove');
+        // Spy on the *instance* of the canvas
+        canvasRemoveSpy = vi.spyOn(canvas, 'remove');
     });
 
     afterEach(() => {
         container.remove();
-        vi.restoreAllMocks(); // This removes the prototype spy
+
+        // --- FIX 4: Manually restore all spies and DO NOT use restoreAllMocks ---
+        fillStyleSpy.mockRestore();
+        strokeStyleSpy.mockRestore();
+        fontSpy.mockRestore();
+        textAlignSpy.mockRestore();
+        contextSpy.mockRestore();
+        canvasRemoveSpy.mockRestore();
     });
-    // --- END OF FIX ---
 
     it('should initialize, create canvas, and get context', () => {
         expect(container.children[0]).toBe(canvas);
-
-        // flush() will now use our manually-injected mockContext
         renderer.flush([]);
         expect(mockContext.clearRect).toHaveBeenCalled();
     });
@@ -95,7 +113,7 @@ describe('CanvasRenderer', () => {
 
     it('should call dispose', () => {
         renderer.dispose();
-        expect(canvas.remove).toHaveBeenCalledOnce();
+        expect(canvasRemoveSpy).toHaveBeenCalledOnce(); // Use the spy
     });
 
     it('should flush and render an image command', () => {
@@ -152,23 +170,34 @@ describe('CanvasRenderer', () => {
     });
 
     it('should sort commands by zIndex before rendering', () => {
-        const cmd1: RenderCommand = { type: 'rect', id: 'r1', x: 1, y: 0, width: 10, height: 10, zIndex: 10, fill: 'red' };
-        const cmd2: RenderCommand = { type: 'rect', id: 'r2', x: 2, y: 0, width: 10, height: 10, zIndex: 5, fill: 'blue' };
+        const cmd1: RenderCommand = {
+            type: 'rect',
+            id: 'r1',
+            x: 1,
+            y: 0,
+            width: 10,
+            height: 10,
+            zIndex: 10,
+            fill: 'red'
+        };
+        const cmd2: RenderCommand = {
+            type: 'rect',
+            id: 'r2',
+            x: 2,
+            y: 0,
+            width: 10,
+            height: 10,
+            zIndex: 5,
+            fill: 'blue'
+        };
 
         renderer.flush([cmd1, cmd2]);
 
         expect(mockContext.save).toHaveBeenCalledTimes(2);
         expect(mockContext.restore).toHaveBeenCalledTimes(2);
+        const calls = mockContext.fillRect.mock.calls;
 
-        const callOrder = mockContext.fillRect.mock.invocationCallOrder;
-
-        // This test will no longer fail, as mockContext.fillRect.mock.calls will be populated
-        const cmd1CallOrder = callOrder.find(order => mockContext.fillRect.mock.calls[order - 1][0] === 1);
-        const cmd2CallOrder = callOrder.find(order => mockContext.fillRect.mock.calls[order - 1][0] === 2);
-
-        expect(cmd1CallOrder).toBeDefined();
-        expect(cmd2CallOrder).toBeDefined();
-
-        expect(cmd2CallOrder).toBeLessThan(cmd1CallOrder as number);
+        expect(calls[0][0]).toBe(2);
+        expect(calls[1][0]).toBe(1);
     });
 });
