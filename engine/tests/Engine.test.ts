@@ -1,6 +1,6 @@
 // engine/tests/Engine.test.ts
 
-import { describe, it, expect, beforeEach, vi, } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { Engine, type EngineConfig } from '@engine/Engine';
 import { GameStateManager } from '@engine/core/GameStateManager';
 import { EventBus } from '@engine/core/EventBus';
