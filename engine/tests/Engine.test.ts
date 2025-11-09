@@ -31,7 +31,7 @@ const mockPlayer: ISerializable = {
 };
 
 describe('Engine', () => {
-    let config: EngineConfig<{ player: ISerializable }>;
+    let config: EngineConfig;
     let mockStateManager: GameStateManager<any>;
     let mockSceneManager: SceneManager;
     let mockAudioManager: AudioManager;

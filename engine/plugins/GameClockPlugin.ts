@@ -1,5 +1,5 @@
 // engine/plugins/GameClockPlugin.ts
-import type { IEngineHost, IEnginePlugin, GameContext, ISerializable } from '../types';
+import type { IEngineHost, IEnginePlugin, TypedGameContext, ISerializable } from '../types';
 
 export interface ClockConfig {
     unitsPerDay: number;
@@ -37,7 +37,7 @@ export class GameClockPlugin implements IEnginePlugin, ISerializable {
         delete engine.context.clock;
     }
 
-    update(deltaTime: number, context: GameContext<any>): void {
+    update(deltaTime: number, context: TypedGameContext<any>): void {
         // Clock doesn't auto-advance - game calls advance() explicitly
         // This is here in case you want real-time mode in the future
     }

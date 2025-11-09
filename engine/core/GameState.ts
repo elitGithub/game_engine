@@ -1,15 +1,25 @@
 /**
  * GameState - Base class for all game states
  *
- * Now supports generic game state typing for full autocomplete
+ * Supports generic game state typing for full autocomplete in game layer.
+ *
+ * Example:
+ * ```ts
+ * interface MyGame { player: Player; }
+ * class MenuState extends GameState<MyGame> {
+ *   enter() {
+ *     this.context.game.player.name; // Type-safe!
+ *   }
+ * }
+ * ```
  */
-import type { StateData, GameContext } from '@engine/types';
+import type { StateData, TypedGameContext } from '@engine/types';
 import type { EngineInputEvent } from './InputEvents';
 
 export abstract class GameState<TGame = Record<string, unknown>> {
     public name: string;
     public isActive: boolean;
-    protected context!: GameContext<TGame>;
+    protected context!: TypedGameContext<TGame>;
 
     constructor(name: string) {
         this.name = name;
@@ -20,7 +30,7 @@ export abstract class GameState<TGame = Record<string, unknown>> {
      * Set the context (called by StateManager)
      * @internal
      */
-    setContext(context: GameContext<TGame>): void {
+    setContext(context: TypedGameContext<TGame>): void {
         this.context = context;
     }
 

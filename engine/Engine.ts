@@ -16,12 +16,18 @@ import {GameData} from "@engine/types/EngineEventMap";
 import {PlatformContainer} from "@engine/core/PlatformContainer";
 import {RenderManager} from "@engine/core/RenderManager";
 
-export interface EngineConfig<TGame> {
+/**
+ * Engine configuration
+ *
+ * The gameState can be any object - the engine doesn't need to know its type.
+ * For type-safe access in your game code, use TypedGameContext<YourGameState>
+ */
+export interface EngineConfig {
     debug?: boolean;
     targetFPS?: number;
     gameVersion?: string;
     systems: SystemConfig;
-    gameState: TGame;
+    gameState: Record<string, unknown>;
     gameData?: GameData;
     container?: PlatformContainer;
     storageAdapter?: StorageAdapter;
@@ -31,19 +37,22 @@ export interface EngineConfig<TGame> {
 }
 
 /**
- * Engine - Clean, type-safe, config-driven game engine
+ * Engine - Clean, unopinionated, config-driven game engine
  *
  * Usage:
- *   const engine = await Engine.create<MyGameState>({
- *       systems: { audio: true, assets: true, save: true },
- *       gameState: myGameState
- *   });
+ * ```ts
+ * const engine = await Engine.create({
+ *     systems: { audio: true, assets: true, save: true },
+ *     gameState: myGameState
+ * });
  *
- *   await engine.audio.playSound('click');
- *   engine.context.game.player.health -= 10;
+ * // In game layer, cast to typed context:
+ * const ctx = engine.context as TypedGameContext<MyGameState>;
+ * ctx.game.player.health -= 10;
+ * ```
  */
-export class Engine<TGame = Record<string, any>> implements ISerializationRegistry {
-    public readonly config: Required<Pick<EngineConfig<TGame>, 'debug' | 'targetFPS' | 'gameVersion'>>;
+export class Engine implements ISerializationRegistry {
+    public readonly config: Required<Pick<EngineConfig, 'debug' | 'targetFPS' | 'gameVersion'>>;
     public readonly registry: SystemRegistry;
     public readonly context: GameContext;
 
@@ -56,7 +65,7 @@ export class Engine<TGame = Record<string, any>> implements ISerializationRegist
     private lastFrameTime: number;
     private frameCount: number;
 
-    private constructor(userConfig: EngineConfig<TGame>) {
+    private constructor(userConfig: EngineConfig) {
         this.config = {
             debug: userConfig.debug ?? false,
             targetFPS: userConfig.targetFPS ?? 60,
@@ -66,12 +75,12 @@ export class Engine<TGame = Record<string, any>> implements ISerializationRegist
         // Create registry
         this.registry = new SystemRegistry();
 
-        // Initialize serializablecontext with typed game state
+        // Initialize context with game state
         this.context = {
             game: userConfig.gameState,
             flags: new Set(),
             variables: new Map()
-        } as GameContext;
+        };
 
         // Serialization support
         this.serializableSystems = new Map();
@@ -130,7 +139,7 @@ export class Engine<TGame = Record<string, any>> implements ISerializationRegist
      *
      * This ensures proper initialization order and unlocks audio
      */
-    static async create<TGame>(config: EngineConfig<TGame>): Promise<Engine<TGame>> {
+    static async create(config: EngineConfig): Promise<Engine> {
         const engine = new Engine(config);
 
         // Unlock audio if AudioManager is enabled

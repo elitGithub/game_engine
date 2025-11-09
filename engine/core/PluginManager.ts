@@ -1,5 +1,5 @@
 // engine/core/PluginManager.ts
-import type { IEngineHost, IEnginePlugin, GameContext } from '../types';
+import type { IEngineHost, IEnginePlugin, TypedGameContext } from '../types';
 
 export class PluginManager<TGame = Record<string, unknown>> {
     private plugins: Map<string, IEnginePlugin<TGame>>;
@@ -63,7 +63,7 @@ export class PluginManager<TGame = Record<string, unknown>> {
         return true;
     }
 
-    update(deltaTime: number, context: GameContext<TGame>): void {
+    update(deltaTime: number, context: TypedGameContext<TGame>): void {
         this.installed.forEach(pluginName => {
             const plugin = this.plugins.get(pluginName);
             if (plugin?.update) {

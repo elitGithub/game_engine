@@ -1,0 +1,261 @@
+/**
+ * SystemContainer - Dependency Injection Container for Game Engine
+ *
+ * Provides:
+ * - Dependency declaration and resolution
+ * - Lazy-loading of optional systems
+ * - Extensible system registration
+ * - Lifecycle management (initialize, dispose)
+ */
+
+export type SystemKey = symbol | string;
+
+/**
+ * Lifecycle stages for system initialization
+ */
+export enum SystemLifecycle {
+    REGISTERED = 'registered',     // System definition is registered
+    INSTANTIATED = 'instantiated', // System instance created
+    INITIALIZED = 'initialized',   // System initialized (dependencies resolved)
+    READY = 'ready',              // System fully configured and ready to use
+    DISPOSED = 'disposed'          // System disposed
+}
+
+/**
+ * System definition - describes how to create and configure a system
+ */
+export interface SystemDefinition<T = any> {
+    /** Unique key for this system */
+    key: SystemKey;
+
+    /** Factory function to create the system instance */
+    factory: (container: SystemContainer) => T;
+
+    /** Dependencies that must be available before this system can be created */
+    dependencies?: SystemKey[];
+
+    /** Whether this system should be lazy-loaded (created on first access) */
+    lazy?: boolean;
+
+    /** Optional initialization callback after dependencies are resolved */
+    initialize?: (system: T, container: SystemContainer) => void | Promise<void>;
+
+    /** Optional dispose callback for cleanup */
+    dispose?: (system: T) => void | Promise<void>;
+}
+
+/**
+ * System instance metadata
+ */
+interface SystemEntry<T = any> {
+    definition: SystemDefinition<T>;
+    instance?: T;
+    lifecycle: SystemLifecycle;
+    initPromise?: Promise<void>;
+}
+
+/**
+ * Dependency Injection Container for game engine systems
+ */
+export class SystemContainer {
+    private systems: Map<SystemKey, SystemEntry> = new Map();
+    private initializing: Set<SystemKey> = new Set();
+
+    /**
+     * Register a system definition
+     */
+    register<T>(definition: SystemDefinition<T>): void {
+        if (this.systems.has(definition.key)) {
+            console.warn(`[SystemContainer] System '${String(definition.key)}' already registered. Overwriting.`);
+        }
+
+        this.systems.set(definition.key, {
+            definition,
+            lifecycle: SystemLifecycle.REGISTERED
+        });
+    }
+
+    /**
+     * Register an already-instantiated system (for backward compatibility)
+     */
+    registerInstance<T>(key: SystemKey, instance: T): void {
+        this.systems.set(key, {
+            definition: {
+                key,
+                factory: () => instance
+            },
+            instance,
+            lifecycle: SystemLifecycle.READY
+        });
+    }
+
+    /**
+     * Check if a system is registered
+     */
+    has(key: SystemKey): boolean {
+        return this.systems.has(key);
+    }
+
+    /**
+     * Get a system instance (will create and initialize if lazy)
+     */
+    get<T>(key: SystemKey): T {
+        const entry = this.systems.get(key);
+
+        if (!entry) {
+            throw new Error(`[SystemContainer] System '${String(key)}' not found. Did you forget to register it?`);
+        }
+
+        // If already instantiated, return it
+        if (entry.instance) {
+            return entry.instance as T;
+        }
+
+        // Create and initialize the system
+        const instance = this.createSystem<T>(entry);
+        return instance;
+    }
+
+    /**
+     * Get an optional system (returns undefined if not registered)
+     */
+    getOptional<T>(key: SystemKey): T | undefined {
+        if (!this.has(key)) {
+            return undefined;
+        }
+        return this.get<T>(key);
+    }
+
+    /**
+     * Create a system instance and resolve its dependencies
+     */
+    private createSystem<T>(entry: SystemEntry<T>): T {
+        const { definition } = entry;
+
+        // Check for circular dependencies
+        if (this.initializing.has(definition.key)) {
+            throw new Error(
+                `[SystemContainer] Circular dependency detected for system '${String(definition.key)}'`
+            );
+        }
+
+        this.initializing.add(definition.key);
+
+        try {
+            // Ensure all dependencies are available
+            if (definition.dependencies) {
+                for (const depKey of definition.dependencies) {
+                    if (!this.systems.has(depKey)) {
+                        throw new Error(
+                            `[SystemContainer] Dependency '${String(depKey)}' not found for system '${String(definition.key)}'`
+                        );
+                    }
+                    // Recursively create dependencies
+                    this.get(depKey);
+                }
+            }
+
+            // Create the instance
+            const instance = definition.factory(this);
+            entry.instance = instance;
+            entry.lifecycle = SystemLifecycle.INSTANTIATED;
+
+            // Call initialize if defined
+            if (definition.initialize) {
+                const initResult = definition.initialize(instance, this);
+                if (initResult instanceof Promise) {
+                    entry.initPromise = initResult.then(() => {
+                        entry.lifecycle = SystemLifecycle.READY;
+                    });
+                } else {
+                    entry.lifecycle = SystemLifecycle.READY;
+                }
+            } else {
+                entry.lifecycle = SystemLifecycle.READY;
+            }
+
+            return instance;
+        } finally {
+            this.initializing.delete(definition.key);
+        }
+    }
+
+    /**
+     * Initialize all registered non-lazy systems
+     */
+    async initializeAll(): Promise<void> {
+        const promises: Promise<void>[] = [];
+
+        for (const [key, entry] of this.systems.entries()) {
+            // Skip lazy systems
+            if (entry.definition.lazy) {
+                continue;
+            }
+
+            // Create the system if not already created
+            if (!entry.instance) {
+                this.get(key);
+            }
+
+            // Wait for initialization if it's async
+            if (entry.initPromise) {
+                promises.push(entry.initPromise);
+            }
+        }
+
+        await Promise.all(promises);
+    }
+
+    /**
+     * Dispose of a specific system
+     */
+    async dispose(key: SystemKey): Promise<void> {
+        const entry = this.systems.get(key);
+
+        if (!entry || !entry.instance) {
+            return;
+        }
+
+        if (entry.definition.dispose) {
+            await entry.definition.dispose(entry.instance);
+        }
+
+        entry.instance = undefined;
+        entry.lifecycle = SystemLifecycle.DISPOSED;
+    }
+
+    /**
+     * Dispose of all systems
+     */
+    async disposeAll(): Promise<void> {
+        const promises: Promise<void>[] = [];
+
+        for (const key of this.systems.keys()) {
+            promises.push(this.dispose(key));
+        }
+
+        await Promise.all(promises);
+    }
+
+    /**
+     * Clear all system registrations
+     */
+    clear(): void {
+        this.systems.clear();
+        this.initializing.clear();
+    }
+
+    /**
+     * Get lifecycle state of a system
+     */
+    getLifecycleState(key: SystemKey): SystemLifecycle | undefined {
+        return this.systems.get(key)?.lifecycle;
+    }
+
+    /**
+     * Get all registered system keys
+     */
+    getRegisteredKeys(): SystemKey[] {
+        return Array.from(this.systems.keys());
+    }
+}

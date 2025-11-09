@@ -1,5 +1,5 @@
 // engine/systems/SceneManager.ts
-import type { GameContext } from '@engine/types';
+import type { TypedGameContext } from '@engine/types';
 import { Scene } from './Scene';
 import type { EventBus } from '../core/EventBus';
 import {ScenesDataMap, SceneData, SceneChoice} from "@engine/types/EngineEventMap";
@@ -46,7 +46,7 @@ export class SceneManager<TGame = Record<string, unknown>> {
     }
 
     // --- FIX: Added 'isNavigatingBack' parameter ---
-    goToScene(sceneId: string, context: GameContext<TGame>, isNavigatingBack: boolean = false): boolean {
+    goToScene(sceneId: string, context: TypedGameContext<TGame>, isNavigatingBack: boolean = false): boolean {
         const scene = this.getScene(sceneId);
 
         if (!scene) {
@@ -75,7 +75,7 @@ export class SceneManager<TGame = Record<string, unknown>> {
         return true;
     }
 
-    goBack(context: GameContext<TGame>): boolean {
+    goBack(context: TypedGameContext<TGame>): boolean {
         if (this.history.length === 0) return false;
         const previousSceneId = this.history.pop()!;
         // --- FIX: Pass 'true' for isNavigatingBack ---
@@ -86,7 +86,7 @@ export class SceneManager<TGame = Record<string, unknown>> {
         return this.currentScene;
     }
 
-    getCurrentChoices(context: GameContext<TGame>): SceneChoice[] {
+    getCurrentChoices(context: TypedGameContext<TGame>): SceneChoice[] {
         if (!this.currentScene) return [];
         return this.currentScene.getChoices(context);
     }

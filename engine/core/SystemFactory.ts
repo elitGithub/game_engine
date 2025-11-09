@@ -2,31 +2,16 @@
 /**
  * SystemFactory - Creates and wires up engine systems from config
  *
- * Handles dependency injection automatically based on system requirements.
- * Systems are created in the correct order to satisfy dependencies.
+ * Now uses SystemContainer for dependency injection and lazy-loading.
+ * Systems are created automatically based on their declared dependencies.
  *
- * Now platform-agnostic - uses PlatformContainer interface instead of HTMLElement
+ * This provides a backward-compatible API while using the new DI system internally.
  */
 
-import {EventBus} from '../core/EventBus';
-import {AssetManager} from '../systems/AssetManager';
-import {AudioManager} from '../systems/AudioManager';
-import {GameStateManager} from '../core/GameStateManager';
-import {SceneManager} from '../systems/SceneManager';
-import {ActionRegistry} from '../systems/ActionRegistry';
-import {EffectManager} from '../systems/EffectManager';
-import {InputManager} from '../systems/InputManager';
-import {PluginManager} from '../core/PluginManager';
-import {ImageLoader} from '../systems/asset_loaders/ImageLoader';
-import {AudioLoader} from '../systems/asset_loaders/AudioLoader';
-import {JsonLoader} from '../systems/asset_loaders/JsonLoader';
-import {RenderManager} from './RenderManager';
-import {DomInputAdapter} from './DomInputAdapter';
 import type {SystemRegistry} from './SystemRegistry';
-import {SYSTEMS} from './SystemRegistry';
 import type {PlatformContainer} from './PlatformContainer';
-import {DomRenderer} from '../rendering/DomRenderer';
-import {CanvasRenderer} from '../rendering/CanvasRenderer';
+import {SystemContainer, type SystemDefinition} from './SystemContainer';
+import {createCoreSystemDefinitions} from './SystemDefinitions';
 
 
 /**
@@ -49,24 +34,18 @@ export interface SystemConfig {
 
 /**
  * Creates and configures engine systems based on user config
+ *
+ * Now uses SystemContainer internally for proper dependency injection.
  */
 export class SystemFactory {
     /**
      * Create all systems specified in config
      *
-     * Systems are created in dependency order:
-     * 1. EventBus (no dependencies)
-     * 2. StateManager (no dependencies)
-     * 3. AssetManager (depends on EventBus)
-     * 4. AudioManager (depends on EventBus, AssetManager, AudioContext)
-     * 5. SceneManager (depends on EventBus)
-     * 6. ActionRegistry (no dependencies)
-     * 7. EffectManager (depends on container)
-     * 8. InputManager (depends on StateManager, EventBus)
-     * 9. PluginManager (no dependencies)
+     * Uses SystemContainer for dependency injection and lazy-loading.
+     * Systems are created automatically based on their dependencies.
      *
      * @param config System configuration
-     * @param registry System registry for dependency injection
+     * @param registry System registry (for backward compatibility)
      * @param container Platform-agnostic container (optional)
      */
     static create(
@@ -74,148 +53,79 @@ export class SystemFactory {
         registry: SystemRegistry,
         container?: PlatformContainer
     ): void {
-        // ====================================================================
-        // CORE SYSTEMS (always created)
-        // ====================================================================
+        // Create a hybrid container that bridges SystemContainer and SystemRegistry
+        const systemContainer = new SystemContainerBridge(registry);
 
-        // EventBus - always created first (no dependencies)
-        const eventBus = new EventBus();
-        registry.register(SYSTEMS.EventBus, eventBus);
-
-        // StateManager - always created (no dependencies)
-        const stateManager = new GameStateManager();
-        registry.register(SYSTEMS.StateManager, stateManager);
-
-        // SceneManager - always created (depends on: EventBus)
-        const sceneManager = new SceneManager(eventBus);
-        registry.register(SYSTEMS.SceneManager, sceneManager);
-
-        // ActionRegistry - always created (no dependencies)
-        const actionRegistry = new ActionRegistry();
-        registry.register(SYSTEMS.ActionRegistry, actionRegistry);
-
-        // PluginManager - always created (no dependencies)
-        const pluginManager = new PluginManager();
-        registry.register(SYSTEMS.PluginManager, pluginManager);
-
-        // ====================================================================
-        // OPTIONAL SYSTEMS (created based on config)
-        // ====================================================================
-
-        let audioContext: AudioContext | undefined;
-        // Create the AudioContext only if assets or audio will be used
-        if (config.assets !== false || config.audio !== false) {
-            try {
-                audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-            } catch (e) {
-                console.warn('[SystemFactory] Web Audio API not supported. Audio will be disabled.');
-            }
+        // Register all core system definitions
+        const definitions = createCoreSystemDefinitions(config, container);
+        for (const def of definitions) {
+            systemContainer.register(def);
         }
 
-        if (config.assets !== false) {
-            const assetManager = new AssetManager(eventBus);
-
-            // Register default asset loaders
-            assetManager.registerLoader(new ImageLoader());
-            assetManager.registerLoader(new JsonLoader());
-            // Pass the AudioContext if it was successfully created
-            if (audioContext) {
-                assetManager.registerLoader(new AudioLoader(audioContext));
-            }
-
-            registry.register(SYSTEMS.AssetManager, assetManager);
-        }
-
-        if (config.audio !== false) {
-            if (!registry.has(SYSTEMS.AssetManager)) {
-                throw new Error('[SystemFactory] AudioManager requires AssetManager. Enable assets in config.');
-            }
-
-            // 3. Check if the local variable was created successfully
-            if (!audioContext) {
-                console.warn('[SystemFactory] AudioContext failed to initialize. AudioManager will be disabled.');
-                // Do not proceed to create AudioManager
-            } else {
-                // 4. Pass the type-safe local variable directly
-                const eventBus = registry.get<EventBus>(SYSTEMS.EventBus);
-                const assetManager = registry.get<AssetManager>(SYSTEMS.AssetManager);
-
-                // This is now 100% type-safe, no 'any' cast needed.
-                const audioManager = new AudioManager(eventBus, assetManager, audioContext);
-
-                // Apply audio config
-                if (typeof config.audio === 'object') {
-                    if (config.audio.volume !== undefined) {
-                        audioManager.setMasterVolume(config.audio.volume);
-                    }
-                    if (config.audio.musicVolume !== undefined) {
-                        audioManager.setMusicVolume(config.audio.musicVolume);
-                    }
-                    if (config.audio.sfxVolume !== undefined) {
-                        audioManager.setSFXVolume(config.audio.sfxVolume);
-                    }
-                }
-
-                registry.register(SYSTEMS.AudioManager, audioManager);
+        // Initialize all non-lazy systems
+        // This triggers creation and dependency resolution
+        for (const def of definitions) {
+            if (!def.lazy) {
+                systemContainer.get(def.key);
             }
         }
+    }
 
-        // EffectManager (depends on: container with DOM support)
-        if (config.effects !== false && container) {
-            const domElement = container.getDomElement?.();
-            if (domElement) {
-                const effectManager = new EffectManager(domElement);
-                registry.register(SYSTEMS.EffectManager, effectManager);
-            } else {
-                console.warn('[SystemFactory] EffectManager requires DOM element. Skipping.');
+    /**
+     * Register custom system definitions
+     *
+     * This allows extending the factory with custom systems.
+     *
+     * Example:
+     * ```ts
+     * const QuestSystem = Symbol('QuestSystem');
+     * SystemFactory.registerCustomSystem({
+     *   key: QuestSystem,
+     *   factory: (c) => new QuestManager(c.get(SYSTEMS.EventBus)),
+     *   dependencies: [SYSTEMS.EventBus]
+     * });
+     * ```
+     */
+    static customDefinitions: SystemDefinition[] = [];
+
+    static registerCustomSystem(definition: SystemDefinition): void {
+        this.customDefinitions.push(definition);
+    }
+}
+
+/**
+ * Bridge between SystemContainer and SystemRegistry
+ *
+ * This allows us to use SystemContainer's DI features while maintaining
+ * backward compatibility with SystemRegistry.
+ */
+class SystemContainerBridge extends SystemContainer {
+    constructor(private registry: SystemRegistry) {
+        super();
+    }
+
+    override register<T>(definition: SystemDefinition<T>): void {
+        // Wrap the factory to also register with SystemRegistry
+        const originalFactory = definition.factory;
+        const wrappedDefinition: SystemDefinition<T> = {
+            ...definition,
+            factory: (c) => {
+                const instance = originalFactory(c);
+                // Register with the old registry for backward compatibility
+                this.registry.register(definition.key as symbol, instance);
+                return instance;
             }
-        }
+        };
 
-        // Renderer (depends on: EventBus, AssetManager, SystemRegistry, container)
-        if (config.renderer && container) {
-            if (!registry.has(SYSTEMS.AssetManager)) {
-                throw new Error('[SystemFactory] Renderer requires AssetManager. Enable assets in config.');
-            }
+        super.register(wrappedDefinition);
+    }
 
-            const domElement = container.getDomElement?.();
-            if (!domElement) {
-                console.warn('[SystemFactory] Renderer requires DOM element. Skipping.');
-                return; // + Exit early if no DOM element
-            }
+    // Expose SystemRegistry methods for renderer registration
+    registerRenderer(type: string, renderer: any): void {
+        this.registry.registerRenderer(type, renderer);
+    }
 
-            const eventBus = registry.get<EventBus>(SYSTEMS.EventBus);
-            const assets = registry.get<AssetManager>(SYSTEMS.AssetManager);
-
-            registry.registerRenderer('dom', new DomRenderer(assets));
-            registry.registerRenderer('canvas', new CanvasRenderer(assets));
-            const renderManager = new RenderManager(
-                config.renderer,
-                eventBus,
-                domElement,
-                registry
-            );
-
-            registry.register(SYSTEMS.RenderManager, renderManager);
-        }
-
-        // InputManager (depends on: StateManager, EventBus)
-        // Platform-agnostic input manager with optional adapter
-        if (config.input !== false) {
-            const stateManager = registry.get<GameStateManager>(SYSTEMS.StateManager);
-            const eventBus = registry.get<EventBus>(SYSTEMS.EventBus);
-
-            const inputManager = new InputManager(stateManager, eventBus);
-            registry.register(SYSTEMS.InputManager, inputManager);
-
-            // Create and attach adapter if container supports it
-            if (container) {
-                const domInputAdapter = new DomInputAdapter(inputManager);
-                const attached = domInputAdapter.attachToContainer(container, {tabindex: '0'});
-
-                if (!attached) {
-                    console.warn('[SystemFactory] Could not attach DOM input adapter. Container may not support DOM.');
-                }
-            }
-        }
+    getRenderer(type: string): any {
+        return this.registry.getRenderer(type);
     }
 }

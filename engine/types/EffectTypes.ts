@@ -1,5 +1,5 @@
 // engine/types/EffectTypes.ts
-import type { GameContext } from './index';
+import type { TypedGameContext } from './index';
 
 /**
  * A generic, renderer-agnostic wrapper for any object
@@ -40,16 +40,16 @@ export interface IEffectTarget {
  * It now operates on an abstract IEffectTarget, not a concrete HTMLElement.
  */
 export interface IDynamicEffect<TGame = Record<string, unknown>> {
-    onStart(target: IEffectTarget, context: GameContext<TGame>): void;
-    onUpdate(target: IEffectTarget, context: GameContext<TGame>, deltaTime: number): void;
-    onStop(target: IEffectTarget, context: GameContext<TGame>): void;
+    onStart(target: IEffectTarget, context: TypedGameContext<TGame>): void;
+    onUpdate(target: IEffectTarget, context: TypedGameContext<TGame>, deltaTime: number): void;
+    onStop(target: IEffectTarget, context: TypedGameContext<TGame>): void;
 }
 
 /**
  * The refactored interface for a global effect.
  */
 export interface IGlobalEffect<TGame = Record<string, unknown>> {
-    onCreate(container: HTMLElement, context: GameContext<TGame>): void;
-    onUpdate(context: GameContext<TGame>, deltaTime: number): void;
-    onDestroy(context: GameContext<TGame>): void;
+    onCreate(container: HTMLElement, context: TypedGameContext<TGame>): void;
+    onUpdate(context: TypedGameContext<TGame>, deltaTime: number): void;
+    onDestroy(context: TypedGameContext<TGame>): void;
 }

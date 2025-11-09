@@ -1,7 +1,7 @@
 // engine/tests/SystemRegistry.test.ts
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { SystemRegistry, SYSTEMS } from '@engine/core/SystemRegistry';
+import { SystemRegistry, SYSTEMS, createSystemKey } from '@engine/core/SystemRegistry';
 import type { IRenderer } from '@engine/types/RenderingTypes';
 
 describe('SystemRegistry', () => {
@@ -66,5 +66,14 @@ describe('SystemRegistry', () => {
         expect(() => registry.getRenderer('canvas')).toThrow(
             '[SystemRegistry] Renderer not found: canvas'
         );
+    });
+
+    it('should support custom system keys', () => {
+        const CustomSystem = createSystemKey('CustomSystem');
+        const customInstance = { name: 'custom' };
+
+        registry.register(CustomSystem, customInstance);
+        expect(registry.has(CustomSystem)).toBe(true);
+        expect(registry.get(CustomSystem)).toBe(customInstance);
     });
 });

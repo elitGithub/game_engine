@@ -18,8 +18,14 @@ export interface GameConfig {
     gameVersion?: string;
 }
 
-export interface GameContext<TGame = Record<string, unknown>> {
-    game: TGame;
+/**
+ * GameContext - Engine layer context (untyped)
+ *
+ * The engine layer doesn't need to know about game-specific types.
+ * Game developers can cast this to a typed version in their game layer.
+ */
+export interface GameContext {
+    game: Record<string, unknown>;
     flags: Set<string>;
     variables: Map<string, unknown>;
     assets?: AssetManager;
@@ -30,10 +36,32 @@ export interface GameContext<TGame = Record<string, unknown>> {
     renderManager?: RenderManager;
     renderer?: IRenderer;
     localization?: LocalizationManager;
-    
+
     // Allow plugins to add properties dynamically
     [key: string]: unknown;
 }
+
+/**
+ * Typed GameContext for game layer use
+ *
+ * Example:
+ * ```ts
+ * interface MyGameState {
+ *   player: Player;
+ *   inventory: Item[];
+ * }
+ *
+ * class MyGameState extends GameState<MyGameState> {
+ *   enter() {
+ *     const ctx = this.context as TypedGameContext<MyGameState>;
+ *     ctx.game.player.health -= 10;
+ *   }
+ * }
+ * ```
+ */
+export type TypedGameContext<TGame> = Omit<GameContext, 'game'> & {
+    game: TGame;
+};
 
 export type StateData = Record<string, unknown>;
 
@@ -112,7 +140,7 @@ export interface DialogueLineOptions {
     style?: string | TextStyleConfig;
 }
 
-export interface ActionContext<TGame = Record<string, unknown>> extends GameContext<TGame> {
+export interface ActionContext<TGame = Record<string, unknown>> extends TypedGameContext<TGame> {
     player: unknown;
 }
 
@@ -126,7 +154,7 @@ export interface ISerializationRegistry {
 }
 
 export interface IEngineHost<TGame = Record<string, unknown>> {
-    context: GameContext<TGame>;
+    context: TypedGameContext<TGame>;
     eventBus: EventBus;
 
     registerSerializableSystem(key: string, system: ISerializable): void;
@@ -138,7 +166,7 @@ export interface IEnginePlugin<TGame = Record<string, unknown>> {
 
     install(engine: IEngineHost<TGame>): void;
     uninstall?(engine: IEngineHost<TGame>): void;
-    update?(deltaTime: number, context: GameContext<TGame>): void;
+    update?(deltaTime: number, context: TypedGameContext<TGame>): void;
 }
 
 /**

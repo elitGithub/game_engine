@@ -82,6 +82,12 @@ export class SystemRegistry {
  *
  * Symbols ensure no naming conflicts and provide better debugging
  * (symbol.description shows up in error messages)
+ *
+ * To register custom systems, create your own symbols:
+ * ```ts
+ * const MyCustomSystem = Symbol('MyCustomSystem');
+ * registry.register(MyCustomSystem, mySystemInstance);
+ * ```
  */
 export const SYSTEMS = {
     EventBus: Symbol('EventBus'),
@@ -102,3 +108,17 @@ export const SYSTEMS = {
  * Type helper for system keys
  */
 export type SystemKey = typeof SYSTEMS[keyof typeof SYSTEMS];
+
+/**
+ * Helper to create a custom system key with proper typing
+ *
+ * Example:
+ * ```ts
+ * const QuestSystem = createSystemKey('QuestSystem');
+ * registry.register(QuestSystem, new QuestManager());
+ * const quests = registry.get<QuestManager>(QuestSystem);
+ * ```
+ */
+export function createSystemKey(description: string): symbol {
+    return Symbol(description);
+}

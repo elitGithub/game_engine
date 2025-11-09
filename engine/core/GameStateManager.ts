@@ -3,14 +3,14 @@
  *
  * Now injects context into GameState instances for type-safe access
  */
-import type {StateData, GameContext} from '@engine/types';
+import type {StateData, TypedGameContext} from '@engine/types';
 import {GameState} from './GameState';
 import type {EngineInputEvent} from './InputEvents';
 
 export class GameStateManager<TGame = Record<string, unknown>> {
     public states: Map<string, GameState<TGame>>;
     private stateStack: GameState<TGame>[];
-    private context!: GameContext<TGame>;
+    private context!: TypedGameContext<TGame>;
 
     constructor() {
         this.states = new Map();
@@ -22,7 +22,7 @@ export class GameStateManager<TGame = Record<string, unknown>> {
      * Called by Engine during initialization
      * @internal
      */
-    setContext(context: GameContext<TGame>): void {
+    setContext(context: TypedGameContext<TGame>): void {
         this.context = context;
     }
 

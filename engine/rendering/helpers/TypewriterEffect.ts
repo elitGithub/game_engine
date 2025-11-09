@@ -1,4 +1,4 @@
-import type {GameContext} from '@engine/types';
+import type {TypedGameContext} from '@engine/types';
 import type {IDynamicEffect, IEffectTarget} from '@engine/types/EffectTypes';
 
 export class TypewriterEffect implements IDynamicEffect {
@@ -21,7 +21,7 @@ export class TypewriterEffect implements IDynamicEffect {
     }
 
 
-    onStart(target: IEffectTarget, _context: GameContext<any>): void {
+    onStart(target: IEffectTarget, _context: TypedGameContext<any>): void {
         // Use the IEffectTarget interface, not getRaw()
         const fullText = target.getProperty<string>('textContent');
 
@@ -45,7 +45,7 @@ export class TypewriterEffect implements IDynamicEffect {
      * This is now the core logic loop, driven by the engine's EffectManager.
      */
     // FIX: Prefixed unused 'context' parameter with '_' to satisfy TS6133
-    onUpdate(target: IEffectTarget, _context: GameContext<any>, deltaTime: number): void {
+    onUpdate(target: IEffectTarget, _context: TypedGameContext<any>, deltaTime: number): void {
         if (this.charIndex >= this.fullText.length) {
             return; // Effect is complete
         }
@@ -79,7 +79,7 @@ export class TypewriterEffect implements IDynamicEffect {
     }
 
     // FIX: Prefixed unused 'context' parameter with '_' to satisfy TS6133
-    onStop(target: IEffectTarget, _context: GameContext<any>): void {
+    onStop(target: IEffectTarget, _context: TypedGameContext<any>): void {
         // When stopped, instantly complete the text
         target.setProperty('textContent', this.fullText);
         // Mark as complete
