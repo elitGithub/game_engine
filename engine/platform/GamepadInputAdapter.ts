@@ -1,0 +1,230 @@
+/**
+ * GamepadInputAdapter - Browser gamepad input adapter
+ *
+ * This adapter polls the Gamepad API and emits engine-agnostic input events.
+ *
+ * Platform coupling: This file is ALLOWED to access browser globals (navigator, window)
+ * because it is a PLATFORM ADAPTER. It abstracts these away from the core engine.
+ *
+ * The core InputManager NEVER touches navigator or window - it receives
+ * platform-agnostic events from this adapter.
+ */
+
+import { BaseInputAdapter, type InputAdapterType, type InputCapabilities, type InputAttachOptions } from '../interfaces/IInputAdapter';
+import type { EngineInputEvent, GamepadButtonEvent, GamepadAxisEvent } from '../core/InputEvents';
+import type { IRenderContainer } from '../interfaces/IRenderContainer';
+
+/**
+ * Gamepad button state
+ */
+interface GamepadButtonState {
+    pressed: boolean;
+    value: number;
+}
+
+/**
+ * Gamepad state snapshot
+ */
+interface GamepadState {
+    buttons: Map<number, GamepadButtonState>;
+    axes: Map<number, number>;
+}
+
+/**
+ * GamepadInputAdapter - Polls browser gamepad API
+ *
+ * This adapter:
+ * - Polls navigator.getGamepads() at 60Hz
+ * - Detects button press/release changes
+ * - Detects axis value changes
+ * - Emits gamepadbutton and gamepadaxis events
+ * - Manages its own lifecycle (polling start/stop)
+ *
+ * Usage:
+ * ```typescript
+ * const adapter = new GamepadInputAdapter();
+ * adapter.onEvent((event) => inputManager.processEvent(event));
+ * adapter.attach(); // Starts polling
+ * // Later...
+ * adapter.detach(); // Stops polling
+ * ```
+ */
+export class GamepadInputAdapter extends BaseInputAdapter {
+    private pollingInterval: number | null = null;
+    private lastGamepadStates: Map<number, GamepadState> = new Map();
+    private readonly pollRate: number;
+
+    /**
+     * @param pollRate Polling rate in milliseconds (default: 16ms = ~60Hz)
+     */
+    constructor(pollRate: number = 16) {
+        super();
+        this.pollRate = pollRate;
+    }
+
+    getType(): InputAdapterType {
+        return 'gamepad';
+    }
+
+    /**
+     * Attach adapter (starts polling)
+     *
+     * Note: Gamepad input is global, so container is optional and unused.
+     */
+    attach(container?: IRenderContainer, options?: InputAttachOptions): boolean {
+        // Check if browser supports Gamepad API
+        if (typeof navigator === 'undefined' || !navigator.getGamepads) {
+            console.warn('[GamepadInputAdapter] Gamepad API not supported in this environment.');
+            return false;
+        }
+
+        // Already attached
+        if (this.attached) {
+            return true;
+        }
+
+        // Start polling
+        this.startPolling();
+        this.attached = true;
+
+        return true;
+    }
+
+    /**
+     * Detach adapter (stops polling)
+     */
+    detach(): void {
+        if (!this.attached) {
+            return;
+        }
+
+        this.stopPolling();
+        this.lastGamepadStates.clear();
+        this.attached = false;
+    }
+
+    /**
+     * Start polling the Gamepad API
+     */
+    private startPolling(): void {
+        if (this.pollingInterval !== null) {
+            return;
+        }
+
+        this.pollingInterval = window.setInterval(() => {
+            this.pollGamepads();
+        }, this.pollRate);
+    }
+
+    /**
+     * Stop polling the Gamepad API
+     */
+    private stopPolling(): void {
+        if (this.pollingInterval === null) {
+            return;
+        }
+
+        clearInterval(this.pollingInterval);
+        this.pollingInterval = null;
+    }
+
+    /**
+     * Poll all connected gamepads and emit events for changes
+     */
+    private pollGamepads(): void {
+        if (!this.enabled) {
+            return;
+        }
+
+        const gamepads = navigator.getGamepads();
+
+        for (let i = 0; i < gamepads.length; i++) {
+            const gamepad = gamepads[i];
+            if (!gamepad) {
+                continue;
+            }
+
+            const lastState = this.lastGamepadStates.get(i);
+            const currentState: GamepadState = {
+                buttons: new Map(),
+                axes: new Map()
+            };
+
+            // Check button changes
+            gamepad.buttons.forEach((button, index) => {
+                currentState.buttons.set(index, {
+                    pressed: button.pressed,
+                    value: button.value
+                });
+
+                const wasPressed = lastState?.buttons.get(index)?.pressed || false;
+
+                // Emit button press event
+                if (button.pressed && !wasPressed) {
+                    const event: GamepadButtonEvent = {
+                        type: 'gamepadbutton',
+                        timestamp: Date.now(),
+                        gamepadIndex: i,
+                        button: index,
+                        pressed: true,
+                        value: button.value
+                    };
+                    this.emitEvent(event);
+                }
+
+                // Emit button release event
+                if (!button.pressed && wasPressed) {
+                    const event: GamepadButtonEvent = {
+                        type: 'gamepadbutton',
+                        timestamp: Date.now(),
+                        gamepadIndex: i,
+                        button: index,
+                        pressed: false,
+                        value: button.value
+                    };
+                    this.emitEvent(event);
+                }
+            });
+
+            // Check axis changes
+            gamepad.axes.forEach((value, index) => {
+                currentState.axes.set(index, value);
+
+                const lastValue = lastState?.axes.get(index) || 0;
+
+                // Emit axis change event (only if change is significant)
+                if (Math.abs(value - lastValue) > 0.1) {
+                    const event: GamepadAxisEvent = {
+                        type: 'gamepadaxis',
+                        timestamp: Date.now(),
+                        gamepadIndex: i,
+                        axis: index,
+                        value
+                    };
+                    this.emitEvent(event);
+                }
+            });
+
+            this.lastGamepadStates.set(i, currentState);
+        }
+    }
+
+    /**
+     * Get capabilities
+     */
+    getCapabilities(): InputCapabilities {
+        return {
+            keyboard: false,
+            mouse: false,
+            touch: false,
+            gamepad: true
+        };
+    }
+
+    /**
+     * Dispose (cleanup)
+     */
+    dispose(): void {
+        this.detach();
+    }
+}

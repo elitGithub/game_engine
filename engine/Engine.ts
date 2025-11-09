@@ -7,14 +7,36 @@ import {SaveManager} from './systems/SaveManager';
 import {AudioManager} from './systems/AudioManager';
 import {EffectManager} from './systems/EffectManager';
 import {InputManager} from './systems/InputManager';
-import {SystemRegistry, SYSTEMS} from './core/SystemRegistry';
-import {type SystemConfig, SystemFactory} from './core/SystemFactory';
-import {PluginManager} from './core/PluginManager';
 import type {AssetManager, AssetManifestEntry} from './systems/AssetManager';
 import type {StorageAdapter} from './core/StorageAdapter';
 import {GameData} from "@engine/types/EngineEventMap";
-import {PlatformContainer} from "@engine/core/PlatformContainer";
+import {PlatformContainer, BrowserContainer} from "@engine/core/PlatformContainer";
 import {RenderManager} from "@engine/core/RenderManager";
+import {PluginManager} from './core/PluginManager';
+import {SystemContainer, type SystemDefinition, type ISystemFactoryContext} from './core/SystemContainer';
+import {createCoreSystemDefinitions, CORE_SYSTEMS} from './core/CoreSystemDefs';
+import {createPlatformSystemDefinitions, PLATFORM_SYSTEMS, type PlatformSystemConfig, type IPlatformFactoryContext} from './core/PlatformSystemDefs';
+import type {IPlatformAdapter} from './interfaces/IPlatformAdapter';
+import {BrowserPlatformAdapter} from './platform/BrowserPlatformAdapter';
+import type {IRenderer} from './types/RenderingTypes';
+
+/**
+ * System configuration (kept for backward compatibility)
+ */
+export interface SystemConfig {
+    audio?: boolean | {
+        volume?: number;
+        musicVolume?: number;
+        sfxVolume?: number;
+    };
+    assets?: boolean;
+    save?: boolean | {
+        adapter?: unknown;
+    };
+    effects?: boolean;
+    input?: boolean;
+    renderer?: { type: 'canvas' | 'dom' | 'svelte' };
+}
 
 /**
  * Engine configuration
@@ -29,7 +51,19 @@ export interface EngineConfig {
     systems: SystemConfig;
     gameState: Record<string, unknown>;
     gameData?: GameData;
+
+    /**
+     * Platform adapter (new, preferred way)
+     * Provides platform-specific functionality (audio, rendering, input, storage)
+     */
+    platform?: IPlatformAdapter;
+
+    /**
+     * Platform container (old, deprecated way - kept for backward compatibility)
+     * Will be converted to IPlatformAdapter internally
+     */
     container?: PlatformContainer;
+
     storageAdapter?: StorageAdapter;
     localization?: boolean | {
         initialLanguage?: string;
@@ -53,8 +87,9 @@ export interface EngineConfig {
  */
 export class Engine implements ISerializationRegistry {
     public readonly config: Required<Pick<EngineConfig, 'debug' | 'targetFPS' | 'gameVersion'>>;
-    public readonly registry: SystemRegistry;
     public readonly context: GameContext;
+    private readonly container: SystemContainer;
+    private readonly platform: IPlatformAdapter;
 
     public serializableSystems: Map<string, ISerializable>;
     public migrationFunctions: Map<string, MigrationFunction>;
@@ -65,6 +100,9 @@ export class Engine implements ISerializationRegistry {
     private lastFrameTime: number;
     private frameCount: number;
 
+    // Renderer registry (for RenderManager initialization)
+    private renderers: Map<string, IRenderer> = new Map();
+
     private constructor(userConfig: EngineConfig) {
         this.config = {
             debug: userConfig.debug ?? false,
@@ -72,8 +110,11 @@ export class Engine implements ISerializationRegistry {
             gameVersion: userConfig.gameVersion ?? '1.0.0'
         };
 
-        // Create registry
-        this.registry = new SystemRegistry();
+        // Get or create platform adapter
+        this.platform = this.resolvePlatform(userConfig);
+
+        // Create SystemContainer (the ONLY DI container)
+        this.container = new ExtendedSystemContainer(this.renderers);
 
         // Initialize context with game state
         this.context = {
@@ -90,12 +131,27 @@ export class Engine implements ISerializationRegistry {
         this.lastFrameTime = 0;
         this.frameCount = 0;
 
-        // Create systems from config using factory
-        SystemFactory.create(
-            userConfig.systems,
-            this.registry,
-            userConfig.container
-        );
+        // Register core systems (platform-agnostic)
+        const coreDefinitions = createCoreSystemDefinitions();
+        for (const def of coreDefinitions) {
+            this.container.register(def);
+        }
+
+        // Register platform-aware systems
+        const platformConfig: PlatformSystemConfig = {
+            assets: userConfig.systems.assets,
+            audio: userConfig.systems.audio,
+            effects: userConfig.systems.effects,
+            renderer: userConfig.systems.renderer,
+            input: userConfig.systems.input
+        };
+        const platformDefinitions = createPlatformSystemDefinitions(this.platform, platformConfig);
+        for (const def of platformDefinitions) {
+            this.container.register(def);
+        }
+
+        // Initialize all non-lazy systems
+        this.container.initializeAll();
 
         // Inject context into StateManager
         this.stateManager.setContext(this.context);
@@ -105,13 +161,13 @@ export class Engine implements ISerializationRegistry {
 
         // Create SaveManager now that Engine exists
         if (userConfig.systems.save !== false) {
-            const eventBus = this.registry.get<EventBus>(SYSTEMS.EventBus);
+            const eventBus = this.container.get<EventBus>(CORE_SYSTEMS.EventBus);
             const saveManager = new SaveManager(
                 eventBus,
                 this,
                 userConfig.storageAdapter
             );
-            this.registry.register(SYSTEMS.SaveManager, saveManager);
+            this.container.registerInstance(Symbol('SaveManager'), saveManager);
             (this.context as any).save = saveManager;
         }
 
@@ -135,6 +191,34 @@ export class Engine implements ISerializationRegistry {
     }
 
     /**
+     * Resolve platform adapter from config
+     * Handles both new (platform) and old (container) APIs
+     */
+    private resolvePlatform(config: EngineConfig): IPlatformAdapter {
+        // New API: platform adapter provided directly
+        if (config.platform) {
+            return config.platform;
+        }
+
+        // Old API: convert PlatformContainer to IPlatformAdapter
+        if (config.container) {
+            const containerElement = config.container.getDomElement?.();
+            if (!containerElement) {
+                throw new Error('[Engine] PlatformContainer must provide getDomElement() for backward compatibility');
+            }
+
+            return new BrowserPlatformAdapter({
+                containerElement,
+                renderType: 'auto',
+                audio: config.systems.audio !== false,
+                input: config.systems.input !== false
+            });
+        }
+
+        throw new Error('[Engine] Must provide either platform or container in config');
+    }
+
+    /**
      * Static factory - THE ONLY WAY to create an Engine
      *
      * This ensures proper initialization order and unlocks audio
@@ -143,7 +227,7 @@ export class Engine implements ISerializationRegistry {
         const engine = new Engine(config);
 
         // Unlock audio if AudioManager is enabled
-        if (engine.registry.has(SYSTEMS.AudioManager)) {
+        if (engine.container.has(PLATFORM_SYSTEMS.AudioManager)) {
             await engine.audio.unlockAudio();
         }
 
@@ -159,25 +243,24 @@ export class Engine implements ISerializationRegistry {
     private wireContext(): void {
         const ctx = this.context;
 
-        if (this.registry.has(SYSTEMS.AudioManager)) {
-            ctx.audio = this.registry.get(SYSTEMS.AudioManager);
+        if (this.container.has(PLATFORM_SYSTEMS.AudioManager)) {
+            ctx.audio = this.container.get(PLATFORM_SYSTEMS.AudioManager);
         }
-        if (this.registry.has(SYSTEMS.AssetManager)) {
-            ctx.assets = this.registry.get(SYSTEMS.AssetManager);
+        if (this.container.has(PLATFORM_SYSTEMS.AssetManager)) {
+            ctx.assets = this.container.get(PLATFORM_SYSTEMS.AssetManager);
         }
-        if (this.registry.has(SYSTEMS.EffectManager)) {
-            ctx.effects = this.registry.get(SYSTEMS.EffectManager);
+        if (this.container.has(PLATFORM_SYSTEMS.EffectManager)) {
+            ctx.effects = this.container.get(PLATFORM_SYSTEMS.EffectManager);
         }
-        if (this.registry.has(SYSTEMS.InputManager)) {
-            ctx.input = this.registry.get(SYSTEMS.InputManager);
+        if (this.container.has(PLATFORM_SYSTEMS.InputManager)) {
+            ctx.input = this.container.get(PLATFORM_SYSTEMS.InputManager);
         }
-
-        if (this.registry.has(SYSTEMS.RenderManager)) {
-            ctx.renderer = this.registry.get(SYSTEMS.RenderManager);
-            ctx.renderManager = this.registry.get(SYSTEMS.RenderManager);
+        if (this.container.has(PLATFORM_SYSTEMS.RenderManager)) {
+            ctx.renderer = this.container.get(PLATFORM_SYSTEMS.RenderManager);
+            ctx.renderManager = this.container.get(PLATFORM_SYSTEMS.RenderManager);
         }
-        if (this.registry.has(SYSTEMS.Localization)) {
-            ctx.loc = this.registry.get(SYSTEMS.Localization);
+        if (this.container.has(Symbol('Localization'))) {
+            ctx.loc = this.container.get(Symbol('Localization'));
         }
     }
 
@@ -186,43 +269,52 @@ export class Engine implements ISerializationRegistry {
     // ========================================================================
 
     get eventBus(): EventBus {
-        return this.registry.get<EventBus>(SYSTEMS.EventBus);
+        return this.container.get<EventBus>(CORE_SYSTEMS.EventBus);
     }
 
     get audio(): AudioManager {
-        return this.registry.get<AudioManager>(SYSTEMS.AudioManager);
+        return this.container.get<AudioManager>(PLATFORM_SYSTEMS.AudioManager);
     }
 
     get assets(): AssetManager {
-        return this.registry.get<AssetManager>(SYSTEMS.AssetManager);
+        return this.container.get<AssetManager>(PLATFORM_SYSTEMS.AssetManager);
     }
 
     get save(): SaveManager {
-        return this.registry.get<SaveManager>(SYSTEMS.SaveManager);
+        return this.container.get<SaveManager>(Symbol('SaveManager'));
     }
 
     get stateManager(): GameStateManager {
-        return this.registry.get<GameStateManager>(SYSTEMS.StateManager);
+        return this.container.get<GameStateManager>(CORE_SYSTEMS.StateManager);
     }
 
     get sceneManager(): SceneManager {
-        return this.registry.get<SceneManager>(SYSTEMS.SceneManager);
+        return this.container.get<SceneManager>(CORE_SYSTEMS.SceneManager);
     }
 
     get actionRegistry(): ActionRegistry {
-        return this.registry.get<ActionRegistry>(SYSTEMS.ActionRegistry);
+        return this.container.get<ActionRegistry>(CORE_SYSTEMS.ActionRegistry);
     }
 
     get effectManager(): EffectManager | undefined {
-        return this.registry.getOptional<EffectManager>(SYSTEMS.EffectManager);
+        return this.container.getOptional<EffectManager>(PLATFORM_SYSTEMS.EffectManager);
     }
 
     get inputManager(): InputManager | undefined {
-        return this.registry.getOptional<InputManager>(SYSTEMS.InputManager);
+        return this.container.getOptional<InputManager>(PLATFORM_SYSTEMS.InputManager);
     }
 
     get pluginManager(): PluginManager {
-        return this.registry.get<PluginManager>(SYSTEMS.PluginManager);
+        return this.container.get<PluginManager>(CORE_SYSTEMS.PluginManager);
+    }
+
+    // Temporary bridge for old code that uses registry
+    get registry(): any {
+        return {
+            get: <T>(key: symbol) => this.container.get<T>(key),
+            getOptional: <T>(key: symbol) => this.container.getOptional<T>(key),
+            has: (key: symbol) => this.container.has(key)
+        };
     }
 
     // ========================================================================
@@ -285,7 +377,7 @@ export class Engine implements ISerializationRegistry {
 
             this.pluginManager.update(deltaTime, this.context);
 
-            this.registry.getOptional<RenderManager>(SYSTEMS.RenderManager)?.flush();
+            this.container.getOptional<RenderManager>(PLATFORM_SYSTEMS.RenderManager)?.flush();
         }
 
         this.frameCount++;
@@ -301,8 +393,10 @@ export class Engine implements ISerializationRegistry {
         if (this.isPaused) return;
         this.isPaused = true;
 
-        if (this.registry.has(SYSTEMS.AudioManager)) {
-            const audioContext = (this.registry as any)._audioContext;
+        // Suspend audio through platform adapter
+        const audioPlatform = this.platform.getAudioPlatform?.();
+        if (audioPlatform) {
+            const audioContext = audioPlatform.getContext();
             if (audioContext) {
                 audioContext.suspend();
             }
@@ -315,8 +409,10 @@ export class Engine implements ISerializationRegistry {
         if (!this.isPaused) return;
         this.isPaused = false;
 
-        if (this.registry.has(SYSTEMS.AudioManager)) {
-            const audioContext = (this.registry as any)._audioContext;
+        // Resume audio through platform adapter
+        const audioPlatform = this.platform.getAudioPlatform?.();
+        if (audioPlatform) {
+            const audioContext = audioPlatform.getContext();
             if (audioContext) {
                 audioContext.resume();
             }
@@ -355,6 +451,10 @@ export class Engine implements ISerializationRegistry {
         this.serializableSystems.set(key, system);
     }
 
+    unregisterSerializableSystem(key: string): void {
+        this.serializableSystems.delete(key);
+    }
+
     registerMigration(fromVersion: string, toVersion: string, migration: MigrationFunction): void {
         const key = `${fromVersion}_to_${toVersion}`;
         if (this.migrationFunctions.has(key)) {
@@ -373,5 +473,28 @@ export class Engine implements ISerializationRegistry {
 
     getCurrentScene(): any {
         return this.sceneManager.getCurrentScene();
+    }
+}
+
+/**
+ * ExtendedSystemContainer - Adds renderer registration to SystemContainer
+ *
+ * This allows RenderManager initialization to register renderers.
+ */
+class ExtendedSystemContainer extends SystemContainer implements IPlatformFactoryContext {
+    constructor(private renderers: Map<string, IRenderer>) {
+        super();
+    }
+
+    registerRenderer(type: string, renderer: IRenderer): void {
+        this.renderers.set(type, renderer);
+    }
+
+    getRenderer(type: string): IRenderer {
+        const renderer = this.renderers.get(type);
+        if (!renderer) {
+            throw new Error(`[ExtendedSystemContainer] Renderer '${type}' not found`);
+        }
+        return renderer;
     }
 }

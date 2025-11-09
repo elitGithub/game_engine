@@ -21,6 +21,8 @@ import {
 import { LocalStorageAdapter } from '../systems/LocalStorageAdapter';
 import type { StorageAdapter } from '../core/StorageAdapter';
 import { DomInputAdapter } from '../core/DomInputAdapter';
+import { GamepadInputAdapter } from './GamepadInputAdapter';
+import { CompositeInputAdapter } from '../interfaces/IInputAdapter';
 
 /**
  * Browser platform configuration
@@ -173,7 +175,10 @@ export class BrowserPlatformAdapter implements IPlatformAdapter {
         }
 
         if (!this.inputAdapter) {
-            this.inputAdapter = new DomInputAdapter();
+            // Combine DOM input (keyboard/mouse) and gamepad input
+            const domAdapter = new DomInputAdapter();
+            const gamepadAdapter = new GamepadInputAdapter();
+            this.inputAdapter = new CompositeInputAdapter(domAdapter, gamepadAdapter);
         }
 
         return this.inputAdapter;

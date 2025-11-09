@@ -33,9 +33,6 @@ export class InputManager {
     private comboTracker: InputComboTracker;
     // ----------------------------------
 
-    private gamepadPollingInterval: number | null;
-    private lastGamepadStates: Map<number, GamepadState>;
-
     constructor(stateManager: GameStateManager, eventBus: EventBus) {
         this.stateManager = stateManager;
         this.eventBus = eventBus;
@@ -55,9 +52,6 @@ export class InputManager {
         this.actionMapper = new InputActionMapper(eventBus);
         this.comboTracker = new InputComboTracker(eventBus, 10); // 10 is default buffer size
         // ----------------------------------
-
-        this.gamepadPollingInterval = null;
-        this.lastGamepadStates = new Map();
     }
 
     // ============================================================================
@@ -150,6 +144,17 @@ export class InputManager {
                 break;
 
             case 'gamepadbutton':
+                // Update gamepad state for button changes
+                const gamepadButtonState = this.state.gamepadStates.get(event.gamepadIndex) || {
+                    buttons: new Map(),
+                    axes: new Map()
+                };
+                gamepadButtonState.buttons.set(event.button, {
+                    pressed: event.pressed,
+                    value: event.value
+                });
+                this.state.gamepadStates.set(event.gamepadIndex, gamepadButtonState);
+
                 if (event.pressed) {
                     this.comboTracker.addToBuffer(`gamepad${event.gamepadIndex}_button${event.button}`); // DELEGATE
                     this.actionMapper.checkActionTriggers('gamepad', event.button); // DELEGATE
@@ -158,89 +163,16 @@ export class InputManager {
                 break;
 
             case 'gamepadaxis':
+                // Update gamepad state for axis changes
+                const gamepadState = this.state.gamepadStates.get(event.gamepadIndex) || {
+                    buttons: new Map(),
+                    axes: new Map()
+                };
+                gamepadState.axes.set(event.axis, event.value);
+                this.state.gamepadStates.set(event.gamepadIndex, gamepadState);
                 this.dispatchEvent(event, false);
                 break;
         }
-    }
-
-    // ============================================================================
-    // GAMEPAD POLLING (Remains unchanged)
-    // ============================================================================
-
-    enableGamepadPolling(): void {
-        if (this.gamepadPollingInterval !== null) return;
-
-        this.gamepadPollingInterval = window.setInterval(() => {
-            this.pollGamepads();
-        }, 16);
-    }
-
-    disableGamepadPolling(): void {
-        if (this.gamepadPollingInterval === null) return;
-
-        clearInterval(this.gamepadPollingInterval);
-        this.gamepadPollingInterval = null;
-    }
-
-    private pollGamepads(): void {
-        if (!this.enabled) return;
-
-        const gamepads = navigator.getGamepads();
-
-        for (let i = 0; i < gamepads.length; i++) {
-            const gamepad = gamepads[i];
-            if (!gamepad) continue;
-
-            const lastState = this.lastGamepadStates.get(i);
-            const currentState: GamepadState = {
-                buttons: new Map(),
-                axes: new Map()
-            };
-
-            gamepad.buttons.forEach((button, index) => {
-                currentState.buttons.set(index, { pressed: button.pressed, value: button.value });
-
-                const wasPressed = lastState?.buttons.get(index)?.pressed || false;
-
-                if (button.pressed && !wasPressed) {
-                    const event: GamepadButtonEvent = {
-                        type: 'gamepadbutton',
-                        timestamp: Date.now(),
-                        gamepadIndex: i,
-                        button: index,
-                        pressed: true,
-                        value: button.value
-                    };
-
-                    this.processEvent(event);
-                }
-            });
-
-            gamepad.axes.forEach((value, index) => {
-                currentState.axes.set(index, value);
-
-                const lastValue = lastState?.axes.get(index) || 0;
-
-                if (Math.abs(value - lastValue) > 0.1) {
-                    const event: GamepadAxisEvent = {
-                        type: 'gamepadaxis',
-                        timestamp: Date.now(),
-                        gamepadIndex: i,
-                        axis: index,
-                        value
-                    };
-
-                    this.processEvent(event);
-                }
-            });
-
-            this.lastGamepadStates.set(i, currentState);
-            this.state.gamepadStates.set(i, currentState);
-        }
-    }
-
-    dispose(): void {
-        this.disableGamepadPolling();
     }
 
     // ============================================================================

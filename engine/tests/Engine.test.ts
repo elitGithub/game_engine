@@ -4,25 +4,23 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { Engine, type EngineConfig } from '@engine/Engine';
 import { GameStateManager } from '@engine/core/GameStateManager';
 import { EventBus } from '@engine/core/EventBus';
-import { SystemFactory } from '@engine/core/SystemFactory';
 import { SceneManager } from '@engine/systems/SceneManager';
 import { AudioManager } from '@engine/systems/AudioManager';
-import { PluginManager } from '@engine/core/PluginManager'; // <-- ADDED
-import { ActionRegistry } from '@engine/systems/ActionRegistry'; // <-- ADDED
+import { PluginManager } from '@engine/core/PluginManager';
+import { ActionRegistry } from '@engine/systems/ActionRegistry';
 import { AssetManager } from '@engine/systems/AssetManager';
 import type { ISerializable } from '@engine/types';
-import { SYSTEMS } from '@engine/core/SystemRegistry'; // <-- ADDED
+import { BrowserContainer } from '@engine/core/PlatformContainer';
 
 // Mock entire modules
 vi.mock('@engine/core/GameStateManager');
 vi.mock('@engine/core/EventBus');
-vi.mock('@engine/core/SystemFactory');
 vi.mock('@engine/systems/SceneManager');
 vi.mock('@engine/systems/SaveManager');
 vi.mock('@engine/systems/AudioManager');
 vi.mock('@engine/systems/AssetManager');
-vi.mock('@engine/core/PluginManager'); // <-- ADDED
-vi.mock('@engine/systems/ActionRegistry'); // <-- ADDED
+vi.mock('@engine/core/PluginManager');
+vi.mock('@engine/systems/ActionRegistry');
 
 // Mock a sample serializable system
 const mockPlayer: ISerializable = {
@@ -47,34 +45,23 @@ describe('Engine', () => {
 
         mockEventBus = new (vi.mocked(EventBus))();
         mockAssetManager = new (vi.mocked(AssetManager))(mockEventBus);
-        mockAudioContext = { resume: vi.fn(), suspend: vi.fn() } as any; // <-- Added suspend
+        mockAudioContext = { resume: vi.fn(), suspend: vi.fn() } as any;
 
         mockStateManager = new (vi.mocked(GameStateManager<any>))();
         mockSceneManager = new (vi.mocked(SceneManager))(mockEventBus);
         mockAudioManager = new (vi.mocked(AudioManager))(mockEventBus, mockAssetManager, mockAudioContext);
-        mockPluginManager = new (vi.mocked(PluginManager))(); // <-- ADDED
-        mockActionRegistry = new (vi.mocked(ActionRegistry))(); // <-- ADDED
+        mockPluginManager = new (vi.mocked(PluginManager))();
+        mockActionRegistry = new (vi.mocked(ActionRegistry))();
 
-        // Mock SystemFactory.create to *not* do anything,
-        // but mock the registry to *return* our mocks
-        vi.mocked(SystemFactory.create).mockImplementation((config, registry) => {
-            // --- FIX: Register ALL 5 core systems ---
-            registry.register(SYSTEMS.EventBus, mockEventBus);
-            registry.register(SYSTEMS.StateManager, mockStateManager);
-            registry.register(SYSTEMS.SceneManager, mockSceneManager);
-            registry.register(SYSTEMS.PluginManager, mockPluginManager); // <-- ADDED
-            registry.register(SYSTEMS.ActionRegistry, mockActionRegistry); // <-- ADDED
-
-            if (config.audio) {
-                registry.register(SYSTEMS.AudioManager, mockAudioManager);
-            }
-        });
+        // Create a mock container element
+        const mockElement = document.createElement('div');
 
         config = {
             debug: false,
             gameVersion: '1.0.0',
             systems: { audio: true, save: true, assets: true },
             gameState: { player: mockPlayer },
+            container: new BrowserContainer(mockElement)
         };
     });
 

@@ -3,7 +3,7 @@
 import {beforeEach, describe, expect, it, vi} from 'vitest';
 import {RenderManager} from '@engine/core/RenderManager';
 import {EventBus} from '@engine/core/EventBus';
-import {SystemRegistry} from '@engine/core/SystemRegistry';
+import {SystemRegistry} from '';
 import type {IRenderer, RenderCommand} from '@engine/types/RenderingTypes';
 import type { IDomRenderContainer } from '@engine/interfaces/IRenderContainer';
 
