@@ -1,373 +1,163 @@
-# **Abstract Game Engine (TypeScript)**
+# **Game Engine Library (TypeScript)**
 
-A fully abstract, config-driven game engine for building browser-based games. The engine provides structure and systems, while you define the game-specific logic.
+This repository provides a fully-decoupled, unopinionated, and platform-agnostic **engine library** (a "bag of parts") for building custom game engines and frameworks.
 
-## **Engine Philosophy**
+It is designed to be the clean, testable, and reusable foundation (Step 1\) for building highly-opinionated, "batteries-included" game frameworks (Step 2).
 
-The engine is abstract and knows nothing about your game. It is config-driven and type-safe.
+## **Core Philosophy: Engine Library vs. Game Framework**
 
-✅ **The engine provides:**
+This project's vision is to solve two problems. The current codebase is being refactored to *be* the first, in order to *enable* the second.
 
-* A config-driven factory (Engine.create) to build an engine with only the systems you need.  
-* A type-safe generic GameContext\<TGame\> that provides your GameState classes with full autocomplete for your game's data.  
-* A central SystemRegistry (Service Locator) for decoupled access to systems.  
-* Core systems: SceneManager, GameStateManager, EventBus, AssetManager, AudioManager, SaveManager, InputManager, EffectManager.
+### **1\. The Engine Library (This Repository's Goal)**
 
-❌ **The engine does NOT provide:**
+* **Type:** "Plug-and-Develop" (A Library)  
+* **Analogy:** A "bag of parts" or a "tool-kit" (like three.js).  
+* **Philosophy:** Unopinionated, minimal, and flexible. It makes *no* assumptions about your game.  
+* **What it Provides:** A robust SystemContainer (DI), clean platform-abstraction interfaces (IPlatformAdapter), and a set of loosely-coupled, high-level systems (like AudioManager, InputManager facades).  
+* **Developer's Job:** You are the **assembler**. You must explicitly "plug in" every system you need by registering it with the SystemContainer in your game's entry file. This gives you *total control*.
 
-* Player stats, item systems, combat logic, or requirement checking.  
-* Hard-coded UI.
+### **2\. The Game Framework (The Future Goal)**
 
-Your game implements all game-specific logic in your GameState classes, which consume the GameContext provided by the engine.
+* **Type:** "Batteries-Included" (A Framework)  
+* **Analogy:** A "RenPy-killer" or a genre-specific tool (like RPG Maker).  
+* **Philosophy:** Opinionated, "plug-and-play," and fast. It *makes* assumptions to accelerate development for a specific genre (e.g., a Visual Novel).  
+* **What it Provides:** A pre-assembled engine that hides the underlying complexity. It will pre-register all the necessary systems (EventBus, StateManager, DomRenderer, SaveManager, DialoguePlugin, etc.).  
+* **Developer's Job:** You are the **creator**. You just provide data, assets, and story files. You don't "think about the engine."
 
-## **Quick Start**
+**This repository's goal is to be the perfect "Step 1" so that "Step 2" can be built cleanly, without the monolithic hell of frameworks like RenPy.**
 
-*(Assumes a standard Svelte \+ TS \+ Vite setup. See old README for Svelte/Tailwind setup steps.)*
+## **Current State: The "Refactor-of-the-Refactor"**
 
-### **1\. Define Your Game's Core Types**
+The current codebase is in the middle of a **critical refactor** to achieve the "Step 1" vision.
 
-Create src/game/types.ts. This is where you define the interfaces for your game-specific data.
+The previous v2.0 refactor was a **failure** because it mixed these two steps. It created a "batteries-included" monolith (SystemDefinitions.ts) *inside* the "plug-and-develop" library, which also ignored its own platform abstractions (InputManager calling navigator.getGamepads).
 
-// src/game/types.ts  
-import type { Player } from './entities/Player';  
-import type { Inventory } from './systems/Inventory';  
-import type { GameClock } from '@engine/plugins/GameClockPlugin'; // Example plugin  
-import type { RelationshipPlugin } from '@engine/plugins/RelationshipPlugin'; // Example plugin
+We are now "cleaning house" to create the A-Grade library. See SESSION\_STATE.md and AUDIT\_REPORT.md for the full roadmap.
 
-/\*\*  
- \* This is the "TGame" generic.  
- \* It defines the shape of \`context.game\` for full type-safety.  
- \*/  
-export interface MyGameState {  
-    player: Player;  
-    inventory: Inventory;  
-    // You can also add systems to your game state  
-    clock?: GameClock;  
-    relationships?: RelationshipPlugin;  
-}
+## **Quick Start (The "Plug-and-Develop" Library Flow)**
 
-### **2\. Create Your Game Entities**
+This is how you will use the engine library *after* the refactor is complete. Note that the developer is responsible for assembling their engine.
 
-Create your Player, Inventory, or other classes. They **must** implement ISerializable if you want them to be saved by the SaveManager.
+### **1\. main.ts (The Developer's Assembly File)**
 
-// src/game/entities/Player.ts  
-import type { ISerializable } from '@engine/types';
+// main.ts  
+import { Engine } from '@engine/Engine';  
+import { SystemContainer } from '@engine/core/SystemContainer';  
+import { BrowserPlatformAdapter } from '@engine/platform/BrowserPlatformAdapter';
 
-export class Player implements ISerializable {  
-    public health: number;  
-    public maxHealth: number;  
-    public flags: Set\<string\>;
+// Import system "recipes"  
+import { CoreServices } from '@engine/core/CoreServices';  
+import { PlatformServices } from '@engine/platform/PlatformServices';
 
-    constructor() {  
-        this.health \= 100;  
-        this.maxHealth \= 100;  
-        this.flags \= new Set();  
-    }
+// Import your custom game code  
+import { MyGame\_MainMenuState } from './game/states/MainMenuState';  
+import { MyGame\_Player } from './game/Player';
 
-    // YOUR game-specific methods  
-    hasFlag(flag: string): boolean {  
-        return this.flags.has(flag);  
-    }
+export async function main() {  
+    // 1\. Create the Platform: The \*only\* platform-specific code.  
+    const platform \= new BrowserPlatformAdapter({  
+        containerElement: document.getElementById('game-container')  
+    });
 
-    addFlag(flag: string): void {  
-        this.flags.add(flag);  
-    }
+    // 2\. Create the Engine: A minimal host that owns the container.  
+    const engine \= new Engine({ platform });
 
-    // \--- ISerializable Implementation \---
-
-    serialize(): any {  
-        // Return a JSON-friendly object of this class's data  
-        return {  
-            health: this.health,  
-            maxHealth: this.maxHealth,  
-            flags: Array.from(this.flags)  
-        };  
-    }
-
-    deserialize(data: any): void {  
-        // Repopulate this instance with the saved data  
-        this.health \= data.health;  
-        this.maxHealth \= data.maxHealth;  
-        this.flags \= new Set(data.flags);  
-    }  
-}
-
-### **3\. Implement Your GameState**
-
-Create your GameState classes. This is where all your game logic lives. Note how it's generic (GameState\<MyGameState\>) and uses the injected this.context for all operations.
-
-// src/game/states/StoryState.ts  
-import { GameState } from '@engine/core/GameState';  
-import type { GameContext, StateData } from '@engine/types';  
-import type { MyGameState } from '@game/types';  
-import type { Scene } from '@engine/systems/Scene';
-
-// Pass in your game's type to the generic slot  
-export class StoryState extends GameState\<MyGameState\> {  
+    // 3\. Assemble Your Engine: You, the developer, \*plug in\* every system.  
+    //    This is the "plug-and-develop" vision.  
       
-    // The context is guaranteed to be typed  
-    protected context\!: GameContext\<MyGameState\>;
-
-    enter(data: StateData \= {}): void {  
-        super.enter(data);  
-        const sceneId \= data.sceneId || 'start';  
-        this.goToScene(sceneId);  
-    }
-
-    goToScene(sceneId: string): void {  
-        // 1\. Get scene data from the engine  
-        const scene \= this.context.sceneManager.getScene(sceneId);  
-        if (\!scene) return;
-
-        // 2\. YOUR game-specific requirement checking  
-        if (\!this.checkRequirements(scene)) {  
-            console.log("Requirements not met\!");  
-            return;  
-        }
-
-        // 3\. Tell the engine to change scenes  
-        this.context.sceneManager.goToScene(sceneId, this.context);
-
-        // 4\. YOUR game-specific effect application  
-        this.applyEffects(scene);  
-    }
-
-    // YOUR implementation of requirement checking  
-    private checkRequirements(scene: Scene): boolean {  
-        const reqs \= scene.sceneData.requirements || {};  
-          
-        // Access your typed game state\!  
-        const player \= this.context.game.player; 
-
-        if (reqs.hasFlag && \!player.hasFlag(reqs.hasFlag)) {  
-            return false;  
-        }  
-        return true;  
-    }
-
-    // YOUR implementation of effect application  
-    private applyEffects(scene: Scene): void {  
-        const effects \= scene.sceneData.effects || {};  
-        const player \= this.context.game.player;
-
-        if (effects.setFlag) {  
-            player.addFlag(effects.setFlag);  
-        }
-
-        if (effects.playSound) {  
-            // Access engine systems from the context  
-            this.context.audio.playSound(effects.playSound);  
-        }  
-    }
-
-    // Example: Handle UI input  
-    handleChoiceClick(choiceIndex: number): void {  
-        const scene \= this.context.sceneManager.getCurrentScene();  
-        const choices \= scene?.getChoices(this.context) || \[\];  
-          
-        if (choices\[choiceIndex\]?.targetScene) {  
-            this.goToScene(choices\[choiceIndex\].targetScene);  
-        }  
-    }  
-}
-
-### **4\. Create Your Game Data**
-
-Create src/game/data/gameData.ts. This is just a simple data file.
-
-// src/game/data/gameData.ts  
-import type { GameData } from '@engine/types';
-
-export const GAME\_DATA: GameData \= {  
-    scenes: {  
-        "start": {  
-            text: "You wake up in a dark forest...",  
-            choices: \[  
-                { text: "Go north", targetScene: "forest\_north" },  
-                { text: "Go south (req: 'key')", targetScene: "forest\_south" }  
-            \],  
-            effects: {  
-                setFlag: "game\_started",  
-                playSound: "forest\_ambience"  
-            }  
-        },  
-        "forest\_north": {  
-            text: "You find a key\!",  
-            effects: {  
-                setFlag: "key"  
-            },  
-            choices: \[  
-                { text: "Go back", targetScene: "start" }  
-            \]  
-        },  
-        "forest\_south": {  
-            text: "You unlocked the gate\!",  
-            requirements: {  
-                hasFlag: "key"  
-            },  
-            choices: \[  
-                { text: "Go back", targetScene: "start" }  
-            \]  
-        }  
-    }  
-};
-
-### **5\. Initialize Your Game**
-
-Create src/game/main.ts. This is the single entry point that constructs your game by configuring and creating the engine.
-
-// src/game/main.ts  
-import { Engine, type EngineConfig } from '@engine/Engine';  
-import type { MyGameState } from '@game/types';  
-import { Player } from '@game/entities/Player';  
-import { Inventory } from '@game/systems/Inventory';  
-import { StoryState } from '@game/states/StoryState';  
-import { GAME\_DATA } from '@game/data/gameData';  
-import { GameClockPlugin } from '@engine/plugins/GameClockPlugin'; // Example plugin  
-import { RelationshipPlugin } from '@engine/plugins/RelationshipPlugin'; // Example plugin
-
-export async function createGame(container: HTMLElement): Promise\<Engine\<MyGameState\>\> {  
+    // A) Register platform-agnostic core services  
+    engine.container.register( CoreServices.EventBus() );  
+    engine.container.register( CoreServices.StateManager() );  
+    engine.container.register( CoreServices.PluginManager() );  
+    engine.container.register( CoreServices.AssetManager() );  
       
-    // 1\. Create YOUR game-specific classes  
-    const player \= new Player();  
-    const inventory \= new Inventory();  
-    const clock \= new GameClockPlugin({ unitsPerDay: 24 });  
-    const relationships \= new RelationshipPlugin();
+    // B) Register platform-aware services (these recipes use the platform adapter)  
+    engine.container.register( PlatformServices.AudioManager() );  
+    engine.container.register( PlatformServices.RenderManager({ type: 'dom' }) );  
+    engine.container.register( PlatformServices.InputManager() );  
+      
+    // C) Register optional services \*if you want them\*  
+    engine.container.register( PlatformServices.SaveManager() );
 
-    // 2\. Define YOUR game's initial state  
-    const initialGameState: MyGameState \= {  
-        player,  
-        inventory,  
-        clock,  
-        relationships  
-    };
+    // D) Register your game's custom states  
+    const stateManager \= await engine.container.get(SYSTEMS.StateManager);  
+    stateManager.register('main\_menu', new MyGame\_MainMenuState());
 
-    // 3\. Define the Engine Config  
-    const config: EngineConfig\<MyGameState\> \= {  
-        debug: true,  
-        gameVersion: '1.0.0',  
-          
-        // This is your typed game state  
-        gameState: initialGameState,   
-          
-        // Tell the factory which systems to build  
-        systems: {  
-            audio: true,  
-            assets: true,  
-            save: true,  
-            input: true,  
-            effects: true  
-        },
-
-        // Pass the DOM element for renderers/input  
-        containerElement: container   
-    };
-
-    // 4\. Create the engine\!  
-    const engine \= await Engine.create\<MyGameState\>(config);
-
-    // 5\. Install Plugins  
-    // Plugins are installed \*after\* creation  
-    engine.pluginManager.register(clock);  
-    engine.pluginManager.install('clock', engine);
-
-    engine.pluginManager.register(relationships);  
-    engine.pluginManager.install('relationships', engine);
-
-    // 6\. Register all serializable systems for saving  
-    // This tells the SaveManager what to serialize.  
-    // The key \*must\* match the key in your save file.  
-    engine.registerSerializableSystem('player', player);  
-    engine.registerSerializableSystem('inventory', inventory);  
-    // Plugins register themselves (e.g., 'clock', 'relationships')
-
-    // 7\. Register YOUR game states  
-    engine.stateManager.register('story', new StoryState());
-
-    // 8\. Load YOUR game data  
-    engine.loadGameData(GAME\_DATA);
-
-    // 9\. (Optional) Preload assets  
-    await engine.preload(\[  
-        { id: 'forest\_ambience', url: '/audio/forest.mp3', type: 'audio' },  
-        { id: 'main\_bg', url: '/img/main\_bg.png', type: 'image' }  
-    \]);
-
-    return engine;  
+    // 4\. Start the Engine: This runs the container's \`initializeAll()\`  
+    //    and starts the game loop.  
+    await engine.start('main\_menu');  
 }
 
-export function startGame(engine: Engine\<MyGameState\>) {  
-    engine.start('story', { sceneId: 'start' });  
-}
+main();
 
-### **6\. Create Your UI**
+### **2\. App.svelte (The UI Layer)**
 
-Create src/App.svelte to listen to the engine and render the UI.
+Your UI framework (Svelte, React, etc.) is *not* the engine. It just provides a DOM element for the BrowserPlatformAdapter to latch onto.
 
-\<\!-- src/App.svelte \--\>  
+\<\!-- App.svelte \--\>  
 \<script lang="ts"\>  
   import { onMount } from 'svelte';  
-  import type { Engine } from '@engine/Engine';  
-  import type { MyGameState } from '@game/types';  
-  import type { SceneChoice } from '@engine/types';  
-  import { createGame, startGame } from '@game/main';  
-    
-  let engine: Engine\<MyGameState\>;  
-  let sceneText: string \= 'Loading...';  
-  let choices: SceneChoice\[\] \= \[\];  
-  let gameContainer: HTMLElement; // The DOM element for the engine
+  import { main } from './main'; // Your assembly file
 
-  onMount(async () \=\> {  
-    // Create the engine, passing the container  
-    engine \= await createGame(gameContainer);  
-      
-    // Listen for the engine's scene.changed event  
-    engine.eventBus.on('scene.changed', (data) \=\> {  
-      const scene \= engine.sceneManager.getScene(data.sceneId);  
-      if (scene) {  
-        sceneText \= scene.getText();  
-        choices \= scene.getChoices(engine.context);  
-      }  
-    });  
-      
-    // Start the game  
-    startGame(engine);  
+  let gameContainer: HTMLElement;
+
+  onMount(() \=\> {  
+    // Wait for Svelte to create the \<div\>, then pass it to our game.  
+    // The engine knows this \<div\> \*only\* as an \`IDomRenderContainer\`.  
+    // It has zero knowledge of "Svelte".  
+    main(gameContainer);  
   });  
-    
-  function handleChoiceClick(choiceIndex: number) {  
-    // Get the active game state and call its method  
-    const storyState \= engine.stateManager.getCurrentState() as any;  
-    if (storyState && typeof storyState.handleChoiceClick \=== 'function') {  
-      storyState.handleChoiceClick(choiceIndex);  
-    }  
-  }  
 \</script\>
 
 \<\!--   
-  This is the main container.  
-  The engine will attach input listeners and renderers here.  
+  This is the "insertion point" you wanted.  
+  The engine's DomRenderer will render \*into\* this div.  
+  The engine's DomInputAdapter will listen for events \*on\* this div.  
 \--\>  
-\<main bind:this={gameContainer} class="w-screen h-screen bg-gray-900 text-white"\>  
-    
-  \<\!-- This is just an example UI. Build yours however you want. \--\>  
-  \<div class="p-8"\>  
-    \<p class="text-lg mb-4"\>{sceneText}\</p\>  
-      
-    \<div class="flex flex-col items-start space-y-2"\>  
-      {\#each choices as choice, i}  
-        \<button   
-          on:click={() \=\> handleChoiceClick(i)}  
-          class="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded"  
-        \>  
-          {choice.text}  
-        \</button\>  
-      {/each}  
-    \</div\>  
-  \</div\>
-
+\<main bind:this={gameContainer} id="game-container" class="w-screen h-screen"\>  
+  \<\!-- Your Svelte UI (HUDs, menus, etc.) can go here,  
+       or you can let the engine's DomRenderer build it all. \--\>  
 \</main\>
 
-### **7\. Run Your Game**
+## **The Future (Step 2: The "Plug-and-Play" Framework)**
 
-npm install  
-npm run dev  
+*After* the "Step 1" library is finished, we can build "Step 2" to solve your RenPy problem.
+
+This would be a **new class** or **new repository** (e.g., VisualNovelFramework) that *uses* the engine library.
+
+### **Pseudo-code: VisualNovelFramework**
+
+// This class IS the "batteries-included" assembler.  
+// It hides the complexity of Step 1\.  
+import { Engine, CoreServices, PlatformServices } from '@engine/core';
+
+export class VisualNovelFramework extends Engine {  
+    constructor(config: VNFrameworkConfig) {  
+        // 1\. It creates the platform for the user  
+        super({ platform: new BrowserPlatformAdapter(config.container) });
+
+        // 2\. It \*is\* the opinionated monolith. It pre-registers  
+        //    everything a Visual Novel needs.  
+        this.container.register( CoreServices.EventBus() );  
+        this.container.register( CoreServices.StateManager() );  
+        this.container.register( CoreServices.AssetManager() );  
+        this.container.register( PlatformServices.AudioManager() );  
+        this.container.register( PlatformServices.RenderManager({ type: 'dom' }) );  
+        this.container.register( PlatformServices.InputManager() );  
+        this.container.register( PlatformServices.SaveManager() );  
+          
+        // 3\. It registers its \*own\* plugins  
+        this.container.register( VNPlugins.DialogueSystem() );  
+        this.container.register( VNPlugins.CharacterSpriteManager() );  
+    }
+
+    async startWithData(data: RenPyGameData) {  
+        // 4\. It provides the "easy insertion point"  
+        const sceneManager \= await this.container.get(SYSTEMS.SceneManager);  
+        sceneManager.loadScenes(data.scenes);  
+          
+        await this.start(data.initialScene);  
+    }  
+}
+
+This clear separation between the **Library** and the **Framework** is the core vision.
