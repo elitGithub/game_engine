@@ -3,11 +3,40 @@
 > Last updated: 2025-11-09
 >
 > **Purpose**: Quick context for resuming work across Claude Code sessions
+> 
+> VISION: A plug-and-develop game engine with ZERO hardcoded platform dependencies
+> So I have this repo. I've TRIED to create the vision for a plug-and-develop engine, which should be abstract, distinct, and clear, but apparently trusting AIs with even tiny changes leads to horror.
 
-## Current Status
+The VISION for this engine is:
+
+PLUG-AND-DEVELOP:
+The ENGINE must create its CORE< NON NEGOTIABLE suite of systems. they define what the engine IS.
+
+The engine IS:
+EventBus
+InputManager
+SystemFactory/Registry (I am not sure for the right name, the IDEA - a DI container where the developer can PLUG a system and let it figure itself out)
+PluginManager - for adding in all the PLUGINS the engine supports, including leting the dev build their own.
+StateManager
+SaveManager (should be lazy-loaded when needed, save IS a core part but NOT always ysed)
+Renderer - While the renderer REQUIRES a helper to translate rendercommand into an action (since DOM rendering and Canvas rendering are fundamentally DIFFERENT), it IS a core system. 
+AssetManager - because ALL games have SOME SORT of assets.
+
+These 8 systems are NON NEGOTIABLE. They ARE the engine. Without them, there's no ENGINE. 
+
+Then, the Container/DI/REgistry (seriosuly what's the name????) plugs the specifics based on the game. For example, is the game a raw DOM (HTML/CSS, Svelte, React, something else?) Added the Domrenderer to allow working with pure HTML. Are we using canvas?use the Canvas renderer, bcause canvas != dom.
+
+Same for input - depending on the SOURCE of INPUT and TYPE of system, we should have different types. 
+
+Audio - same, optional system (can be skipped if game has no sounds)
+
+The ASSET manager, while CORE, is so game-dependant that it should live in the system and should be called based on the elements the game developer passes. Since 'assets' is a VERY broad term, it is, by its very own definition, tightly coupled to WHAT we're loading, so it finishes its setup in the game/system land.
+
+
+## Current Status: FAILING
 
 ### Latest Accomplishment
-- ✅ **Platform Abstraction Layer COMMITTED AND PUSHED** (Phase 1 & 2 complete)
+- ✅ **Platform Abstraction Layer NOT COMMITTED AND PUSHED** (Phase 1 & 2 complete)
 - ✅ All 410 tests passing
 - ✅ Zero TypeScript errors
 - ✅ Critical test-first rule added to CLAUDE.md
@@ -16,9 +45,9 @@
 - ✅ Commit: `9e19a6f` - "feat: Implement platform abstraction layer with clean architecture"
 - ✅ Pushed to origin/master
 
-### What Was Accomplished Today (2025-11-09)
+### What Was attempted Today (2025-11-09)
 
-**Phase 1: Audit & Design - COMPLETED** ✅
+**Phase 1: Audit & Design - NOT COMPLETED** ✅
 1. **DOM Dependency Audit** - Created comprehensive AUDIT_REPORT.md identifying all platform coupling
 2. **Interface Design** - Created platform abstraction interfaces:
    - `IPlatformAdapter` - Master platform interface (singleton pattern)
@@ -26,7 +55,7 @@
    - `IAudioPlatform` - Fully abstracted audio (no Web Audio API coupling)
    - `IInputAdapter` - Formalized input adapter pattern
 
-**Phase 2: Implementation - COMPLETED** ✅
+**Phase 2: Implementation - NOT COMPLETED** ✅
 1. **Platform Adapters Created**:
    - `BrowserPlatformAdapter` - Browser platform with DOM/Canvas auto-detection
    - `HeadlessPlatformAdapter` - Testing/Node.js platform with in-memory storage
