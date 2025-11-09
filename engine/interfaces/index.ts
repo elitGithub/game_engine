@@ -5,6 +5,9 @@
  * These interfaces allow the engine to run on ANY platform
  * without hardcoding platform-specific dependencies.
  *
+ * All adapters follow the SINGLETON pattern - one game =
+ * one platform = one instance of each adapter.
+ *
  * Usage:
  * ```typescript
  * import {
@@ -21,37 +24,59 @@
  * // Or headless
  * const platform = new HeadlessPlatformAdapter();
  *
- * // Engine receives platform via DI
+ * // Engine receives platform via DI (singleton pattern)
  * const engine = new Engine({ platform, systems: { ... } });
+ *
+ * // Get platform adapters (singletons)
+ * const renderContainer = platform.getRenderContainer();
+ * const audioPlatform = platform.getAudioPlatform();
+ * const inputAdapter = platform.getInputAdapter();
+ * const storage = platform.getStorageAdapter();
  * ```
  */
 
 // ============================================================================
-// MASTER PLATFORM ADAPTER
+// MASTER PLATFORM ADAPTER (SINGLETON)
 // ============================================================================
 
 export type { IPlatformAdapter, PlatformType, PlatformCapabilities } from './IPlatformAdapter';
 export { requiresCapability } from './IPlatformAdapter';
 
 // ============================================================================
-// RENDER CONTAINER
+// RENDER CONTAINER (SINGLETON)
 // ============================================================================
 
-export type { IRenderContainer, RenderContainerType } from './IRenderContainer';
+export type {
+    IRenderContainer,
+    IDomRenderContainer,
+    ICanvasRenderContainer,
+    IWebGLRenderContainer,
+    IHeadlessRenderContainer,
+    INativeRenderContainer,
+    RenderContainerType
+} from './IRenderContainer';
 export {
     DomRenderContainer,
     CanvasRenderContainer,
     HeadlessRenderContainer,
-    isContainerType,
-    getNativeContainer
+    isDomRenderContainer,
+    isCanvasRenderContainer,
+    isWebGLRenderContainer,
+    isHeadlessRenderContainer,
+    isNativeRenderContainer
 } from './IRenderContainer';
 
 // ============================================================================
-// AUDIO PLATFORM
+// AUDIO PLATFORM (SINGLETON)
 // ============================================================================
 
 export type {
     IAudioPlatform,
+    IAudioContext,
+    IAudioBuffer,
+    IAudioSource,
+    IAudioGain,
+    IAudioDestination,
     AudioPlatformType,
     AudioContextState,
     AudioCapabilities,
@@ -64,7 +89,7 @@ export {
 } from './IAudioPlatform';
 
 // ============================================================================
-// INPUT ADAPTER
+// INPUT ADAPTER (SINGLETON)
 // ============================================================================
 
 export type {
@@ -81,17 +106,67 @@ export {
 } from './IInputAdapter';
 
 // ============================================================================
-// IMPLEMENTATION REFERENCE
+// DESIGN PRINCIPLES
 // ============================================================================
 
 /**
+ * SINGLETON PATTERN
+ *
+ * All platform adapters follow the singleton pattern:
+ * - One game = one platform configuration
+ * - Platform owns and manages adapter instances
+ * - get*() methods return same instance on multiple calls
+ * - Lifecycle managed by platform (created once, disposed once)
+ *
+ * This ensures:
+ * - Consistent platform state across engine
+ * - No resource duplication
+ * - Clear ownership and lifecycle
+ * - Simpler API (no need to track instances)
+ */
+
+/**
+ * TYPE SAFETY
+ *
+ * Containers use specific typed interfaces:
+ * - IDomRenderContainer provides getElement(): HTMLElement
+ * - ICanvasRenderContainer provides getCanvas(): HTMLCanvasElement
+ * - Type guards available for safe casting
+ *
+ * Audio is fully abstracted:
+ * - IAudioContext wraps platform audio (no Web Audio API coupling)
+ * - WebAudioPlatform wraps browser implementation
+ * - MockAudioPlatform for testing
+ *
+ * This ensures:
+ * - Full type safety without platform coupling
+ * - Works on ANY platform (browser, mobile, desktop, headless)
+ * - Easy testing with mocks
+ */
+
+/**
+ * IMPLEMENTATION GUIDE
+ *
  * To implement a custom platform:
  *
  * 1. Implement IPlatformAdapter
- * 2. Implement IRenderContainer (if rendering supported)
- * 3. Implement IAudioPlatform (if audio supported)
- * 4. Implement IInputAdapter (if input supported)
- * 5. Use existing IStorageAdapter
+ *    - Define platform type and capabilities
+ *    - Implement singleton get*() methods
  *
- * See docs/architecture/platform-implementation.md for details.
+ * 2. Implement IRenderContainer (if rendering supported)
+ *    - Extend specific typed interface (IDomRenderContainer, etc.)
+ *    - Provide type-safe access to native container
+ *
+ * 3. Implement IAudioPlatform (if audio supported)
+ *    - Return IAudioContext (wrap native platform audio)
+ *    - Or use WebAudioPlatform/MockAudioPlatform
+ *
+ * 4. Implement IInputAdapter (if input supported)
+ *    - Translate platform events to EngineInputEvent
+ *    - Handle attach/detach lifecycle
+ *
+ * 5. Use existing IStorageAdapter
+ *    - Reuse LocalStorageAdapter, BackendAdapter, or create custom
+ *
+ * See docs/architecture/platform-implementation.md for detailed guide.
  */

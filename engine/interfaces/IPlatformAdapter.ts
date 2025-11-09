@@ -66,53 +66,58 @@ export interface IPlatformAdapter {
     readonly version?: string;
 
     // ========================================================================
-    // RENDERING
+    // RENDERING (SINGLETON)
     // ========================================================================
 
     /**
-     * Get render container for renderer initialization
+     * Get render container for renderer initialization (singleton)
      *
+     * Returns the same container instance on multiple calls.
      * Returns undefined if platform doesn't support rendering
      * (e.g., headless server)
      */
     getRenderContainer?(): IRenderContainer | undefined;
 
     // ========================================================================
-    // AUDIO
+    // AUDIO (SINGLETON)
     // ========================================================================
 
     /**
-     * Get audio platform adapter
+     * Get audio platform adapter (singleton)
      *
+     * Returns the same audio platform instance on multiple calls.
      * Returns undefined if platform doesn't support audio
      * (e.g., headless server, or audio disabled)
      */
     getAudioPlatform?(): IAudioPlatform | undefined;
 
     // ========================================================================
-    // STORAGE
+    // STORAGE (SINGLETON)
     // ========================================================================
 
     /**
-     * Get storage adapter for save/load functionality
+     * Get storage adapter for save/load functionality (singleton)
      *
+     * Returns the same storage adapter instance on multiple calls.
      * All platforms MUST provide storage (even if in-memory)
      */
     getStorageAdapter(): IStorageAdapter;
 
     // ========================================================================
-    // INPUT
+    // INPUT (SINGLETON)
     // ========================================================================
 
     /**
-     * Create input adapter for this platform
+     * Get input adapter for this platform (singleton)
      *
+     * Returns the same input adapter instance on multiple calls.
      * Returns undefined if platform doesn't support input
      * (e.g., headless server)
      *
-     * Input adapter lifecycle is managed by InputManager
+     * Input adapter lifecycle is managed by platform, but attachment
+     * is handled by InputManager.
      */
-    createInputAdapter?(): IInputAdapter | undefined;
+    getInputAdapter?(): IInputAdapter | undefined;
 
     // ========================================================================
     // PLATFORM CAPABILITIES

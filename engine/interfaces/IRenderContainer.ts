@@ -2,7 +2,7 @@
  * Render Container Abstraction
  *
  * Platform-agnostic container for renderer initialization.
- * Replaces hardcoded HTMLElement dependency in IRenderer.
+ * Uses specific typed interfaces for each container type to ensure type safety.
  */
 
 /**
@@ -11,27 +11,14 @@
 export type RenderContainerType = 'dom' | 'canvas' | 'webgl' | 'native' | 'headless' | 'custom';
 
 /**
- * IRenderContainer - Platform-agnostic render target
+ * IRenderContainer - Base interface for all render containers
  *
- * This abstraction allows renderers to initialize on ANY platform,
- * not just DOM/HTMLElement.
+ * This is the base interface. Renderers should depend on specific
+ * typed interfaces (IDomRenderContainer, ICanvasRenderContainer, etc.)
+ * which provide type-safe access to native containers.
  *
- * Each renderer type (DOM, Canvas, WebGL, etc.) casts to the
- * appropriate native type it needs.
- *
- * Example:
- * ```typescript
- * class DomRenderer implements IRenderer {
- *     init(container: IRenderContainer): void {
- *         if (container.getType() !== 'dom') {
- *             throw new Error('DomRenderer requires DOM container');
- *         }
- *
- *         const element = container.getNativeContainer() as HTMLElement;
- *         // Now we can use the HTMLElement
- *     }
- * }
- * ```
+ * DO NOT use this interface directly in renderer implementations.
+ * Use the specific typed interfaces below.
  */
 export interface IRenderContainer {
     /**
@@ -40,22 +27,7 @@ export interface IRenderContainer {
     getType(): RenderContainerType;
 
     /**
-     * Get the platform-specific native container
-     *
-     * - DOM: Returns HTMLElement
-     * - Canvas: Returns HTMLCanvasElement
-     * - WebGL: Returns HTMLCanvasElement with WebGL context
-     * - Native: Returns platform view (UIView, View, etc.)
-     * - Headless: Returns mock container or dimensions object
-     * - Custom: Returns user-defined container
-     *
-     * Renderers cast this to the appropriate type based on getType()
-     */
-    getNativeContainer(): unknown;
-
-    /**
      * Get container dimensions
-     *
      * All containers MUST provide dimensions
      */
     getDimensions(): {
@@ -65,37 +37,137 @@ export interface IRenderContainer {
 
     /**
      * Set container dimensions (if supported)
-     *
      * Returns false if container doesn't support resizing
      */
     setDimensions?(width: number, height: number): boolean;
 
     /**
      * Get device pixel ratio (for high-DPI displays)
-     *
      * Defaults to 1.0 if not supported
      */
     getPixelRatio?(): number;
-
-    /**
-     * Request animation frame (if supported)
-     *
-     * Returns cancel function, or undefined if not supported
-     */
-    requestAnimationFrame?(callback: () => void): (() => void) | undefined;
 }
+
+// ============================================================================
+// TYPED CONTAINER INTERFACES
+// ============================================================================
 
 /**
  * DOM Container - For DOM-based renderers
+ *
+ * Type-safe access to HTMLElement.
+ * Use this in DOM renderer implementations.
  */
-export class DomRenderContainer implements IRenderContainer {
+export interface IDomRenderContainer extends IRenderContainer {
+    getType(): 'dom';
+
+    /**
+     * Get the DOM element - type-safe!
+     */
+    getElement(): HTMLElement;
+
+    /**
+     * Request animation frame (browser-specific)
+     */
+    requestAnimationFrame(callback: () => void): () => void;
+}
+
+/**
+ * Canvas Container - For Canvas 2D renderers
+ *
+ * Type-safe access to HTMLCanvasElement and 2D context.
+ * Use this in Canvas renderer implementations.
+ */
+export interface ICanvasRenderContainer extends IRenderContainer {
+    getType(): 'canvas';
+
+    /**
+     * Get the canvas element - type-safe!
+     */
+    getCanvas(): HTMLCanvasElement;
+
+    /**
+     * Get 2D rendering context - type-safe!
+     */
+    getContext(): CanvasRenderingContext2D;
+
+    /**
+     * Request animation frame (browser-specific)
+     */
+    requestAnimationFrame(callback: () => void): () => void;
+}
+
+/**
+ * WebGL Container - For WebGL renderers
+ *
+ * Type-safe access to HTMLCanvasElement and WebGL context.
+ * Use this in WebGL renderer implementations.
+ */
+export interface IWebGLRenderContainer extends IRenderContainer {
+    getType(): 'webgl';
+
+    /**
+     * Get the canvas element - type-safe!
+     */
+    getCanvas(): HTMLCanvasElement;
+
+    /**
+     * Get WebGL rendering context - type-safe!
+     */
+    getContext(): WebGLRenderingContext;
+
+    /**
+     * Request animation frame (browser-specific)
+     */
+    requestAnimationFrame(callback: () => void): () => void;
+}
+
+/**
+ * Headless Container - For testing/server-side rendering
+ *
+ * No native container, just dimensions.
+ * Use this for headless renderer implementations.
+ */
+export interface IHeadlessRenderContainer extends IRenderContainer {
+    getType(): 'headless';
+
+    /**
+     * No native element - returns null
+     */
+    getElement(): null;
+}
+
+/**
+ * Native Container - For mobile/native platforms
+ *
+ * Platform-specific view object.
+ * Actual type depends on platform (UIView, View, etc.)
+ */
+export interface INativeRenderContainer<TNative = unknown> extends IRenderContainer {
+    getType(): 'native';
+
+    /**
+     * Get platform-specific native view
+     * Type parameter should be platform's view type
+     */
+    getNativeView(): TNative;
+}
+
+// ============================================================================
+// CONCRETE IMPLEMENTATIONS
+// ============================================================================
+
+/**
+ * DOM Container Implementation
+ */
+export class DomRenderContainer implements IDomRenderContainer {
     constructor(private element: HTMLElement) {}
 
-    getType(): RenderContainerType {
+    getType(): 'dom' {
         return 'dom';
     }
 
-    getNativeContainer(): HTMLElement {
+    getElement(): HTMLElement {
         return this.element;
     }
 
@@ -123,17 +195,29 @@ export class DomRenderContainer implements IRenderContainer {
 }
 
 /**
- * Canvas Container - For Canvas-based renderers
+ * Canvas Container Implementation
  */
-export class CanvasRenderContainer implements IRenderContainer {
-    constructor(private canvas: HTMLCanvasElement) {}
+export class CanvasRenderContainer implements ICanvasRenderContainer {
+    private context: CanvasRenderingContext2D;
 
-    getType(): RenderContainerType {
+    constructor(private canvas: HTMLCanvasElement) {
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+            throw new Error('Failed to get 2D context from canvas');
+        }
+        this.context = ctx;
+    }
+
+    getType(): 'canvas' {
         return 'canvas';
     }
 
-    getNativeContainer(): HTMLCanvasElement {
+    getCanvas(): HTMLCanvasElement {
         return this.canvas;
+    }
+
+    getContext(): CanvasRenderingContext2D {
+        return this.context;
     }
 
     getDimensions(): { width: number; height: number } {
@@ -160,24 +244,21 @@ export class CanvasRenderContainer implements IRenderContainer {
 }
 
 /**
- * Headless Container - For testing/server-side rendering
+ * Headless Container Implementation
  */
-export class HeadlessRenderContainer implements IRenderContainer {
+export class HeadlessRenderContainer implements IHeadlessRenderContainer {
     constructor(
         private width: number = 800,
         private height: number = 600,
         private pixelRatio: number = 1.0
     ) {}
 
-    getType(): RenderContainerType {
+    getType(): 'headless' {
         return 'headless';
     }
 
-    getNativeContainer(): { width: number; height: number } {
-        return {
-            width: this.width,
-            height: this.height
-        };
+    getElement(): null {
+        return null;
     }
 
     getDimensions(): { width: number; height: number } {
@@ -196,31 +277,53 @@ export class HeadlessRenderContainer implements IRenderContainer {
     getPixelRatio(): number {
         return this.pixelRatio;
     }
+}
 
-    // No requestAnimationFrame in headless
+// ============================================================================
+// TYPE GUARDS
+// ============================================================================
+
+/**
+ * Type guard for DOM container
+ */
+export function isDomRenderContainer(
+    container: IRenderContainer
+): container is IDomRenderContainer {
+    return container.getType() === 'dom';
 }
 
 /**
- * Helper to check if container is of specific type
+ * Type guard for Canvas container
  */
-export function isContainerType(
-    container: IRenderContainer,
-    type: RenderContainerType
-): boolean {
-    return container.getType() === type;
+export function isCanvasRenderContainer(
+    container: IRenderContainer
+): container is ICanvasRenderContainer {
+    return container.getType() === 'canvas';
 }
 
 /**
- * Helper to safely cast container to native type
+ * Type guard for WebGL container
  */
-export function getNativeContainer<T>(
-    container: IRenderContainer,
-    expectedType: RenderContainerType
-): T {
-    if (container.getType() !== expectedType) {
-        throw new Error(
-            `Expected ${expectedType} container, got ${container.getType()}`
-        );
-    }
-    return container.getNativeContainer() as T;
+export function isWebGLRenderContainer(
+    container: IRenderContainer
+): container is IWebGLRenderContainer {
+    return container.getType() === 'webgl';
+}
+
+/**
+ * Type guard for Headless container
+ */
+export function isHeadlessRenderContainer(
+    container: IRenderContainer
+): container is IHeadlessRenderContainer {
+    return container.getType() === 'headless';
+}
+
+/**
+ * Type guard for Native container
+ */
+export function isNativeRenderContainer(
+    container: IRenderContainer
+): container is INativeRenderContainer {
+    return container.getType() === 'native';
 }

@@ -62,10 +62,10 @@ export interface IInputAdapter {
      * Starts listening for platform-specific input events.
      * Returns true if successfully attached, false if not supported.
      *
-     * @param container - Render container to attach to
+     * @param container - Render container to attach to (optional for global input like gamepad)
      * @param options - Platform-specific attachment options
      */
-    attach(container: IRenderContainer, options?: InputAttachOptions): boolean;
+    attach(container?: IRenderContainer, options?: InputAttachOptions): boolean;
 
     /**
      * Detach adapter
