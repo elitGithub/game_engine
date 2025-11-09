@@ -53,6 +53,23 @@ The engine should be invisible infrastructure that just works.
 
 ## Development Guidelines
 
+### CRITICAL: Test-First Rule
+
+**BEFORE accepting ANY changes to the codebase, you MUST run:**
+
+1. **TypeScript type check**: `npm run check:types`
+2. **All tests**: `npm test`
+
+**NEVER accept changes before running these tests. If either fails, fix the errors before proceeding.**
+
+This ensures:
+- Zero type errors in production code
+- All existing functionality remains working
+- No regressions are introduced
+- Code quality is maintained
+
+### General Guidelines
+
 When working on this codebase:
 - Prioritize decoupling and clear interfaces
 - Always consider: "Does this require engine modification or can it be a plugin?"
