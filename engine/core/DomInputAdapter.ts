@@ -1,5 +1,12 @@
 // engine/core/DomInputAdapter.ts
-import type { InputManager } from '../systems/InputManager';
+import {
+    BaseInputAdapter,
+    type InputAdapterType,
+    type InputAttachOptions,
+    type InputCapabilities
+} from '../interfaces/IInputAdapter';
+import type { IRenderContainer } from '../interfaces/IRenderContainer';
+import { isDomRenderContainer } from '../interfaces/IRenderContainer';
 import type { PlatformContainer } from './PlatformContainer';
 import type {
     KeyDownEvent,
@@ -17,6 +24,8 @@ import type {
 /**
  * DomInputAdapter - Translates DOM events to engine-agnostic input events
  *
+ * Implements IInputAdapter for DOM-based input (keyboard, mouse, touch).
+ *
  * This adapter is responsible for:
  * - Attaching/detaching DOM event listeners
  * - Translating KeyboardEvent, MouseEvent, TouchEvent to engine events
@@ -24,39 +33,75 @@ import type {
  *
  * The InputManager remains platform-independent and only processes engine events.
  *
- * Platform requirements: Requires container.getDomElement() support
+ * Platform requirements: Requires IDomRenderContainer or HTMLElement
  */
-export class DomInputAdapter {
-    private inputManager: InputManager;
+export class DomInputAdapter extends BaseInputAdapter {
     private targetElement: HTMLElement | null;
     private boundListeners: Map<string, (evt: any) => void>;
 
-    constructor(inputManager: InputManager) {
-        this.inputManager = inputManager;
+    constructor() {
+        super();
         this.targetElement = null;
         this.boundListeners = new Map();
     }
 
+    getType(): InputAdapterType {
+        return 'dom';
+    }
+
     /**
-     * Attach to a platform container
-     * Requires container.getDomElement() to be available
+     * Attach to a render container or platform container
      */
-    attachToContainer(container: PlatformContainer, options?: { focus?: boolean; tabindex?: string }): boolean {
-        const element = container.getDomElement?.();
+    attach(container?: IRenderContainer | PlatformContainer, options?: InputAttachOptions): boolean {
+        // If already attached, detach first
+        if (this.attached) {
+            this.detach();
+        }
+
+        let element: HTMLElement | undefined;
+
+        // Try to get HTMLElement from container
+        if (container) {
+            // Check if it's an IRenderContainer
+            if (isDomRenderContainer(container as IRenderContainer)) {
+                element = (container as any).getElement();
+            }
+            // Check if it's a legacy PlatformContainer
+            else if ((container as PlatformContainer).getDomElement) {
+                element = (container as PlatformContainer).getDomElement?.();
+            }
+        }
+
         if (!element) {
             console.warn('[DomInputAdapter] Container does not provide DOM element. Skipping.');
             return false;
         }
 
-        this.attach(element, options);
+        this.targetElement = element;
+
+        // Set tabindex for keyboard input
+        const tabindex = options?.tabindex ?? '0';
+        if (!element.hasAttribute('tabindex')) {
+            element.setAttribute('tabindex', tabindex);
+        }
+
+        this.attachListeners();
+
+        // Focus if requested
+        if (options?.focus) {
+            element.focus();
+        }
+
+        this.attached = true;
         return true;
     }
 
     /**
-     * Direct attach to HTML element (legacy/direct usage)
+     * Legacy attach to HTML element (direct usage)
+     * @deprecated Use attach(container, options) instead
      */
-    attach(element: HTMLElement, options?: { focus?: boolean; tabindex?: string }): void {
-        if (this.targetElement) {
+    attachToElement(element: HTMLElement, options?: { focus?: boolean; tabindex?: string }): void {
+        if (this.attached) {
             this.detach();
         }
 
@@ -73,6 +118,23 @@ export class DomInputAdapter {
         if (options?.focus) {
             element.focus();
         }
+
+        this.attached = true;
+    }
+
+    /**
+     * Legacy attach to platform container
+     * @deprecated Use attach(container, options) instead
+     */
+    attachToContainer(container: PlatformContainer, options?: { focus?: boolean; tabindex?: string }): boolean {
+        const element = container.getDomElement?.();
+        if (!element) {
+            console.warn('[DomInputAdapter] Container does not provide DOM element. Skipping.');
+            return false;
+        }
+
+        this.attachToElement(element, options);
+        return true;
     }
 
     detach(): void {
@@ -84,6 +146,16 @@ export class DomInputAdapter {
         this.boundListeners.clear();
 
         this.targetElement = null;
+        this.attached = false;
+    }
+
+    getCapabilities(): InputCapabilities {
+        return {
+            keyboard: true,
+            mouse: true,
+            touch: true,
+            gamepad: false
+        };
     }
 
     private attachListeners(): void {
@@ -140,7 +212,7 @@ export class DomInputAdapter {
             meta: e.metaKey
         };
 
-        this.inputManager.processEvent(event);
+        this.emitEvent(event);
     }
 
     private onKeyUp(e: KeyboardEvent): void {
@@ -155,7 +227,7 @@ export class DomInputAdapter {
             meta: e.metaKey
         };
 
-        this.inputManager.processEvent(event);
+        this.emitEvent(event);
     }
 
     // ============================================================================
@@ -175,7 +247,7 @@ export class DomInputAdapter {
             meta: e.metaKey
         };
 
-        this.inputManager.processEvent(event);
+        this.emitEvent(event);
     }
 
     private onMouseUp(e: MouseEvent): void {
@@ -191,7 +263,7 @@ export class DomInputAdapter {
             meta: e.metaKey
         };
 
-        this.inputManager.processEvent(event);
+        this.emitEvent(event);
     }
 
     private onMouseMove(e: MouseEvent): void {
@@ -205,7 +277,7 @@ export class DomInputAdapter {
             buttons: e.buttons
         };
 
-        this.inputManager.processEvent(event);
+        this.emitEvent(event);
     }
 
     private onWheel(e: WheelEvent): void {
@@ -219,7 +291,7 @@ export class DomInputAdapter {
             y: e.clientY
         };
 
-        this.inputManager.processEvent(event);
+        this.emitEvent(event);
     }
 
     private onClick(e: MouseEvent): void {
@@ -232,7 +304,7 @@ export class DomInputAdapter {
             target: e.target
         };
 
-        this.inputManager.processEvent(event);
+        this.emitEvent(event);
     }
 
     // ============================================================================
@@ -253,7 +325,7 @@ export class DomInputAdapter {
             touches
         };
 
-        this.inputManager.processEvent(event);
+        this.emitEvent(event);
     }
 
     private onTouchMove(e: TouchEvent): void {
@@ -270,7 +342,7 @@ export class DomInputAdapter {
             touches
         };
 
-        this.inputManager.processEvent(event);
+        this.emitEvent(event);
     }
 
     private onTouchEnd(e: TouchEvent): void {
@@ -287,6 +359,6 @@ export class DomInputAdapter {
             touches
         };
 
-        this.inputManager.processEvent(event);
+        this.emitEvent(event);
     }
 }

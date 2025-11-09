@@ -22,6 +22,40 @@ export enum SystemLifecycle {
 }
 
 /**
+ * System factory context interface
+ *
+ * This interface defines the contract for the container passed to factory functions.
+ * It includes system resolution and OPTIONAL renderer registration methods.
+ *
+ * Renderer methods are optional because:
+ * - Not all systems need renderer access
+ * - Base SystemContainer doesn't have renderer methods
+ * - SystemContainerBridge adds renderer methods for RenderManager
+ */
+export interface ISystemFactoryContext {
+    /** Get a required system instance */
+    get<T>(key: SystemKey): T;
+
+    /** Get an optional system instance */
+    getOptional<T>(key: SystemKey): T | undefined;
+
+    /** Check if a system is registered */
+    has(key: SystemKey): boolean;
+
+    /**
+     * Register a renderer (optional - provided by SystemContainerBridge)
+     * Required for RenderManager initialization
+     */
+    registerRenderer?(type: string, renderer: any): void;
+
+    /**
+     * Get a registered renderer (optional - provided by SystemContainerBridge)
+     * Required for RenderManager initialization
+     */
+    getRenderer?(type: string): any;
+}
+
+/**
  * System definition - describes how to create and configure a system
  */
 export interface SystemDefinition<T = any> {
@@ -29,7 +63,7 @@ export interface SystemDefinition<T = any> {
     key: SystemKey;
 
     /** Factory function to create the system instance */
-    factory: (container: SystemContainer) => T;
+    factory: (container: ISystemFactoryContext) => T;
 
     /** Dependencies that must be available before this system can be created */
     dependencies?: SystemKey[];
@@ -38,7 +72,7 @@ export interface SystemDefinition<T = any> {
     lazy?: boolean;
 
     /** Optional initialization callback after dependencies are resolved */
-    initialize?: (system: T, container: SystemContainer) => void | Promise<void>;
+    initialize?: (system: T, container: ISystemFactoryContext) => void | Promise<void>;
 
     /** Optional dispose callback for cleanup */
     dispose?: (system: T) => void | Promise<void>;
@@ -56,8 +90,11 @@ interface SystemEntry<T = any> {
 
 /**
  * Dependency Injection Container for game engine systems
+ *
+ * Implements ISystemFactoryContext to provide system resolution.
+ * Renderer methods are optional and added by SystemContainerBridge.
  */
-export class SystemContainer {
+export class SystemContainer implements ISystemFactoryContext {
     private systems: Map<SystemKey, SystemEntry> = new Map();
     private initializing: Set<SystemKey> = new Set();
 

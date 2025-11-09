@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi, type MockInstance } fr
 import { CanvasRenderer } from '@engine/rendering/CanvasRenderer';
 import { AssetManager } from '@engine/systems/AssetManager';
 import type { RenderCommand } from '@engine/types/RenderingTypes';
+import type { ICanvasRenderContainer } from '@engine/interfaces/IRenderContainer';
 
 // Mock AssetManager
 vi.mock('@engine/systems/AssetManager');
@@ -38,6 +39,7 @@ describe('CanvasRenderer', () => {
     let mockAssets: AssetManager;
     let container: HTMLElement;
     let canvas: HTMLCanvasElement;
+    let renderContainer: ICanvasRenderContainer;
 
     // --- FIX 1: Define ALL spies here as 'let' ---
     let fillStyleSpy: MockInstance;
@@ -72,10 +74,28 @@ describe('CanvasRenderer', () => {
         container = document.createElement('div');
         document.body.appendChild(container);
 
-        renderer = new CanvasRenderer(mockAssets);
-        renderer.init(container); // This will now succeed!
+        // Create canvas element
+        canvas = document.createElement('canvas');
+        canvas.width = 800;
+        canvas.height = 600;
+        container.appendChild(canvas);
 
-        canvas = container.querySelector('canvas')!;
+        // Create mock ICanvasRenderContainer
+        renderContainer = {
+            getType: () => 'canvas',
+            getCanvas: () => canvas,
+            getContext: () => mockContext as any,
+            getDimensions: () => ({ width: 800, height: 600 }),
+            setDimensions: (width: number, height: number) => true,
+            getPixelRatio: () => 1.0,
+            requestAnimationFrame: (callback: () => void) => {
+                const id = setTimeout(callback, 16);
+                return () => clearTimeout(id);
+            }
+        };
+
+        renderer = new CanvasRenderer(mockAssets);
+        renderer.init(renderContainer); // Use render container instead of raw HTMLElement
 
         // Spy on the *instance* of the canvas
         canvasRemoveSpy = vi.spyOn(canvas, 'remove');

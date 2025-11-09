@@ -10,7 +10,7 @@
 
 import type {SystemRegistry} from './SystemRegistry';
 import type {PlatformContainer} from './PlatformContainer';
-import {SystemContainer, type SystemDefinition} from './SystemContainer';
+import {SystemContainer, type SystemDefinition, type ISystemFactoryContext} from './SystemContainer';
 import {createCoreSystemDefinitions} from './SystemDefinitions';
 
 
@@ -97,9 +97,10 @@ export class SystemFactory {
  * Bridge between SystemContainer and SystemRegistry
  *
  * This allows us to use SystemContainer's DI features while maintaining
- * backward compatibility with SystemRegistry.
+ * backward compatibility with SystemRegistry. Implements ISystemFactoryContext
+ * to provide renderer registration alongside system resolution.
  */
-class SystemContainerBridge extends SystemContainer {
+class SystemContainerBridge extends SystemContainer implements ISystemFactoryContext {
     constructor(private registry: SystemRegistry) {
         super();
     }
@@ -120,11 +121,18 @@ class SystemContainerBridge extends SystemContainer {
         super.register(wrappedDefinition);
     }
 
-    // Expose SystemRegistry methods for renderer registration
+    /**
+     * Register a renderer instance
+     * Implements ISystemFactoryContext.registerRenderer
+     */
     registerRenderer(type: string, renderer: any): void {
         this.registry.registerRenderer(type, renderer);
     }
 
+    /**
+     * Get a registered renderer instance
+     * Implements ISystemFactoryContext.getRenderer
+     */
     getRenderer(type: string): any {
         return this.registry.getRenderer(type);
     }

@@ -5,6 +5,7 @@ import {RenderManager} from '@engine/core/RenderManager';
 import {EventBus} from '@engine/core/EventBus';
 import {SystemRegistry} from '@engine/core/SystemRegistry';
 import type {IRenderer, RenderCommand} from '@engine/types/RenderingTypes';
+import type { IDomRenderContainer } from '@engine/interfaces/IRenderContainer';
 
 // Mock dependencies
 vi.mock('@engine/core/EventBus');
@@ -22,7 +23,7 @@ describe('RenderManager', () => {
     let mockEventBus: EventBus;
     let mockRegistry: SystemRegistry;
     let mockContainer: HTMLElement;
-// engine/tests/RenderManager.test.ts
+    let renderContainer: IDomRenderContainer;
 
     beforeEach(() => {
         vi.clearAllMocks();
@@ -30,6 +31,19 @@ describe('RenderManager', () => {
         mockEventBus = new EventBus();
         mockRegistry = new SystemRegistry();
         mockContainer = document.createElement('div');
+
+        // Create mock IDomRenderContainer
+        renderContainer = {
+            getType: () => 'dom',
+            getElement: () => mockContainer,
+            getDimensions: () => ({ width: 800, height: 600 }),
+            setDimensions: (width: number, height: number) => true,
+            getPixelRatio: () => 1.0,
+            requestAnimationFrame: (callback: () => void) => {
+                const id = setTimeout(callback, 16);
+                return () => clearTimeout(id);
+            }
+        };
 
         // Register the mock renderer
         mockRegistry.registerRenderer('dom', mockRenderer);
@@ -40,14 +54,14 @@ describe('RenderManager', () => {
         renderManager = new RenderManager(
             {type: 'dom'},
             mockEventBus,
-            mockContainer,
+            renderContainer,
             mockRegistry
         );
     });
 
     it('should initialize the correct renderer', () => {
         expect(mockRegistry.getRenderer).toHaveBeenCalledWith('dom');
-        expect(mockRenderer.init).toHaveBeenCalledWith(mockContainer);
+        expect(mockRenderer.init).toHaveBeenCalledWith(renderContainer);
     });
 
     it('should push commands to scene and UI queues', () => {

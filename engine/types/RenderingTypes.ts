@@ -1,7 +1,9 @@
 // engine/types/RenderingTypes.ts
 
+import type { IRenderContainer } from '../interfaces/IRenderContainer';
+
 export interface IRenderer {
-    init(container: HTMLElement): void;
+    init(container: IRenderContainer): void;
     clear(): void;
     flush(commands: RenderCommand[]): void;
     resize?(width: number, height: number): void;

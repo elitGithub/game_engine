@@ -14,7 +14,7 @@
 
 import type { IRenderContainer } from './IRenderContainer';
 import type { IAudioPlatform } from './IAudioPlatform';
-import type { IStorageAdapter } from '../core/StorageAdapter';
+import type { StorageAdapter } from '../core/StorageAdapter';
 import type { IInputAdapter } from './IInputAdapter';
 
 /**
@@ -101,7 +101,7 @@ export interface IPlatformAdapter {
      * Returns the same storage adapter instance on multiple calls.
      * All platforms MUST provide storage (even if in-memory)
      */
-    getStorageAdapter(): IStorageAdapter;
+    getStorageAdapter(): StorageAdapter;
 
     // ========================================================================
     // INPUT (SINGLETON)

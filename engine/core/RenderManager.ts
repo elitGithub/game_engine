@@ -1,23 +1,31 @@
 // --- AFTER ---
 import type {RenderCommand, IRenderer} from '../types/RenderingTypes';
 import {EventBus} from '../core/EventBus';
-import type { SystemRegistry } from './SystemRegistry';
+import type { IRenderContainer } from '../interfaces/IRenderContainer';
+
+/**
+ * Interface for renderer resolution
+ * Follows Interface Segregation Principle - RenderManager only depends on what it needs
+ */
+export interface IRendererProvider {
+    getRenderer(type: string): IRenderer;
+}
 
 export class RenderManager {
     private renderer: IRenderer;
     private sceneQueue: RenderCommand[] = [];
     private uiQueue: RenderCommand[] = [];
-    private registry: SystemRegistry;
+    private rendererProvider: IRendererProvider;
 
     constructor(
         config: { type: 'dom' | 'canvas' | 'svelte' },
         eventBus: EventBus,
-        container: HTMLElement,
-        registry: SystemRegistry
+        container: IRenderContainer,
+        rendererProvider: IRendererProvider
     ) {
 
-        this.registry = registry; // Store registry
-        this.renderer = this.registry.getRenderer(config.type);
+        this.rendererProvider = rendererProvider; // Store renderer provider
+        this.renderer = this.rendererProvider.getRenderer(config.type);
         this.renderer.init(container);
     }
 

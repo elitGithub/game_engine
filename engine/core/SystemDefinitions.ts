@@ -5,26 +5,27 @@
  * including dependencies and initialization logic.
  */
 
-import { SystemDefinition } from './SystemContainer';
-import { SYSTEMS } from './SystemRegistry';
-import { EventBus } from './EventBus';
-import { GameStateManager } from './GameStateManager';
-import { SceneManager } from '../systems/SceneManager';
-import { ActionRegistry } from '../systems/ActionRegistry';
-import { PluginManager } from './PluginManager';
-import { AssetManager } from '../systems/AssetManager';
-import { AudioManager } from '../systems/AudioManager';
-import { EffectManager } from '../systems/EffectManager';
-import { RenderManager } from './RenderManager';
-import { InputManager } from '../systems/InputManager';
-import { DomInputAdapter } from './DomInputAdapter';
-import { ImageLoader } from '../systems/asset_loaders/ImageLoader';
-import { AudioLoader } from '../systems/asset_loaders/AudioLoader';
-import { JsonLoader } from '../systems/asset_loaders/JsonLoader';
-import { DomRenderer } from '../rendering/DomRenderer';
-import { CanvasRenderer } from '../rendering/CanvasRenderer';
-import type { SystemConfig } from './SystemFactory';
-import type { PlatformContainer } from './PlatformContainer';
+import {SystemDefinition} from './SystemContainer';
+import {SYSTEMS} from './SystemRegistry';
+import {EventBus} from './EventBus';
+import {GameStateManager} from './GameStateManager';
+import {SceneManager} from '../systems/SceneManager';
+import {ActionRegistry} from '../systems/ActionRegistry';
+import {PluginManager} from './PluginManager';
+import {AssetManager} from '../systems/AssetManager';
+import {AudioManager} from '../systems/AudioManager';
+import {EffectManager} from '../systems/EffectManager';
+import {RenderManager, type IRendererProvider} from './RenderManager';
+import {InputManager} from '../systems/InputManager';
+import {DomInputAdapter} from './DomInputAdapter';
+import {ImageLoader} from '../systems/asset_loaders/ImageLoader';
+import {AudioLoader} from '../systems/asset_loaders/AudioLoader';
+import {JsonLoader} from '../systems/asset_loaders/JsonLoader';
+import {DomRenderer} from '../rendering/DomRenderer';
+import {CanvasRenderer} from '../rendering/CanvasRenderer';
+import {DomRenderContainer} from '../interfaces/IRenderContainer';
+import type {SystemConfig} from './SystemFactory';
+import type {PlatformContainer} from './PlatformContainer';
 
 /**
  * Create core system definitions based on config
@@ -183,25 +184,35 @@ export function createCoreSystemDefinitions(
                     const eventBus = c.get<EventBus>(SYSTEMS.EventBus);
                     const assetManager = c.get<AssetManager>(SYSTEMS.AssetManager);
 
-                    // Note: We need access to registry for renderer registration
-                    // This is a temporary workaround - ideally renderers would be in the container too
-                    const renderManager = new RenderManager(
+                    // Create render container from DOM element
+                    const renderContainer = new DomRenderContainer(domElement);
+
+                    // Ensure renderer provider is available (provided by SystemContainerBridge)
+                    if (!c.getRenderer) {
+                        throw new Error('[SystemDefinitions] RenderManager requires renderer provider (getRenderer method)');
+                    }
+
+                    // Create adapter for renderer resolution
+                    const rendererProvider: IRendererProvider = {
+                        getRenderer: (type: string) => c.getRenderer!(type)
+                    };
+
+                    // Create RenderManager with renderer provider
+                    return new RenderManager(
                         config.renderer!,
                         eventBus,
-                        domElement,
-                        c as any // SystemContainer doesn't have registerRenderer yet
+                        renderContainer,
+                        rendererProvider
                     );
-
-                    return renderManager;
                 },
                 initialize: (renderManager, c) => {
-                    // Register renderers with the registry
+                    // Register renderers with the factory context
                     const assetManager = c.get<AssetManager>(SYSTEMS.AssetManager);
-                    const registry = (c as any); // Access to SystemRegistry methods
 
-                    if (registry.registerRenderer) {
-                        registry.registerRenderer('dom', new DomRenderer(assetManager));
-                        registry.registerRenderer('canvas', new CanvasRenderer(assetManager));
+                    // Renderer registration is provided by SystemContainerBridge
+                    if (c.registerRenderer) {
+                        c.registerRenderer('dom', new DomRenderer(assetManager));
+                        c.registerRenderer('canvas', new CanvasRenderer(assetManager));
                     }
                 },
                 lazy: false // Rendering typically needed early
@@ -222,7 +233,12 @@ export function createCoreSystemDefinitions(
             initialize: (inputManager) => {
                 // Attach input adapter if container supports it
                 if (container) {
-                    const domInputAdapter = new DomInputAdapter(inputManager);
+                    const domInputAdapter = new DomInputAdapter();
+
+                    // Register event handler
+                    domInputAdapter.onEvent((event) => inputManager.processEvent(event));
+
+                    // Attach to container
                     const attached = domInputAdapter.attachToContainer(container, { tabindex: '0' });
 
                     if (!attached) {

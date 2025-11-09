@@ -2,10 +2,14 @@
 
 import type { IRenderer, RenderCommand, TextStyleData } from '../types/RenderingTypes';
 import type { AssetManager } from '@engine/systems/AssetManager.ts';
+import type { IRenderContainer } from '../interfaces/IRenderContainer';
+import { isDomRenderContainer } from '../interfaces/IRenderContainer';
 
 /**
  * DomRenderer - DOM-based renderer implementation
  * DECOUPLED: Applies generic data-* attributes without interpreting them
+ *
+ * Requires IDomRenderContainer - use with DomRenderContainer from platform adapter
  */
 export class DomRenderer implements IRenderer {
     private elements: Map<string, HTMLElement> = new Map();
@@ -13,8 +17,12 @@ export class DomRenderer implements IRenderer {
 
     constructor(private assets: AssetManager) {}
 
-    init(container: HTMLElement): void {
-        this.container = container;
+    init(container: IRenderContainer): void {
+        if (!isDomRenderContainer(container)) {
+            throw new Error('[DomRenderer] Requires IDomRenderContainer (DOM platform)');
+        }
+
+        this.container = container.getElement();
         this.container.style.position = 'relative';
         this.container.style.overflow = 'hidden';
     }

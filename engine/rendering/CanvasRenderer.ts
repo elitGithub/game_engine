@@ -1,11 +1,15 @@
 import type {IRenderer, RenderCommand, TextStyleData} from '@engine/types/RenderingTypes.ts';
 // Removed unused EventBus and container imports from constructor
 import type {AssetManager} from '@engine/systems/AssetManager.ts';
+import type { IRenderContainer } from '../interfaces/IRenderContainer';
+import { isCanvasRenderContainer } from '../interfaces/IRenderContainer';
 
 /**
  * CanvasRenderer - Canvas-based "dumb" IRenderer implementation.
  *
  * Renders commands to a 2D canvas context.
+ *
+ * Requires ICanvasRenderContainer - use with CanvasRenderContainer from platform adapter
  */
 export class CanvasRenderer implements IRenderer {
     // FIX: Use definite assignment assertion '!'
@@ -17,17 +21,16 @@ export class CanvasRenderer implements IRenderer {
         private assets: AssetManager
     ) {}
 
-    init(container: HTMLElement): void {
-        this.canvas = document.createElement('canvas');
-        container.appendChild(this.canvas);
-
-        const ctx = this.canvas.getContext('2d');
-        if (!ctx) {
-            throw new Error('[CanvasRenderer] Failed to get 2D context');
+    init(container: IRenderContainer): void {
+        if (!isCanvasRenderContainer(container)) {
+            throw new Error('[CanvasRenderer] Requires ICanvasRenderContainer (Canvas platform)');
         }
-        this.ctx = ctx;
 
-        this.resize(container.clientWidth, container.clientHeight);
+        this.canvas = container.getCanvas();
+        this.ctx = container.getContext();
+
+        const dimensions = container.getDimensions();
+        this.resize(dimensions.width, dimensions.height);
     }
 
     clear(): void {
