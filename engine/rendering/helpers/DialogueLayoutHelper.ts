@@ -75,7 +75,6 @@ export class DialogueLayoutHelper {
         return commands;
     }
 
-    // --- (textStyleToData helper method remains unchanged) ---
     private textStyleToData(style: TextStyleConfig | null, overrides: TextStyleData = {}): TextStyleData {
         const base: TextStyleData = {
             font: '16px Arial',
