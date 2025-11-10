@@ -88,8 +88,9 @@ export interface EngineConfig {
 export class Engine implements ISerializationRegistry {
     public readonly config: Required<Pick<EngineConfig, 'debug' | 'targetFPS' | 'gameVersion'>>;
     public readonly context: GameContext;
-    private readonly container: SystemContainer;
+    public readonly container: SystemContainer;
     private readonly platform: IPlatformAdapter;
+    private readonly userConfig: EngineConfig;
 
     public serializableSystems: Map<string, ISerializable>;
     public migrationFunctions: Map<string, MigrationFunction>;
@@ -104,6 +105,8 @@ export class Engine implements ISerializationRegistry {
     private renderers: Map<string, IRenderer> = new Map();
 
     private constructor(userConfig: EngineConfig) {
+        this.userConfig = userConfig;
+
         this.config = {
             debug: userConfig.debug ?? false,
             targetFPS: userConfig.targetFPS ?? 60,
@@ -131,46 +134,6 @@ export class Engine implements ISerializationRegistry {
         this.lastFrameTime = 0;
         this.frameCount = 0;
 
-        // Register core systems (platform-agnostic)
-        const coreDefinitions = createCoreSystemDefinitions();
-        for (const def of coreDefinitions) {
-            this.container.register(def);
-        }
-
-        // Register platform-aware systems
-        const platformConfig: PlatformSystemConfig = {
-            assets: userConfig.systems.assets,
-            audio: userConfig.systems.audio,
-            effects: userConfig.systems.effects,
-            renderer: userConfig.systems.renderer,
-            input: userConfig.systems.input
-        };
-        const platformDefinitions = createPlatformSystemDefinitions(this.platform, platformConfig);
-        for (const def of platformDefinitions) {
-            this.container.register(def);
-        }
-
-        // Initialize all non-lazy systems
-        this.container.initializeAll();
-
-        // Inject context into StateManager
-        this.stateManager.setContext(this.context);
-
-        // Wire context to systems (readonly references)
-        this.wireContext();
-
-        // Create SaveManager now that Engine exists
-        if (userConfig.systems.save !== false) {
-            const eventBus = this.container.get<EventBus>(CORE_SYSTEMS.EventBus);
-            const saveManager = new SaveManager(
-                eventBus,
-                this,
-                userConfig.storageAdapter
-            );
-            this.container.registerInstance(Symbol('SaveManager'), saveManager);
-            (this.context as any).save = saveManager;
-        }
-
         // Register core engine state as serializable
         this.registerSerializableSystem('_core', {
             serialize: () => ({
@@ -184,10 +147,10 @@ export class Engine implements ISerializationRegistry {
             },
         });
 
-        // Load game data if provided
-        if (userConfig.gameData) {
-            this.loadGameData(userConfig.gameData);
-        }
+        // NOTE: Systems are NOT auto-registered.
+        // The developer must explicitly register systems using:
+        //   engine.container.register(definition)
+        // Then call engine.initializeSystems()
     }
 
     /**
@@ -219,17 +182,102 @@ export class Engine implements ISerializationRegistry {
     }
 
     /**
+     * Initialize all registered systems
+     *
+     * Call this after registering all system definitions.
+     * This will:
+     * 1. Initialize all non-lazy systems
+     * 2. Wire StateManager context (if registered)
+     * 3. Wire systems to context for convenience
+     * 4. Create SaveManager (if enabled in config)
+     * 5. Load game data (if provided in config)
+     */
+    initializeSystems(): void {
+        // Initialize all non-lazy systems
+        this.container.initializeAll();
+
+        // Inject context into StateManager (if registered)
+        if (this.container.has(CORE_SYSTEMS.StateManager)) {
+            const stateManager = this.container.get<GameStateManager>(CORE_SYSTEMS.StateManager);
+            stateManager.setContext(this.context);
+        }
+
+        // Wire context to systems (readonly references)
+        this.wireContext();
+
+        // Create SaveManager if enabled (legacy special case)
+        // TODO: Convert this to a SystemDefinition in future version
+        if (this.userConfig.systems.save !== false) {
+            if (this.container.has(CORE_SYSTEMS.EventBus)) {
+                const eventBus = this.container.get<EventBus>(CORE_SYSTEMS.EventBus);
+                const saveManager = new SaveManager(
+                    eventBus,
+                    this,
+                    this.userConfig.storageAdapter
+                );
+                this.container.registerInstance(Symbol('SaveManager'), saveManager);
+                (this.context as any).save = saveManager;
+            } else {
+                console.warn('[Engine] SaveManager requires EventBus to be registered');
+            }
+        }
+
+        // Load game data if provided
+        if (this.userConfig.gameData) {
+            if (this.container.has(CORE_SYSTEMS.SceneManager)) {
+                this.loadGameData(this.userConfig.gameData);
+            } else {
+                console.warn('[Engine] Cannot load game data: SceneManager not registered');
+            }
+        }
+    }
+
+    /**
+     * Unlock audio (for autoplay policies)
+     *
+     * Call this after user interaction if AudioManager is registered.
+     */
+    async unlockAudio(): Promise<void> {
+        if (this.container.has(PLATFORM_SYSTEMS.AudioManager)) {
+            const audioManager = this.container.get<AudioManager>(PLATFORM_SYSTEMS.AudioManager);
+            await audioManager.unlockAudio();
+        }
+    }
+
+    /**
      * Static factory - THE ONLY WAY to create an Engine
      *
-     * This ensures proper initialization order and unlocks audio
+     * This creates an engine and auto-registers systems based on config.
+     * For manual system registration, use: new Engine(config) [when constructor becomes public]
      */
     static async create(config: EngineConfig): Promise<Engine> {
         const engine = new Engine(config);
 
-        // Unlock audio if AudioManager is enabled
-        if (engine.container.has(PLATFORM_SYSTEMS.AudioManager)) {
-            await engine.audio.unlockAudio();
+        // Auto-register systems for backward compatibility
+        // Register core systems (platform-agnostic)
+        const coreDefinitions = createCoreSystemDefinitions();
+        for (const def of coreDefinitions) {
+            engine.container.register(def);
         }
+
+        // Register platform-aware systems
+        const platformConfig: PlatformSystemConfig = {
+            assets: config.systems.assets,
+            audio: config.systems.audio,
+            effects: config.systems.effects,
+            renderer: config.systems.renderer,
+            input: config.systems.input
+        };
+        const platformDefinitions = createPlatformSystemDefinitions(engine.platform, platformConfig);
+        for (const def of platformDefinitions) {
+            engine.container.register(def);
+        }
+
+        // Initialize all systems
+        engine.initializeSystems();
+
+        // Unlock audio if AudioManager is enabled
+        await engine.unlockAudio();
 
         engine.log('Engine created successfully');
 
@@ -269,30 +317,51 @@ export class Engine implements ISerializationRegistry {
     // ========================================================================
 
     get eventBus(): EventBus {
+        if (!this.container.has(CORE_SYSTEMS.EventBus)) {
+            throw new Error('[Engine] EventBus not registered. Call container.register() with core system definitions.');
+        }
         return this.container.get<EventBus>(CORE_SYSTEMS.EventBus);
     }
 
     get audio(): AudioManager {
+        if (!this.container.has(PLATFORM_SYSTEMS.AudioManager)) {
+            throw new Error('[Engine] AudioManager not registered. Call container.register() with platform system definitions.');
+        }
         return this.container.get<AudioManager>(PLATFORM_SYSTEMS.AudioManager);
     }
 
     get assets(): AssetManager {
+        if (!this.container.has(PLATFORM_SYSTEMS.AssetManager)) {
+            throw new Error('[Engine] AssetManager not registered. Call container.register() with platform system definitions.');
+        }
         return this.container.get<AssetManager>(PLATFORM_SYSTEMS.AssetManager);
     }
 
     get save(): SaveManager {
+        if (!this.container.has(Symbol('SaveManager'))) {
+            throw new Error('[Engine] SaveManager not initialized. Call initializeSystems() or enable save in config.');
+        }
         return this.container.get<SaveManager>(Symbol('SaveManager'));
     }
 
     get stateManager(): GameStateManager {
+        if (!this.container.has(CORE_SYSTEMS.StateManager)) {
+            throw new Error('[Engine] StateManager not registered. Call container.register() with core system definitions.');
+        }
         return this.container.get<GameStateManager>(CORE_SYSTEMS.StateManager);
     }
 
     get sceneManager(): SceneManager {
+        if (!this.container.has(CORE_SYSTEMS.SceneManager)) {
+            throw new Error('[Engine] SceneManager not registered. Call container.register() with core system definitions.');
+        }
         return this.container.get<SceneManager>(CORE_SYSTEMS.SceneManager);
     }
 
     get actionRegistry(): ActionRegistry {
+        if (!this.container.has(CORE_SYSTEMS.ActionRegistry)) {
+            throw new Error('[Engine] ActionRegistry not registered. Call container.register() with core system definitions.');
+        }
         return this.container.get<ActionRegistry>(CORE_SYSTEMS.ActionRegistry);
     }
 
@@ -305,6 +374,9 @@ export class Engine implements ISerializationRegistry {
     }
 
     get pluginManager(): PluginManager {
+        if (!this.container.has(CORE_SYSTEMS.PluginManager)) {
+            throw new Error('[Engine] PluginManager not registered. Call container.register() with core system definitions.');
+        }
         return this.container.get<PluginManager>(CORE_SYSTEMS.PluginManager);
     }
 
