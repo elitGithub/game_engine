@@ -36,59 +36,7 @@ export interface PlatformContainer {
     getDimensions?(): { width: number; height: number };
 }
 
-/**
- * BrowserContainer - Browser/DOM implementation
- */
-export class BrowserContainer implements PlatformContainer {
-    constructor(private element: HTMLElement) {}
-
-    getDomElement(): HTMLElement {
-        return this.element;
-    }
-
-    getCanvasElement(): HTMLCanvasElement | undefined {
-        return this.element instanceof HTMLCanvasElement
-            ? this.element
-            : undefined;
-    }
-
-    getDimensions(): { width: number; height: number } {
-        return {
-            width: this.element.clientWidth,
-            height: this.element.clientHeight
-        };
-    }
-}
-
-/**
- * NativeContainer - Mobile/native implementation example
- */
-export class NativeContainer implements PlatformContainer {
-    constructor(private view: any) {}
-
-    getNativeView(): any {
-        return this.view;
-    }
-
-    getDimensions(): { width: number; height: number } {
-        // Platform-specific dimension retrieval
-        return {
-            width: this.view.width || 0,
-            height: this.view.height || 0
-        };
-    }
-}
-
-/**
- * HeadlessContainer - Server/testing implementation
- */
-export class HeadlessContainer implements PlatformContainer {
-    constructor(private width: number = 800, private height: number = 600) {}
-
-    getDimensions(): { width: number; height: number } {
-        return {
-            width: this.width,
-            height: this.height
-        };
-    }
-}
+// Concrete implementations (re-exported from separate files)
+export { BrowserContainer } from './BrowserContainer';
+export { NativeContainer } from './NativeContainer';
+export { HeadlessContainer } from './HeadlessContainer';

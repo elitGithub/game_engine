@@ -1,7 +1,6 @@
 // engine/rendering/helpers/DialogueLayoutHelper.ts
 
-import type {PositionedDialogue, RenderCommand, TextStyleData} from '../../types/RenderingTypes';
-import type {TextStyleConfig} from '@engine/types';
+import type {PositionedDialogue, RenderCommand, } from '../../types/RenderingTypes';
 
 
 /**
@@ -73,29 +72,5 @@ export class DialogueLayoutHelper {
         }
 
         return commands;
-    }
-
-    private textStyleToData(style: TextStyleConfig | null, overrides: TextStyleData = {}): TextStyleData {
-        const base: TextStyleData = {
-            font: '16px Arial',
-            color: '#ffffff',
-            align: 'left',
-            bold: false,
-            italic: false
-        };
-
-        if (style) {
-            // This code works perfectly because TextStyleConfig has all these properties
-            const fontStyle = style.fontStyle || 'normal';
-            const fontWeight = style.fontWeight || 'normal';
-            const fontSize = style.fontSize || '16px';
-            const fontFamily = style.fontFamily || 'Arial';
-
-            base.font = `${fontStyle} ${fontWeight} ${fontSize} ${fontFamily}`;
-            base.color = style.color || base.color;
-            base.align = style.textAlign || base.align;
-        }
-
-        return {...base, ...overrides};
     }
 }
