@@ -1,7 +1,7 @@
 // engine/tests/LocalStorageAdapter.test.ts
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { LocalStorageAdapter } from '@engine/systems/LocalStorageAdapter';
+import { LocalStorageAdapter } from '@engine/platform/browser/LocalStorageAdapter';
 
 // Mock global localStorage
 const localStorageMock = (() => {

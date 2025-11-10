@@ -1,6 +1,7 @@
 // engine/audio/MusicPlayer.ts
 import type { EventBus } from '@engine/core/EventBus';
 import type { AssetManager } from '@engine/systems/AssetManager';
+import type { ITimerProvider } from '@engine/interfaces';
 
 export type MusicState = 'playing' | 'paused' | 'stopped';
 
@@ -11,7 +12,7 @@ export interface MusicTrack {
     startTime: number;
     pausedAt: number;
     duration: number;
-    fadeOutTimer?: number;
+    fadeOutTimer?: unknown;
 }
 
 /**
@@ -25,7 +26,8 @@ export class MusicPlayer {
         private audioContext: AudioContext,
         private assetManager: AssetManager,
         private eventBus: EventBus,
-        private outputNode: GainNode // Connects to the main 'musicGain'
+        private outputNode: GainNode, // Connects to the main 'musicGain'
+        private timer: ITimerProvider
     ) {}
 
     async playMusic(trackId: string, loop: boolean = true, fadeInDuration: number = 0): Promise<void> {
@@ -109,7 +111,7 @@ export class MusicPlayer {
         if (!this.currentMusic) return;
 
         if (this.currentMusic.fadeOutTimer !== undefined) {
-            clearTimeout(this.currentMusic.fadeOutTimer);
+            this.timer.clearTimeout(this.currentMusic.fadeOutTimer);
             this.currentMusic.fadeOutTimer = undefined;
         }
 
@@ -118,7 +120,7 @@ export class MusicPlayer {
             this.currentMusic.gainNode.gain.setValueAtTime(this.currentMusic.gainNode.gain.value, currentTime);
             this.currentMusic.gainNode.gain.linearRampToValueAtTime(0, currentTime + fadeOutDuration);
 
-            this.currentMusic.fadeOutTimer = window.setTimeout(() => {
+            this.currentMusic.fadeOutTimer = this.timer.setTimeout(() => {
                 if (this.currentMusic?.source) {
                     this.currentMusic.source.stop();
                     this.currentMusic.source = null;

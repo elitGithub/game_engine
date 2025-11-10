@@ -3,6 +3,7 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { MusicPlayer } from '@engine/audio/MusicPlayer';
 import { EventBus } from '@engine/core/EventBus';
 import { AssetManager } from '@engine/systems/AssetManager';
+import type { ITimerProvider } from '@engine/interfaces';
 
 // Mock dependencies
 vi.mock('@engine/core/EventBus');
@@ -49,6 +50,7 @@ describe('MusicPlayer', () => {
     let mockAssetManager: AssetManager;
     let mockAudioContext: any;
     let mockOutputGain: GainNode;
+    let mockTimerProvider: ITimerProvider;
 
     beforeEach(() => {
         vi.clearAllMocks();
@@ -58,6 +60,13 @@ describe('MusicPlayer', () => {
         mockAssetManager = new AssetManager(mockEventBus);
         mockAudioContext = new MockAudioContext();
         mockOutputGain = mockAudioContext.createGain(); // This is the 'musicGain'
+
+        // Mock timer provider to use Vitest's fake timers
+        mockTimerProvider = {
+            setTimeout: vi.fn((cb, ms) => window.setTimeout(cb, ms) as unknown),
+            clearTimeout: vi.fn((id) => window.clearTimeout(id as number)),
+            now: () => Date.now()
+        };
 
         // Reset spies on mock objects
         mockBufferSource.start.mockClear();
@@ -72,7 +81,7 @@ describe('MusicPlayer', () => {
         // Setup mock asset
         vi.mocked(mockAssetManager.get).mockReturnValue(mockAudioBuffer);
 
-        musicPlayer = new MusicPlayer(mockAudioContext, mockAssetManager, mockEventBus, mockOutputGain);
+        musicPlayer = new MusicPlayer(mockAudioContext, mockAssetManager, mockEventBus, mockOutputGain, mockTimerProvider);
     });
 
     afterEach(() => {

@@ -12,4 +12,10 @@ export interface ITimerProvider {
    * @param id The handle returned by setTimeout.
    */
   clearTimeout(id: unknown): void;
+
+  /**
+   * Gets the current timestamp in milliseconds.
+   * @returns The current time in milliseconds since epoch.
+   */
+  now(): number;
 }

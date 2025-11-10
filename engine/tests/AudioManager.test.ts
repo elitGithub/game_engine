@@ -6,6 +6,7 @@ import { AssetManager } from '@engine/systems/AssetManager';
 import { MusicPlayer } from '@engine/audio/MusicPlayer';
 import { SfxPool } from '@engine/audio/SfxPool';
 import { VoicePlayer } from '@engine/audio/VoicePlayer';
+import type { ITimerProvider } from '@engine/interfaces';
 
 // Mock the new helper classes
 vi.mock('@engine/audio/MusicPlayer');
@@ -44,12 +45,20 @@ describe('AudioManager (Facade)', () => {
     let mockSfxPool: SfxPool;
     let mockVoicePlayer: VoicePlayer;
     let mockAudioContext: any;
+    let mockTimerProvider: ITimerProvider;
 
     beforeEach(() => {
         vi.clearAllMocks();
 
+        // Mock timer provider
+        mockTimerProvider = {
+            setTimeout: vi.fn((cb, ms) => window.setTimeout(cb, ms) as unknown),
+            clearTimeout: vi.fn((id) => window.clearTimeout(id as number)),
+            now: () => Date.now()
+        };
+
         // Create mock instances of the helpers
-        mockMusicPlayer = new (vi.mocked(MusicPlayer))(vi.fn() as any, vi.fn() as any, vi.fn() as any, vi.fn() as any);
+        mockMusicPlayer = new (vi.mocked(MusicPlayer))(vi.fn() as any, vi.fn() as any, vi.fn() as any, vi.fn() as any, vi.fn() as any);
         mockSfxPool = new (vi.mocked(SfxPool))(vi.fn() as any, vi.fn() as any, vi.fn() as any);
         mockVoicePlayer = new (vi.mocked(VoicePlayer))(vi.fn() as any, vi.fn() as any, vi.fn() as any, vi.fn() as any);
 
@@ -63,7 +72,8 @@ describe('AudioManager (Facade)', () => {
         audioManager = new AudioManager(
             new (vi.mocked(EventBus))(),
             new (vi.mocked(AssetManager))(vi.fn() as any),
-            mockAudioContext
+            mockAudioContext,
+            mockTimerProvider
         );
 
         // Spy on the helper methods we want to test delegation to

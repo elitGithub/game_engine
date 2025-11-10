@@ -11,6 +11,7 @@ import { InputMode } from "@engine/types/EngineEventMap";
 import {InputActionMapper} from "@engine/input/InputActionMapper";
 import {InputComboTracker} from "@engine/input/InputComboTracker";
 import {GamepadState, InputState} from "@engine/input/InputState";
+import type { ITimerProvider } from '@engine/interfaces/ITimerProvider';
 
 
 
@@ -33,7 +34,7 @@ export class InputManager {
     private comboTracker: InputComboTracker;
     // ----------------------------------
 
-    constructor(stateManager: GameStateManager, eventBus: EventBus) {
+    constructor(stateManager: GameStateManager, eventBus: EventBus, timer: ITimerProvider) {
         this.stateManager = stateManager;
         this.eventBus = eventBus;
 
@@ -50,7 +51,7 @@ export class InputManager {
 
         // --- Instantiate helper classes ---
         this.actionMapper = new InputActionMapper(eventBus);
-        this.comboTracker = new InputComboTracker(eventBus, 10); // 10 is default buffer size
+        this.comboTracker = new InputComboTracker(eventBus, timer, 10); // 10 is default buffer size
         // ----------------------------------
     }
 

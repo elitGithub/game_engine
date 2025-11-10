@@ -1,7 +1,6 @@
 // engine/systems/SaveManager.ts
 import type { StorageAdapter, SaveSlotMetadata } from '../core/StorageAdapter';
 import type { EventBus } from '../core/EventBus';
-import { LocalStorageAdapter } from './LocalStorageAdapter';
 import type {ISerializationRegistry} from '../types';
 import { MigrationManager } from "./MigrationManager";
 
@@ -22,12 +21,12 @@ export class SaveManager {
     constructor(
         eventBus: EventBus,
         registry: ISerializationRegistry,
-        adapter?: StorageAdapter
+        adapter: StorageAdapter
     ) {
         this.eventBus = eventBus;
         this.registry = registry;
-        this.adapter = adapter || new LocalStorageAdapter();
-         this.migrationManager = new MigrationManager(this.registry.migrationFunctions);
+        this.adapter = adapter;
+        this.migrationManager = new MigrationManager(this.registry.migrationFunctions);
     }
 
     async saveGame(slotId: string, metadata?: Record<string, unknown>): Promise<boolean> {

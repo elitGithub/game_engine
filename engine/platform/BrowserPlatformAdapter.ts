@@ -19,7 +19,7 @@ import {
     CanvasRenderContainer,
     WebAudioPlatform
 } from '../interfaces';
-import { LocalStorageAdapter } from '../systems/LocalStorageAdapter';
+import { LocalStorageAdapter } from './browser/LocalStorageAdapter';
 import type { StorageAdapter } from '../core/StorageAdapter';
 import { DomInputAdapter } from '../core/DomInputAdapter';
 import { GamepadInputAdapter } from './GamepadInputAdapter';
@@ -179,7 +179,7 @@ export class BrowserPlatformAdapter implements IPlatformAdapter {
         if (!this.inputAdapter) {
             // Combine DOM input (keyboard/mouse) and gamepad input
             const domAdapter = new DomInputAdapter();
-            const gamepadAdapter = new GamepadInputAdapter();
+            const gamepadAdapter = new GamepadInputAdapter(this.getTimerProvider());
             this.inputAdapter = new CompositeInputAdapter(domAdapter, gamepadAdapter);
         }
 
@@ -194,7 +194,8 @@ export class BrowserPlatformAdapter implements IPlatformAdapter {
         if (!this.timerProvider) {
             this.timerProvider = {
                 setTimeout: (callback: () => void, ms: number) => window.setTimeout(callback, ms) as unknown,
-                clearTimeout: (id: unknown) => window.clearTimeout(id as number)
+                clearTimeout: (id: unknown) => window.clearTimeout(id as number),
+                now: () => Date.now()
             };
         }
         return this.timerProvider;

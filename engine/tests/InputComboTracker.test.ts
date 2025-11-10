@@ -3,18 +3,28 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { InputComboTracker } from '@engine/input/InputComboTracker';
 import { EventBus } from '@engine/core/EventBus';
+import type { ITimerProvider } from '@engine/interfaces/ITimerProvider';
 
 vi.mock('@engine/core/EventBus');
 
 describe('InputComboTracker', () => {
     let tracker: InputComboTracker;
     let mockEventBus: EventBus;
+    let mockTimerProvider: ITimerProvider;
 
     beforeEach(() => {
         vi.useFakeTimers();
         mockEventBus = new EventBus();
         vi.spyOn(mockEventBus, 'emit');
-        tracker = new InputComboTracker(mockEventBus, 5); // Use a small buffer size for testing
+
+        // Mock timer provider using vitest fake timers
+        mockTimerProvider = {
+            setTimeout: vi.fn((cb, ms) => window.setTimeout(cb, ms) as unknown),
+            clearTimeout: vi.fn((id) => window.clearTimeout(id as number)),
+            now: () => Date.now()
+        };
+
+        tracker = new InputComboTracker(mockEventBus, mockTimerProvider, 5); // Use a small buffer size for testing
     });
 
     afterEach(() => {

@@ -178,7 +178,8 @@ export class HeadlessPlatformAdapter implements IPlatformAdapter {
         if (!this.timerProvider) {
             this.timerProvider = {
                 setTimeout: (callback: () => void, ms: number) => setTimeout(callback, ms) as unknown,
-                clearTimeout: (id: unknown) => clearTimeout(id as ReturnType<typeof setTimeout>)
+                clearTimeout: (id: unknown) => clearTimeout(id as ReturnType<typeof setTimeout>),
+                now: () => Date.now()
             };
         }
         return this.timerProvider;

@@ -13,6 +13,7 @@
 import { BaseInputAdapter, type InputAdapterType, type InputCapabilities, type InputAttachOptions } from '../interfaces/IInputAdapter';
 import type { EngineInputEvent, GamepadButtonEvent, GamepadAxisEvent } from '../core/InputEvents';
 import type { IRenderContainer } from '../interfaces/IRenderContainer';
+import type { ITimerProvider } from '../interfaces/ITimerProvider';
 
 /**
  * Gamepad button state
@@ -50,15 +51,18 @@ interface GamepadState {
  * ```
  */
 export class GamepadInputAdapter extends BaseInputAdapter {
-    private pollingInterval: number | null = null;
+    private pollingTimerId: unknown | null = null;
     private lastGamepadStates: Map<number, GamepadState> = new Map();
     private readonly pollRate: number;
+    private readonly timer: ITimerProvider;
 
     /**
+     * @param timer Timer provider for platform-agnostic polling
      * @param pollRate Polling rate in milliseconds (default: 16ms = ~60Hz)
      */
-    constructor(pollRate: number = 16) {
+    constructor(timer: ITimerProvider, pollRate: number = 16) {
         super();
+        this.timer = timer;
         this.pollRate = pollRate;
     }
 
@@ -107,25 +111,28 @@ export class GamepadInputAdapter extends BaseInputAdapter {
      * Start polling the Gamepad API
      */
     private startPolling(): void {
-        if (this.pollingInterval !== null) {
+        if (this.pollingTimerId !== null) {
             return;
         }
 
-        this.pollingInterval = window.setInterval(() => {
+        const poll = () => {
             this.pollGamepads();
-        }, this.pollRate);
+            this.pollingTimerId = this.timer.setTimeout(poll, this.pollRate);
+        };
+
+        this.pollingTimerId = this.timer.setTimeout(poll, this.pollRate);
     }
 
     /**
      * Stop polling the Gamepad API
      */
     private stopPolling(): void {
-        if (this.pollingInterval === null) {
+        if (this.pollingTimerId === null) {
             return;
         }
 
-        clearInterval(this.pollingInterval);
-        this.pollingInterval = null;
+        this.timer.clearTimeout(this.pollingTimerId);
+        this.pollingTimerId = null;
     }
 
     /**

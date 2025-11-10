@@ -206,10 +206,12 @@ export class Engine implements ISerializationRegistry {
         if (this.userConfig.systems.save !== false) {
             if (this.container.has(CORE_SYSTEMS.EventBus)) {
                 const eventBus = this.container.get<EventBus>(CORE_SYSTEMS.EventBus);
+                // Get storage adapter from userConfig or from platform
+                const storageAdapter = this.userConfig.storageAdapter ?? this.platform.getStorageAdapter();
                 const saveManager = new SaveManager(
                     eventBus,
                     this,
-                    this.userConfig.storageAdapter
+                    storageAdapter
                 );
                 this.container.registerInstance(Symbol('SaveManager'), saveManager);
                 (this.context as any).save = saveManager;

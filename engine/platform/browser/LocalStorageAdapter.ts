@@ -1,7 +1,9 @@
 /**
- * LocalStorageAdapter - Default storage using browser localStorage
+ * LocalStorageAdapter - Browser localStorage implementation
+ *
+ * Platform-specific storage adapter for browsers using localStorage API.
  */
-import type { StorageAdapter, SaveSlotMetadata } from '../core/StorageAdapter';
+import type { StorageAdapter, SaveSlotMetadata } from '../../core/StorageAdapter';
 
 export class LocalStorageAdapter implements StorageAdapter {
     private keyPrefix: string;

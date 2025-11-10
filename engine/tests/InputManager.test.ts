@@ -6,6 +6,7 @@ import { EventBus } from '@engine/core/EventBus';
 import { GameStateManager } from '@engine/core/GameStateManager';
 import type { KeyDownEvent, KeyUpEvent } from '@engine/core/InputEvents';
 import type { GameState } from '@engine/core/GameState';
+import type { ITimerProvider } from '@engine/interfaces/ITimerProvider';
 
 // Mock dependencies
 vi.mock('@engine/core/EventBus');
@@ -36,6 +37,7 @@ describe('InputManager', () => {
     let mockStateManager: GameStateManager;
     let mockEventBus: EventBus;
     let mockState: GameState;
+    let mockTimerProvider: ITimerProvider;
 
     beforeEach(() => {
         // Create new mocks for each test
@@ -50,10 +52,17 @@ describe('InputManager', () => {
         vi.spyOn(mockStateManager, 'handleEvent');
         vi.spyOn(mockStateManager, 'getCurrentState').mockReturnValue(mockState);
 
-        inputManager = new InputManager(mockStateManager, mockEventBus);
-
         // Mock Date.now() for time-sensitive combo tests
         vi.useFakeTimers();
+
+        // Mock timer provider using vitest fake timers
+        mockTimerProvider = {
+            setTimeout: vi.fn((cb, ms) => window.setTimeout(cb, ms) as unknown),
+            clearTimeout: vi.fn((id) => window.clearTimeout(id as number)),
+            now: () => Date.now()
+        };
+
+        inputManager = new InputManager(mockStateManager, mockEventBus, mockTimerProvider);
 
         // --- NEW: Reset mock gamepad state ---
         mockGamepad.buttons[0].pressed = false;

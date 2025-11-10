@@ -129,7 +129,8 @@ export function createPlatformSystemDefinitions(
                     throw new Error('[PlatformSystemDefs] Platform audio context is null. Cannot create AudioManager.');
                 }
 
-                const audioManager = new AudioManager(eventBus, assetManager, audioContext);
+                const timer = platform.getTimerProvider();
+                const audioManager = new AudioManager(eventBus, assetManager, audioContext, timer);
 
                 // Apply audio config
                 if (typeof config.audio === 'object') {
@@ -238,7 +239,8 @@ export function createPlatformSystemDefinitions(
             factory: (c) => {
                 const stateManager = c.get<GameStateManager>(CORE_SYSTEMS.StateManager);
                 const eventBus = c.get<EventBus>(CORE_SYSTEMS.EventBus);
-                return new InputManager(stateManager, eventBus);
+                const timer = platform.getTimerProvider();
+                return new InputManager(stateManager, eventBus, timer);
             },
             initialize: (inputManager) => {
                 // Get input adapter from platform (NOT from window/document)

@@ -37,7 +37,8 @@ describe('EffectManager', () => {
         // Mock timer provider to use Vitest's fake timers
         mockTimerProvider = {
             setTimeout: vi.fn((cb, ms) => window.setTimeout(cb, ms) as unknown),
-            clearTimeout: vi.fn((id) => window.clearTimeout(id as number))
+            clearTimeout: vi.fn((id) => window.clearTimeout(id as number)),
+            now: () => Date.now()
         };
 
         effectManager = new EffectManager(mockTimerProvider);

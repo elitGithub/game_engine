@@ -1,6 +1,7 @@
 // engine/systems/AudioManager.ts
 import type { EventBus } from '../core/EventBus';
 import type { AssetManager } from './AssetManager';
+import type { ITimerProvider } from '@engine/interfaces';
 import { MusicPlayer, type MusicState } from '@engine/audio/MusicPlayer';
 import { SfxPool } from '@engine/audio/SfxPool';
 import { VoicePlayer } from '@engine/audio/VoicePlayer';
@@ -35,7 +36,8 @@ export class AudioManager {
     constructor(
         eventBus: EventBus,
         assetManager: AssetManager,
-        audioContext: AudioContext
+        audioContext: AudioContext,
+        timer: ITimerProvider
     ) {
         this.eventBus = eventBus;
         this.assetManager = assetManager;
@@ -54,7 +56,7 @@ export class AudioManager {
         this.masterGain.connect(this.audioContext.destination);
 
         // Instantiate helpers
-        this.musicPlayer = new MusicPlayer(audioContext, assetManager, eventBus, this.musicGain);
+        this.musicPlayer = new MusicPlayer(audioContext, assetManager, eventBus, this.musicGain, timer);
         this.sfxPool = new SfxPool(audioContext, assetManager, this.sfxGain);
         this.voicePlayer = new VoicePlayer(audioContext, assetManager, eventBus, this.voiceGain);
 
