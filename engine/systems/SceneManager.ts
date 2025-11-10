@@ -1,17 +1,25 @@
 // engine/systems/SceneManager.ts
-import type { TypedGameContext } from '@engine/types';
+import type { GameContext } from '@engine/types';
 import { Scene } from './Scene';
 import type { EventBus } from '../core/EventBus';
 import {ScenesDataMap, SceneData, SceneChoice} from "@engine/types/EngineEventMap";
 
-type SceneFactory<TGame> = (id: string, type: string, data: SceneData) => Scene<TGame>;
+type SceneFactory = (id: string, type: string, data: SceneData) => Scene;
 
-export class SceneManager<TGame = Record<string, unknown>> {
+/**
+ * SceneManager - Game-agnostic scene management
+ *
+ * "Step 1" library component: Provides the mechanism, not the policy.
+ * The developer must explicitly register all scene factories via registerSceneFactory().
+ *
+ * No auto-registration, no defaults, no opinions about scene types.
+ */
+export class SceneManager {
     private eventBus: EventBus;
-    private scenes: Map<string, Scene<TGame>>;
-    private currentScene: Scene<TGame> | null;
+    private scenes: Map<string, Scene>;
+    private currentScene: Scene | null;
     private history: string[];
-    private sceneFactories: Map<string, SceneFactory<TGame>>;
+    private sceneFactories: Map<string, SceneFactory>;
 
     constructor(eventBus: EventBus) {
         this.eventBus = eventBus;
@@ -19,34 +27,35 @@ export class SceneManager<TGame = Record<string, unknown>> {
         this.currentScene = null;
         this.history = [];
         this.sceneFactories = new Map();
-
-        this.registerSceneFactory('default', (id, type, data) => new Scene(id, type, data));
-
-        // --- FIX: Register 'story' type as an alias for 'default' ---
-        // This will fix the test failures where 'story' was expected.
-        this.registerSceneFactory('story', (id, type, data) => new Scene(id, type, data));
     }
 
-    registerSceneFactory(type: string, factory: SceneFactory<TGame>): void {
+    registerSceneFactory(type: string, factory: SceneFactory): void {
         this.sceneFactories.set(type, factory);
     }
 
     loadScenes(scenesData: ScenesDataMap): void {
         for (const [id, sceneData] of Object.entries(scenesData)) {
-            // --- FIX: Default to 'story' as seen in the code ---
-            const type = sceneData.sceneType || 'story';
-            const factory = this.sceneFactories.get(type) || this.sceneFactories.get('default')!;
+            const type = sceneData.sceneType;
+            if (!type) {
+                throw new Error(`[SceneManager] Scene '${id}' does not specify a 'sceneType'.`);
+            }
+            const factory = this.sceneFactories.get(type);
+            if (!factory) {
+                throw new Error(
+                    `[SceneManager] No scene factory registered for type '${type}' (used by scene '${id}'). ` +
+                    `Call registerSceneFactory('${type}', factory) before loading scenes.`
+                );
+            }
             const scene = factory(id, type, sceneData);
             this.scenes.set(id, scene);
         }
     }
 
-    getScene(sceneId: string): Scene<TGame> | null {
+    getScene(sceneId: string): Scene | null {
         return this.scenes.get(sceneId) || null;
     }
 
-    // --- FIX: Added 'isNavigatingBack' parameter ---
-    goToScene(sceneId: string, context: TypedGameContext<TGame>, isNavigatingBack: boolean = false): boolean {
+    goToScene(sceneId: string, context: GameContext, isNavigatingBack: boolean = false): boolean {
         const scene = this.getScene(sceneId);
 
         if (!scene) {
@@ -56,7 +65,6 @@ export class SceneManager<TGame = Record<string, unknown>> {
 
         if (this.currentScene) {
             this.currentScene.onExit(context);
-            // --- FIX: Only add to history on forward navigation ---
             if (!isNavigatingBack) {
                 this.history.push(this.currentScene.sceneId);
             }
@@ -67,7 +75,6 @@ export class SceneManager<TGame = Record<string, unknown>> {
 
         this.eventBus.emit('scene.changed', {
             sceneId: scene.sceneId,
-            // --- FIX: Use the actual determined type ---
             type: scene.sceneType,
             previousScene: this.history[this.history.length - 1] || null
         });
@@ -75,18 +82,17 @@ export class SceneManager<TGame = Record<string, unknown>> {
         return true;
     }
 
-    goBack(context: TypedGameContext<TGame>): boolean {
+    goBack(context: GameContext): boolean {
         if (this.history.length === 0) return false;
         const previousSceneId = this.history.pop()!;
-        // --- FIX: Pass 'true' for isNavigatingBack ---
         return this.goToScene(previousSceneId, context, true);
     }
 
-    getCurrentScene(): Scene<TGame> | null {
+    getCurrentScene(): Scene | null {
         return this.currentScene;
     }
 
-    getCurrentChoices(context: TypedGameContext<TGame>): SceneChoice[] {
+    getCurrentChoices(context: GameContext): SceneChoice[] {
         if (!this.currentScene) return [];
         return this.currentScene.getChoices(context);
     }

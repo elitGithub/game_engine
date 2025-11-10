@@ -5,6 +5,7 @@ import { Engine, type EngineConfig } from '@engine/Engine';
 import type { ISerializable } from '@engine/types';
 import { BrowserContainer } from '@engine/core/PlatformContainer';
 import { GameState } from '@engine/core/GameState';
+import { Scene } from '@engine/systems/Scene';
 
 // Mock a sample serializable system
 const mockPlayer: ISerializable = {
@@ -116,6 +117,9 @@ describe('Engine', () => {
     it('should implement ISerializationRegistry: getCurrentSceneId', async () => {
         const engine = await Engine.create(config);
 
+        // Register scene factory before loading scenes
+        engine.sceneManager.registerSceneFactory('story', (id, type, data) => new Scene(id, type, data));
+
         // Register a scene and navigate to it
         engine.sceneManager.loadScenes({
             test_scene: {
@@ -133,6 +137,9 @@ describe('Engine', () => {
 
     it('should implement ISerializationRegistry: restoreScene', async () => {
         const engine = await Engine.create(config);
+
+        // Register scene factory before loading scenes
+        engine.sceneManager.registerSceneFactory('story', (id, type, data) => new Scene(id, type, data));
 
         // Register a scene
         engine.sceneManager.loadScenes({

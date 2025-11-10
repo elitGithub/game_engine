@@ -19,6 +19,7 @@ import {
     MockInputAdapter
 } from '../interfaces';
 import type { StorageAdapter } from '../core/StorageAdapter';
+import { InMemoryStorageAdapter } from '../systems/InMemoryStorageAdapter';
 
 /**
  * Headless platform configuration
@@ -59,77 +60,6 @@ export interface HeadlessPlatformConfig {
      * Default: 'headless_'
      */
     storagePrefix?: string;
-}
-
-/**
- * In-memory storage adapter for headless environments
- */
-class InMemoryStorageAdapter implements StorageAdapter {
-    private storage = new Map<string, string>();
-
-    constructor(private prefix: string = 'headless_') {}
-
-    async save(slotId: string, data: string): Promise<boolean> {
-        try {
-            this.storage.set(this.prefix + slotId, data);
-            return true;
-        } catch {
-            return false;
-        }
-    }
-
-    async load(slotId: string): Promise<string | null> {
-        return this.storage.get(this.prefix + slotId) || null;
-    }
-
-    async delete(slotId: string): Promise<boolean> {
-        try {
-            this.storage.delete(this.prefix + slotId);
-            return true;
-        } catch {
-            return false;
-        }
-    }
-
-    async list(): Promise<import('../core/StorageAdapter').SaveSlotMetadata[]> {
-        const saves: import('../core/StorageAdapter').SaveSlotMetadata[] = [];
-
-        for (const [key, data] of this.storage.entries()) {
-            if (key.startsWith(this.prefix)) {
-                const slotId = key.substring(this.prefix.length);
-                try {
-                    const parsed = JSON.parse(data);
-                    saves.push({
-                        slotId,
-                        timestamp: parsed.timestamp || 0,
-                        ...parsed.metadata
-                    });
-                } catch {
-                    // If not JSON, create basic metadata
-                    saves.push({
-                        slotId,
-                        timestamp: Date.now()
-                    });
-                }
-            }
-        }
-
-        return saves.sort((a, b) => b.timestamp - a.timestamp);
-    }
-
-    /**
-     * Clear all storage (for testing)
-     */
-    clear(): void {
-        this.storage.clear();
-    }
-
-    /**
-     * Get storage size (for testing)
-     */
-    size(): number {
-        return this.storage.size;
-    }
 }
 
 /**
@@ -314,4 +244,5 @@ export class HeadlessPlatformAdapter implements IPlatformAdapter {
     }
 }
 
-export { InMemoryStorageAdapter };
+// Re-export for backward compatibility
+export { InMemoryStorageAdapter } from '../systems/InMemoryStorageAdapter';

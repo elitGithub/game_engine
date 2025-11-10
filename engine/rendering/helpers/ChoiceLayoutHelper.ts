@@ -1,7 +1,6 @@
 // engine/rendering/helpers/ChoiceLayoutHelper.ts
 
 import type { RenderCommand, TextStyleData } from '../../types/RenderingTypes';
-// --- FIX: Import the new PositionedChoice type ---
 import type { PositionedChoice } from '../../types/RenderingTypes';
 
 /**
@@ -11,9 +10,6 @@ import type { PositionedChoice } from '../../types/RenderingTypes';
  * DECOUPLED: Accepts pre-positioned data.
  */
 export class ChoiceLayoutHelper {
-    constructor() {}
-
-    // --- FIX: Method signature changed to accept PositionedChoice[] ---
     buildCommands(choices: PositionedChoice[]): RenderCommand[] {
         const commands: RenderCommand[] = [];
         const defaultStyle: TextStyleData = { color: '#34d399', font: '18px Arial' };

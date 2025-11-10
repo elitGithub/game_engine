@@ -15,10 +15,9 @@ import {RenderManager} from "@engine/core/RenderManager";
 import {PluginManager} from './core/PluginManager';
 import {SystemContainer} from './core/SystemContainer';
 import {createCoreSystemDefinitions, CORE_SYSTEMS} from './core/CoreSystemDefs';
-import {createPlatformSystemDefinitions, PLATFORM_SYSTEMS, type PlatformSystemConfig, type IPlatformFactoryContext} from './core/PlatformSystemDefs';
+import {createPlatformSystemDefinitions, PLATFORM_SYSTEMS, type PlatformSystemConfig} from './core/PlatformSystemDefs';
 import type {IPlatformAdapter} from '@engine/interfaces';
 import {BrowserPlatformAdapter} from './platform/BrowserPlatformAdapter';
-import type {IRenderer} from './types/RenderingTypes';
 
 /**
  * System configuration (kept for backward compatibility)
@@ -101,9 +100,6 @@ export class Engine implements ISerializationRegistry {
     private lastFrameTime: number;
     private frameCount: number;
 
-    // Renderer registry (for RenderManager initialization)
-    private renderers: Map<string, IRenderer> = new Map();
-
     private constructor(userConfig: EngineConfig) {
         this.userConfig = userConfig;
 
@@ -117,7 +113,7 @@ export class Engine implements ISerializationRegistry {
         this.platform = this.resolvePlatform(userConfig);
 
         // Create SystemContainer (the ONLY DI container)
-        this.container = new ExtendedSystemContainer(this.renderers);
+        this.container = new SystemContainer();
 
         // Initialize context with game state
         this.context = {
@@ -536,28 +532,5 @@ export class Engine implements ISerializationRegistry {
 
     getCurrentScene(): any {
         return this.sceneManager.getCurrentScene();
-    }
-}
-
-/**
- * ExtendedSystemContainer - Adds renderer registration to SystemContainer
- *
- * This allows RenderManager initialization to register renderers.
- */
-class ExtendedSystemContainer extends SystemContainer implements IPlatformFactoryContext {
-    constructor(private renderers: Map<string, IRenderer>) {
-        super();
-    }
-
-    registerRenderer(type: string, renderer: IRenderer): void {
-        this.renderers.set(type, renderer);
-    }
-
-    getRenderer(type: string): IRenderer {
-        const renderer = this.renderers.get(type);
-        if (!renderer) {
-            throw new Error(`[ExtendedSystemContainer] Renderer '${type}' not found`);
-        }
-        return renderer;
     }
 }

@@ -1,0 +1,23 @@
+Pedantic Audit: Flags Raised
+I will raise every flag, from critical to nitpick, as requested.
+
+Flag 1 (CRITICAL): EffectManager Violates Platform Abstraction
+Your documentation states: "Core engine code (engine/core/, engine/systems/) is strictly forbidden from any direct platform access" and "All platform access must be abstracted through the IPlatformAdapter".
+
+The EffectManager violates this rule in two ways:
+
+Direct DOM Dependency: The constructor constructor(container: HTMLElement) has a hard dependency on HTMLElement. This makes the EffectManager a DOM-only system, which is a "Step 2" (opinionated framework) concept, not a "Step 1" (agnostic library) tool. The apply method for static effects and startGlobalEffect also directly assume a DOM target.
+
+Direct window API Calls: The apply method uses window.setTimeout and window.clearTimeout. This is a direct call to a browser-global API, bypassing the platform adapter. A truly agnostic system would require the platform to provide a timer or scheduler service.
+
+While your TypewriterEffect and EffectTypes.ts correctly use the abstract IEffectTarget interface, the EffectManager itself does not fully utilize it, creating a critical architectural inconsistency.
+
+Flag 2 (HIGH): Dead Code (AudioSourceAdapter)
+The files engine/core/AudioSourceAdapter.ts, engine/systems/LocalAudioSourceAdapter.ts, and engine/systems/CDNAudioSourceAdapter.ts are orphaned.
+
+They are not imported, referenced, or used by any other part of the engine, including the AudioManager or AssetManager. Your own SESSION_STATE.md correctly identifies these as "unused and should be removed." They represent a failed abstraction path and must be deleted to avoid confusion.
+
+Flag 3 (MEDIUM): Single Responsibility Principle Violation (IRenderContainer)
+Your documentation correctly identifies this: "PENDING: IRenderContainer.ts still contains concrete class implementations and must be cleaned up.".
+
+The file engine/interfaces/IRenderContainer.ts defines interfaces (IRenderContainer, IDomRenderContainer, ICanvasRenderContainer) and also provides concrete implementations (DomRenderContainer, CanvasRenderContainer, HeadlessRenderContainer). This is a clear SRP violation. The implementation classes should be in their own files, such as engine/platform/dom/DomRenderContainer.ts, etc.

@@ -4,7 +4,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { SceneManager } from '@engine/systems/SceneManager';
 import { Scene } from '@engine/systems/Scene';
 import { EventBus } from '@engine/core/EventBus';
-import type { TypedGameContext } from '@engine/types';
+import type { GameContext } from '@engine/types';
 import type { ScenesDataMap, SceneChoice } from '@engine/types/EngineEventMap';
 
 // Mock dependencies
@@ -18,14 +18,14 @@ class MockScene extends Scene {
 }
 
 describe('SceneManager', () => {
-    let sceneManager: SceneManager<any>;
+    let sceneManager: SceneManager;
     let mockEventBus: EventBus;
-    let mockContext: TypedGameContext<any>;
+    let mockContext: GameContext;
 
     const scenesData: ScenesDataMap = {
-        'start': { text: 'Start scene' }, // Will default to sceneType: 'story'
-        'middle': { text: 'Middle scene' },
-        'end': { text: 'End scene' }
+        'start': { text: 'Start scene', sceneType: 'story' },
+        'middle': { text: 'Middle scene', sceneType: 'story' },
+        'end': { text: 'End scene', sceneType: 'story' }
     };
 
     beforeEach(() => {
@@ -36,10 +36,10 @@ describe('SceneManager', () => {
             game: {},
             flags: new Set(),
             variables: new Map()
-        } as TypedGameContext<any>;
+        };
 
         // Register a custom factory to use our MockScene
-        sceneManager.registerSceneFactory('story', (id, type, data) => {
+        sceneManager.registerSceneFactory('story', (id: string, type: string, data: any) => {
             return new MockScene(id, type, data);
         });
 

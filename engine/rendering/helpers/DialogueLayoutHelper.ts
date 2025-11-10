@@ -1,7 +1,6 @@
 // engine/rendering/helpers/DialogueLayoutHelper.ts
 
 import type {PositionedDialogue, RenderCommand, TextStyleData} from '../../types/RenderingTypes';
-import type {SpeakerRegistry} from '../SpeakerRegistry';
 import type {TextStyleConfig} from '@engine/types';
 
 
@@ -12,13 +11,11 @@ import type {TextStyleConfig} from '@engine/types';
  * DECOUPLED: Accepts pre-positioned data.
  */
 export class DialogueLayoutHelper {
-    constructor(private speakerRegistry: SpeakerRegistry) {}
 
     /**
      * Generates all commands needed to render a dialogue line
      * based on the pre-calculated geometry in the PositionedDialogue object.
      */
-    // --- FIX: Method signature changed. No 'layout' string. ---
     buildCommands(dialogue: PositionedDialogue): RenderCommand[] {
         const commands: RenderCommand[] = [];
         const zIndex = dialogue.zIndex || 1000;
@@ -79,7 +76,7 @@ export class DialogueLayoutHelper {
     }
 
     // --- (textStyleToData helper method remains unchanged) ---
-    private textStyleToData(style: TextStyleConfig | null, overrides: TextStyleData = {}): TextStyleData { // <-- REMOVED 'TextStyle |'
+    private textStyleToData(style: TextStyleConfig | null, overrides: TextStyleData = {}): TextStyleData {
         const base: TextStyleData = {
             font: '16px Arial',
             color: '#ffffff',

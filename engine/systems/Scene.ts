@@ -1,10 +1,13 @@
 /**
  * Scene - Base class for all game scenes
+ *
+ * Fully game-agnostic. Does not know about your game state type.
+ * When implementing game-specific scenes, cast the context to TypedGameContext<YourGameState>.
  */
-import type {TypedGameContext} from '@engine/types';
+import type {GameContext} from '@engine/types';
 import {SceneChoice, SceneData} from "@engine/types/EngineEventMap";
 
-export class Scene<TGame = Record<string, unknown>> {
+export class Scene {
 
     constructor(public sceneId: string, public sceneType: string, public sceneData: SceneData = {}) {
     }
@@ -12,14 +15,14 @@ export class Scene<TGame = Record<string, unknown>> {
     /**
      * Called when scene is entered
      */
-    onEnter(context: TypedGameContext<TGame>): void {
+    onEnter(context: GameContext): void {
         // Override in game systems if needed
     }
 
     /**
      * Called when scene is exited
      */
-    onExit(context: TypedGameContext<TGame>): void {
+    onExit(context: GameContext): void {
         // Override in game systems if needed
     }
 
@@ -33,7 +36,7 @@ export class Scene<TGame = Record<string, unknown>> {
     /**
      * Get available choices/exits from this scene
      */
-    getChoices(context: TypedGameContext<TGame>): SceneChoice[] {
+    getChoices(context: GameContext): SceneChoice[] {
         return this.sceneData?.choices || [];
     }
 

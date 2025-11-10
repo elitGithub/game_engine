@@ -2,18 +2,13 @@
 
 import type {
     RenderCommand,
-    TextStyleData,
     TextDisplayData,
-    // --- FIX: Import new "dumb" data types ---
     PositionedBar,
     PositionedMenu,
     PositionedChoice,
     PositionedDialogue
 } from '@engine/types/RenderingTypes';
-import type { DialogueLine } from '../DialogueLine';
-import type { SpeakerRegistry } from '../SpeakerRegistry';
 import { TextRenderer } from './TextRenderer';
-import type { SceneChoice } from '@engine/types/EngineEventMap';
 
 /**
  * UIRenderer - Screen-space rendering helper
@@ -23,21 +18,18 @@ import type { SceneChoice } from '@engine/types/EngineEventMap';
 export class UIRenderer {
     private textRenderer: TextRenderer;
 
-    constructor(speakerRegistry: SpeakerRegistry) {
-        this.textRenderer = new TextRenderer(speakerRegistry);
+    constructor() {
+        this.textRenderer = new TextRenderer();
     }
 
-    // --- FIX: Method signature changed ---
     buildDialogueCommands(dialogue: PositionedDialogue): RenderCommand[] {
         return this.textRenderer.buildDialogueCommands(dialogue);
     }
 
-    // --- FIX: Method signature changed ---
     buildChoiceCommands(choices: PositionedChoice[]): RenderCommand[] {
         return this.textRenderer.buildChoiceCommands(choices);
     }
 
-    // --- FIX: Method signature and implementation changed ---
     buildBarCommands(barData: PositionedBar): RenderCommand[] {
         const commands: RenderCommand[] = [];
         const zIndex = barData.zIndex || 10000;
@@ -103,7 +95,6 @@ export class UIRenderer {
      * Build menu commands - DECOUPLED from game logic
      * Uses generic, pre-positioned data.
      */
-    // --- FIX: Method signature and implementation changed ---
     buildMenuCommands(menuData: PositionedMenu): RenderCommand[] {
         const commands: RenderCommand[] = [];
         const zIndex = menuData.zIndex || 20000;

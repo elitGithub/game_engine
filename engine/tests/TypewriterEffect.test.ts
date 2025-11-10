@@ -21,7 +21,6 @@ describe('TypewriterEffect', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
-        // --- FIX: Pass delay as 300ms ---
         effect = new TypewriterEffect({ charsPerSecond: charsPerSecond, punctuationDelay: 300 });
         vi.mocked(mockTarget.getProperty).mockReturnValue('Hello!');
         effect.onStart(mockTarget, {} as any);
@@ -55,8 +54,6 @@ describe('TypewriterEffect', () => {
 
         effect.onUpdate(mockTarget, {} as any, timePerChar); // "H"
         effect.onUpdate(mockTarget, {} as any, timePerChar); // "Hi"
-
-        // --- FIX: Test logic revised ---
 
         // After this call, the last text is "Hi".
         // The *next* character is '.', so the delay is now (timePerChar + punctuationDelay)

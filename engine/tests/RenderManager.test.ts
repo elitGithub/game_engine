@@ -1,7 +1,7 @@
 // engine/tests/RenderManager.test.ts
 
 import {beforeEach, describe, expect, it, vi} from 'vitest';
-import {RenderManager, type IRendererProvider} from '@engine/core/RenderManager';
+import {RenderManager} from '@engine/core/RenderManager';
 import {EventBus} from '@engine/core/EventBus';
 import type {IRenderer, RenderCommand} from '@engine/types/RenderingTypes';
 import type { IDomRenderContainer } from '@engine/interfaces/IRenderContainer';
@@ -20,7 +20,6 @@ const mockRenderer: IRenderer = {
 describe('RenderManager', () => {
     let renderManager: RenderManager;
     let mockEventBus: EventBus;
-    let mockRendererProvider: IRendererProvider;
     let mockContainer: HTMLElement;
     let renderContainer: IDomRenderContainer;
 
@@ -43,21 +42,15 @@ describe('RenderManager', () => {
             }
         };
 
-        // Create mock IRendererProvider
-        mockRendererProvider = {
-            getRenderer: vi.fn(() => mockRenderer)
-        };
-
         renderManager = new RenderManager(
             {type: 'dom'},
             mockEventBus,
             renderContainer,
-            mockRendererProvider
+            mockRenderer
         );
     });
 
-    it('should initialize the correct renderer', () => {
-        expect(mockRendererProvider.getRenderer).toHaveBeenCalledWith('dom');
+    it('should initialize the renderer', () => {
         expect(mockRenderer.init).toHaveBeenCalledWith(renderContainer);
     });
 

@@ -1,31 +1,30 @@
-// --- AFTER ---
 import type {RenderCommand, IRenderer} from '../types/RenderingTypes';
 import {EventBus} from '../core/EventBus';
-import type { IRenderContainer } from '../interfaces/IRenderContainer';
+import type { IRenderContainer } from '@engine/interfaces';
 
 /**
- * Interface for renderer resolution
- * Follows Interface Segregation Principle - RenderManager only depends on what it needs
+ * RenderManager - Rendering facade
+ *
+ * Manages render command queues and delegates rendering to an IRenderer implementation.
+ * The renderer is injected as a dependency through SystemContainer.
+ *
+ * Follows the same pattern as AudioManager (gold standard):
+ * - Receives platform-specific implementation via constructor
+ * - Self-contained facade over that implementation
+ * - No internal registry or factory logic
  */
-export interface IRendererProvider {
-    getRenderer(type: string): IRenderer;
-}
-
 export class RenderManager {
     private renderer: IRenderer;
     private sceneQueue: RenderCommand[] = [];
     private uiQueue: RenderCommand[] = [];
-    private rendererProvider: IRendererProvider;
 
     constructor(
-        config: { type: 'dom' | 'canvas' | 'svelte' },
+        config: { type: string },
         eventBus: EventBus,
         container: IRenderContainer,
-        rendererProvider: IRendererProvider
+        renderer: IRenderer
     ) {
-
-        this.rendererProvider = rendererProvider; // Store renderer provider
-        this.renderer = this.rendererProvider.getRenderer(config.type);
+        this.renderer = renderer;
         this.renderer.init(container);
     }
 

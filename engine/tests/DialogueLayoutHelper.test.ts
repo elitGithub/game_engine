@@ -9,9 +9,7 @@ describe('DialogueLayoutHelper', () => {
     let helper: DialogueLayoutHelper;
 
     beforeEach(() => {
-        // The constructor's 'speakerRegistry' is not used by buildCommands,
-        // so we can safely pass a mock.
-        helper = new DialogueLayoutHelper(null as any);
+        helper = new DialogueLayoutHelper();
     });
 
     it('should build commands for a full dialogue line', () => {

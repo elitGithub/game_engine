@@ -12,18 +12,15 @@ vi.mock('@engine/rendering/helpers/ChoiceLayoutHelper');
 describe('TextRenderer', () => {
     let textRenderer: TextRenderer;
 
-    // --- FIX: Define mocks as the correct type ---
     let mockDialogueHelper: DialogueLayoutHelper;
     let mockChoiceHelper: ChoiceLayoutHelper;
 
     beforeEach(() => {
         vi.clearAllMocks();
 
-        // --- FIX: Clear mock constructor calls from other test files ---
         vi.mocked(DialogueLayoutHelper).mockClear();
         vi.mocked(ChoiceLayoutHelper).mockClear();
 
-        // --- FIX: Create mock instances *without* calling the constructor ---
         // We cast a plain object with mocked methods to the class type.
         mockDialogueHelper = {
             buildCommands: vi.fn().mockReturnValue([{ type: 'text' } as any])
@@ -33,13 +30,12 @@ describe('TextRenderer', () => {
             buildCommands: vi.fn().mockReturnValue([{ type: 'hotspot' } as any])
         } as unknown as ChoiceLayoutHelper;
 
-        // --- FIX: Set mockImplementation *before* TextRenderer is created ---
         // When DialogueLayoutHelper is called via `new`, return our mock instance.
         vi.mocked(DialogueLayoutHelper).mockImplementation(() => mockDialogueHelper);
         vi.mocked(ChoiceLayoutHelper).mockImplementation(() => mockChoiceHelper);
 
-        // --- This is now the *only* place the constructors are called ---
-        textRenderer = new TextRenderer(null as any);
+        // TextRenderer creates its own helpers internally
+        textRenderer = new TextRenderer();
     });
 
     it('should instantiate helpers on construction', () => {

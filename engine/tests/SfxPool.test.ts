@@ -20,7 +20,6 @@ const createMockBufferSource = () => ({
     loop: false,
 });
 
-// --- FIX: This variable will be reassigned, not mutated ---
 let lastCreatedMockBufferSource = createMockBufferSource();
 
 const mockGainNode = {
@@ -36,7 +35,6 @@ const mockGainNode = {
 const MockAudioContext = vi.fn(() => ({
     createGain: vi.fn(() => mockGainNode),
     createBufferSource: vi.fn(() => {
-        // --- FIX: Return a fresh mock source each time ---
         lastCreatedMockBufferSource = createMockBufferSource();
         return lastCreatedMockBufferSource;
     }),
@@ -104,7 +102,6 @@ describe('SfxPool', () => {
 
         // It should *not* have created a new source, but reused the pooled one
         expect(mockAudioContext.createBufferSource).toHaveBeenCalledTimes(1);
-        // --- FIX: The last *created* source is not what's playing. ---
         // We can't easily test *which* source was used without inspecting internals.
         // The fact that createBufferSource wasn't called again is the main test.
     });
@@ -138,7 +135,6 @@ describe('SfxPool', () => {
         await sfxPool.play('sfx_laser');
         expect(mockAudioContext.createBufferSource).toHaveBeenCalledTimes(2); // No new source
 
-        // --- FIX: This is the correct assertion ---
         // The last source *started* should be source1 (reused from pool).
         // `lastCreatedMockBufferSource` still points to source2, which is wrong.
         expect(source1.start).toHaveBeenCalledTimes(2); // source1 was started twice

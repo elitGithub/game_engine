@@ -8,12 +8,12 @@
  * These are still library components, but they require platform adapters.
  */
 
-import { SystemDefinition, ISystemFactoryContext } from './SystemContainer';
+import { SystemDefinition } from './SystemContainer';
 import { EventBus } from './EventBus';
 import { AssetManager } from '../systems/AssetManager';
 import { AudioManager } from '../systems/AudioManager';
 import { EffectManager } from '../systems/EffectManager';
-import { RenderManager, type IRendererProvider } from './RenderManager';
+import { RenderManager } from './RenderManager';
 import { InputManager } from '../systems/InputManager';
 import { GameStateManager } from './GameStateManager';
 import { ImageLoader } from '../systems/asset_loaders/ImageLoader';
@@ -35,6 +35,9 @@ export const PLATFORM_SYSTEMS = {
     EffectManager: Symbol('EffectManager'),
     RenderManager: Symbol('RenderManager'),
     InputManager: Symbol('InputManager'),
+    // Renderer implementations (injected as dependencies)
+    RendererDOM: Symbol('Renderer.DOM'),
+    RendererCanvas: Symbol('Renderer.Canvas'),
 } as const;
 
 /**
@@ -52,14 +55,6 @@ export interface PlatformSystemConfig {
     input?: boolean;
 }
 
-/**
- * Extended factory context with renderer registration
- * (for RenderManager initialization)
- */
-export interface IPlatformFactoryContext extends ISystemFactoryContext {
-    registerRenderer?(type: string, renderer: IRenderer): void;
-    getRenderer?(type: string): IRenderer;
-}
 
 /**
  * Create platform-aware system definitions
@@ -175,53 +170,65 @@ export function createPlatformSystemDefinitions(
     }
 
     // ====================================================================
-    // RENDER MANAGER (Requires IRenderContainer from platform)
+    // RENDERERS (Renderer implementations as systems)
     // ====================================================================
 
     if (config.renderer) {
         if (config.assets === false) {
-            throw new Error('[PlatformSystemDefs] RenderManager requires AssetManager. Enable assets in config.');
+            throw new Error('[PlatformSystemDefs] Renderers require AssetManager. Enable assets in config.');
         }
 
+        // DOM Renderer system
+        definitions.push({
+            key: PLATFORM_SYSTEMS.RendererDOM,
+            dependencies: [PLATFORM_SYSTEMS.AssetManager],
+            factory: (c) => {
+                const assetManager = c.get<AssetManager>(PLATFORM_SYSTEMS.AssetManager);
+                return new DomRenderer(assetManager);
+            },
+            lazy: false
+        });
+
+        // Canvas Renderer system
+        definitions.push({
+            key: PLATFORM_SYSTEMS.RendererCanvas,
+            dependencies: [PLATFORM_SYSTEMS.AssetManager],
+            factory: (c) => {
+                const assetManager = c.get<AssetManager>(PLATFORM_SYSTEMS.AssetManager);
+                return new CanvasRenderer(assetManager);
+            },
+            lazy: false
+        });
+    }
+
+    // ====================================================================
+    // RENDER MANAGER (Requires IRenderContainer from platform)
+    // ====================================================================
+
+    if (config.renderer) {
         const renderContainer = platform.getRenderContainer?.();
         if (!renderContainer) {
             throw new Error('[PlatformSystemDefs] Platform does not support rendering. Cannot create RenderManager.');
         }
 
+        // Determine which renderer to use based on config
+        const rendererKey = config.renderer.type === 'canvas'
+            ? PLATFORM_SYSTEMS.RendererCanvas
+            : PLATFORM_SYSTEMS.RendererDOM;
+
         definitions.push({
             key: PLATFORM_SYSTEMS.RenderManager,
-            dependencies: [CORE_SYSTEMS.EventBus, PLATFORM_SYSTEMS.AssetManager],
+            dependencies: [CORE_SYSTEMS.EventBus, PLATFORM_SYSTEMS.RendererDOM, PLATFORM_SYSTEMS.RendererCanvas],
             factory: (c) => {
                 const eventBus = c.get<EventBus>(CORE_SYSTEMS.EventBus);
+                const renderer = c.get<IRenderer>(rendererKey);
 
-                // Ensure renderer provider is available (provided by extended context)
-                const platformContext = c as IPlatformFactoryContext;
-                if (!platformContext.getRenderer) {
-                    throw new Error('[PlatformSystemDefs] RenderManager requires renderer provider (getRenderer method)');
-                }
-
-                // Create adapter for renderer resolution
-                const rendererProvider: IRendererProvider = {
-                    getRenderer: (type: string) => platformContext.getRenderer!(type)
-                };
-
-                // Create RenderManager with renderer provider
                 return new RenderManager(
                     config.renderer!,
                     eventBus,
                     renderContainer,
-                    rendererProvider
+                    renderer
                 );
-            },
-            initialize: (_renderManager, c) => {
-                const assetManager = c.get<AssetManager>(PLATFORM_SYSTEMS.AssetManager);
-
-                // Register renderers with the factory context
-                const platformContext = c as IPlatformFactoryContext;
-                if (platformContext.registerRenderer) {
-                    platformContext.registerRenderer('dom', new DomRenderer(assetManager));
-                    platformContext.registerRenderer('canvas', new CanvasRenderer(assetManager));
-                }
             },
             lazy: false
         });

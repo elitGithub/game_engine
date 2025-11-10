@@ -19,7 +19,6 @@ const mockPluginB: IEnginePlugin = {
     update: vi.fn()
 };
 
-// --- FIX: Create a valid mock context ---
 const mockContext: GameContext = {
     game: {},
     flags: new Set(),
@@ -97,7 +96,6 @@ describe('PluginManager', () => {
         pluginManager.install('pluginA', mockHost);
         // pluginB is registered but not installed
 
-        // --- FIX: Pass the valid mock context ---
         pluginManager.update(0.16, mockHost.context);
 
         expect(mockPluginA.update).toHaveBeenCalledWith(0.16, mockHost.context);

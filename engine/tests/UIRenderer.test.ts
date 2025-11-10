@@ -2,26 +2,22 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { UIRenderer } from '@engine/rendering/helpers/UIRenderer';
-import { SpeakerRegistry } from '@engine/rendering/SpeakerRegistry';
 import { TextRenderer } from '@engine/rendering/helpers/TextRenderer';
 import type { PositionedBar, PositionedDialogue, PositionedChoice, RenderCommand } from '@engine/types/RenderingTypes';
 
 
 // Mock dependencies
-vi.mock('@engine/rendering/SpeakerRegistry');
 vi.mock('@engine/rendering/helpers/TextRenderer');
 
 describe('UIRenderer', () => {
     let uiRenderer: UIRenderer;
-    let mockSpeakerRegistry: SpeakerRegistry;
     let mockTextRenderer: TextRenderer;
 
     beforeEach(() => {
         vi.clearAllMocks();
-        mockSpeakerRegistry = new (vi.mocked(SpeakerRegistry))();
 
-        // Get the mock instance of TextRenderer
-        mockTextRenderer = new (vi.mocked(TextRenderer))(mockSpeakerRegistry);
+        // Get the mock instance of TextRenderer (no arguments)
+        mockTextRenderer = new (vi.mocked(TextRenderer))();
 
         // Mock the TextRenderer constructor to return our instance
         vi.mocked(TextRenderer).mockImplementation(() => mockTextRenderer);
@@ -30,7 +26,7 @@ describe('UIRenderer', () => {
         vi.spyOn(mockTextRenderer, 'buildDialogueCommands').mockReturnValue([]);
         vi.spyOn(mockTextRenderer, 'buildChoiceCommands').mockReturnValue([]);
 
-        uiRenderer = new UIRenderer(mockSpeakerRegistry);
+        uiRenderer = new UIRenderer();
     });
 
     it('should delegate dialogue rendering to TextRenderer', () => {
@@ -56,8 +52,6 @@ describe('UIRenderer', () => {
         const commands = uiRenderer.buildBarCommands(barData);
 
         expect(commands).toHaveLength(3);
-
-        // --- FIX: Cast the type after finding ---
         const bgCmd = commands.find(c => (c as any).id === 'health_bar_bg') as Extract<RenderCommand, { type: 'rect' }>;
         const fgCmd = commands.find(c => (c as any).id === 'health_bar_fg') as Extract<RenderCommand, { type: 'rect' }>;
         const textCmd = commands.find(c => (c as any).id === 'health_bar_text') as Extract<RenderCommand, { type: 'text' }>;
@@ -78,8 +72,6 @@ describe('UIRenderer', () => {
         });
 
         expect(commands).toHaveLength(1);
-
-        // --- FIX: Cast the type ---
         const cmd = commands[0] as Extract<RenderCommand, { type: 'text' }>;
 
         expect(cmd.type).toBe('text');
@@ -105,7 +97,6 @@ describe('UIRenderer', () => {
 
         expect(commands).toHaveLength(4); // bg, title, item1_text, item1_hotspot
 
-        // --- FIX: Cast the types ---
         const bg = commands.find(c => (c as any).id === 'main_menu_bg') as Extract<RenderCommand, { type: 'rect' }>;
         const title = commands.find(c => (c as any).id === 'main_menu_title') as Extract<RenderCommand, { type: 'text' }>;
         const itemText = commands.find(c => (c as any).id === 'item1_text') as Extract<RenderCommand, { type: 'text' }>;
