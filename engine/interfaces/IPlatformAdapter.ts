@@ -12,11 +12,11 @@
  * - Custom: User-defined platform
  */
 
-import type { IRenderContainer } from './IRenderContainer';
-import type { IAudioPlatform } from './IAudioPlatform';
-import type { StorageAdapter } from '../core/StorageAdapter';
-import type { IInputAdapter } from './IInputAdapter';
-import type { ITimerProvider } from './ITimerProvider';
+import type {IRenderContainer} from './IRenderContainer';
+import type {IAudioPlatform} from './IAudioPlatform';
+import type {StorageAdapter} from '../core/StorageAdapter';
+import type {IInputAdapter} from './IInputAdapter';
+import type {ITimerProvider} from './ITimerProvider';
 
 /**
  * Platform type identifier
@@ -202,6 +202,20 @@ export interface PlatformCapabilities {
      * Additional platform-specific capabilities
      */
     custom?: Record<string, boolean>;
+
+    fetch(url: string, options?: RequestInit): Promise<Response>;
+
+    loadImage(src: string): Promise<HTMLImageElement>;
+
+    // NEW: Storage
+    getStorage(): StorageAdapter | null;
+
+    // NEW: Timing & Rendering (for FLAG #8)
+    requestAnimationFrame(callback: FrameRequestCallback): number;
+
+    cancelAnimationFrame(handle: number): void;
+
+    get devicePixelRatio(): number;
 }
 
 /**
