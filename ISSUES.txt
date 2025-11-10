@@ -1,157 +1,103 @@
-## **Audit Report: Game Engine Library (Step 1 Vision)**
+To borrow the parlance from the audit report, you have requested a pedantic, line-by-line verification of the codebase against the 17 flags listed in `ISSUES.txt`.
 
-**To:** Lead Developer
-**From:** Senior Engineering Auditor
-**Date:** 2025-11-10
-**Subject:** Full Architectural Audit and Verification of "A+ Grade" Status
+I have audited the repository. The "B-" grade remains accurate.
 
-You requested a pedantic, line-by-line audit to validate this repository against its stated "Step 1: Engine Library" goals. You claimed, per `SESSION_STATE.md`, that this goal is "100% complete" and at an "A+ Grade."
+You have made significant and correct progress on the most critical "Category 1" violations by fixing the platform abstractions for timing and storage. However, this progress has been undermined by a lack of follow-through. Violations related to `fetch`, `new Image()`, and `Date.now()` remain, meaning the library is still not platform-agnostic.
 
-I have read every file. I have read every test. I have read every piece of documentation.
-
-**My conclusion is this: The "A+ Grade" assessment is incorrect.**
-
-While the project has made *monumental* strides in achieving its architectural vision—specifically in solving the "DI Mess" (Rule 1) and establishing clean "Facades" (Rule 4)—it is demonstrably non-compliant with its most critical rule: **Rule 3: The "Platform-Agnostic" Rule.**
-
-The library is *not* 100% decoupled. It contains numerous, critical, hard-coded dependencies on browser-specific APIs (e.g., `window`, `fetch`, `localStorage`, `new Image()`) within core, platform-agnostic systems.
-
-This audit will provide the exhaustive proof.
+Here is a complete list of the 17 flags and their current status.
 
 ---
 
-### **WHERE ARE WE?**
+## Corrected Violations
 
-You are at a **B- Grade**.
+You have successfully resolved **5** of the 17 flags, including three of the most critical platform-coupling issues.
 
-The core foundation—`SystemContainer` (DI), `IPlatformAdapter` (abstraction), and the *facades* for `AudioManager` and `InputManager`—is excellent. This is A-grade work.
+### Category 1: Platform Coupling
+* **FLAG #1: `MusicPlayer` uses `window.setTimeout`**
+    * **STATUS: FIXED.**
+    * **Analysis:** The `MusicPlayer` class (`engine/audio/MusicPlayer.ts`) now correctly receives an `ITimerProvider` through its constructor. The `stopMusic` method no longer calls `window.setTimeout` and instead uses `this.timer.setTimeout`. This is an excellent fix.
 
-However, this foundation is undermined by a pervasive lack of discipline in lower-level components. Core systems and helpers bypass the platform abstraction entirely, creating hard-coded dependencies that *break* the "Step 1" promise.
+* **FLAG #2: `SaveManager` instantiates `LocalStorageAdapter`**
+    * **STATUS: FIXED.**
+    * **Analysis:** The `SaveManager` constructor (`engine/systems/SaveManager.ts`) no longer contains the hard-coded `new LocalStorageAdapter()` fallback. It now correctly requires a `StorageAdapter` to be injected, cleanly severing the dependency.
 
-### **HOW CLOSE ARE WE TO THE STATED GOALS?**
+* **FLAG #3: `LocalStorageAdapter` location**
+    * **STATUS: FIXED.**
+    * **Analysis:** The `LocalStorageAdapter.ts` file is no longer in the platform-agnostic `engine/systems/` directory. It has been correctly moved to `engine/platform/browser/LocalStorageAdapter.ts`.
 
-You are **architecturally 90% there, but functionally 0% there.**
+* **FLAG #6: `GamepadInputAdapter` uses `window.setInterval`**
+    * **STATUS: FIXED.**
+    * **Analysis:** `engine/platform/GamepadInputAdapter.ts` now accepts an `ITimerProvider` in its constructor. The `startPolling` method correctly uses `this.timer.setTimeout` for its recursive loop, and `stopPolling` uses `this.timer.clearTimeout`. This resolves the platform coupling.
 
-A library that is 99% platform-agnostic is, by definition, 0% platform-agnostic. A single call to `window.setTimeout` or `localStorage` in a core system means it *cannot* run in a non-browser environment. The chain is only as strong as its weakest link, and your chain is broken in multiple places.
-
-The claim "Step 1 vision complete" is false until *every single flag* in Category 1 is resolved.
-
-### **WHAT NEEDS TO BE CLEARED? (AUDIT FLAGS)**
-
-Here is the complete list of all violations, inconsistencies, and defects found in the repository.
-
----
-
-### **Category 1: Critical Platform Coupling Violations (Rule 3)**
-
-These are non-negotiable failures that *directly* violate the "Step 1" agnostic library philosophy.
-
-* **FLAG #1 (CRITICAL): `MusicPlayer` uses `window.setTimeout`**
-    * **File:** `engine/audio/MusicPlayer.ts`
-    * **Violation:** The `stopMusic` method directly calls `window.setTimeout`.
-    * **Analysis:** This is a *cardinal sin* against Rule 3. The `EffectManager` was correctly refactored to use an injected `ITimerProvider`. This component was missed. It *must* receive the `ITimerProvider` (likely via the `AudioManager`'s constructor) and use `this.timer.setTimeout`.
-
-* **FLAG #2 (CRITICAL): `SaveManager` instantiates `LocalStorageAdapter`**
-    * **File:** `engine/systems/SaveManager.ts`
-    * **Violation:** The constructor contains `this.adapter = adapter || new LocalStorageAdapter();`.
-    * **Analysis:** This is a hard-coded dependency on a *browser-specific* storage mechanism. It makes `SaveManager` unusable in any other environment. This default instantiation *must* be removed. The `SaveManager` constructor *must* require a `StorageAdapter`. `PlatformSystemDefs.ts` should be responsible for getting the adapter from the `IPlatformAdapter` and injecting it.
-
-* **FLAG #3 (CRITICAL): `LocalStorageAdapter` location and API coupling**
-    * **File:** `engine/systems/LocalStorageAdapter.ts`
-    * **Violation:** This file directly calls `localStorage.setItem`, `localStorage.getItem`, etc.
-    * **Analysis:** This is a *browser-specific implementation* located in the *agnostic `systems/` folder*. This file must be moved to `engine/platform/browser/LocalStorageAdapter.ts`. Its instantiation and provision belong *inside* `BrowserPlatformAdapter.ts`'s `getStorageAdapter()` method.
-
-* **FLAG #4 (CRITICAL): `BackendAdapter` uses `fetch`**
-    * **File:** `engine/systems/BackendAdapter.ts`
-    * **Violation:** This file directly calls `fetch`. `fetch` is a platform API.
-    * **Analysis:** This is another platform-specific implementation (`browser` or `node18+`) masquerading as a core system. This file belongs in `engine/platform/web/` (or similar). A true "Step 1" library would require the `IPlatformAdapter` to provide a `fetch` implementation or a higher-level `ICloudStorageAdapter`.
-
-* **FLAG #5 (CRITICAL): Asset Loaders use `fetch` and `new Image()`**
-    * **File:** `engine/systems/asset_loaders/AudioLoader.ts` (uses `fetch`)
-    * **File:** `engine/systems/asset_loaders/JsonLoader.ts` (uses `fetch`)
-    * **File:** `engine/systems/asset_loaders/ImageLoader.ts` (uses `new Image()`)
-    * **Analysis:** *All* default asset loaders are platform-coupled to the browser. This completely breaks the abstraction. The `IPlatformAdapter` must be expanded to include asset fetching (e.g., `platform.loadAsset(url): Promise<ArrayBuffer>`) and image creation (`platform.createImage(buffer): Promise<HTMLImageElement | ...>`). The loaders should then use `this.platform.loadAsset(url)`.
-
-* **FLAG #6 (CRITICAL): `GamepadInputAdapter` uses `window.setInterval`**
-    * **File:** `engine/platform/GamepadInputAdapter.ts`
-    * **Violation:** The `startPolling` method directly calls `window.setInterval`.
-    * **Analysis:** This is a platform *adapter*, so coupling is expected, but it *should not be bypassing its own platform's abstractions*. It is part of `BrowserPlatformAdapter`, which *provides* an `ITimerProvider`. It *must* receive this provider via its constructor and use `this.timer.setTimeout` for its polling loop to remain consistent with the platform's time management.
-
-* **FLAG #7 (CRITICAL): `InputComboTracker` uses `Date.now()`**
-    * **File:** `engine/input/InputComboTracker.ts`
-    * **Violation:** The `addToBuffer` method *ignores* the timestamp on the incoming event and calls `Date.now()` itself.
-    * **Analysis:** This is a logic bug *and* a platform-coupling violation. `Date.now()` is a platform global. The `addToBuffer` method *must* be refactored to accept the timestamp from the `EngineInputEvent` (which `DomInputAdapter` correctly provides). This makes the tracker testable and platform-agnostic.
-
-* **FLAG #8 (CRITICAL): `RenderContainer` implementations use `window`**
-    * **File:** `engine/interfaces/CanvasRenderContainer.ts`
-    * **File:** `engine/interfaces/DomRenderContainer.ts`
-    * **Violation:** These files call `window.devicePixelRatio`, `window.requestAnimationFrame`, and `window.cancelAnimationFrame`.
-    * **Analysis:** These are *browser-specific* implementations. The `requestAnimationFrame` call violates the platform abstraction. The `BrowserPlatformAdapter` should be responsible for the game loop tick, not the container. The `ITimerProvider` should be expanded to include `requestAnimationFrame` or the `Engine`'s game loop should be driven by the `IPlatformAdapter` itself.
-
----
-
-### **Category 2: Opinionated Defaults (Step 1/2 Confusion)**
-
-These violations break the "unopinionated library" (Step 1) goal by providing "Step 2" (framework) conveniences and defaults.
-
-* **FLAG #9 (Opinionated): Plugins mutate `GameContext`**
-    * **File:** `engine/plugins/GameClockPlugin.ts` (`engine.context.clock = this;`)
-    * **File:** `engine/plugins/InventoryManagerPlugin.ts` (`engine.context.inventory = this;`)
-    * **File:** `engine/plugins/RelationshipPlugin.ts` (`engine.context.relationships = this;`)
-    * **Analysis:** This is a "Step 2" (framework) pattern. Plugins should not be mutating the root context. They should register themselves with the `SystemContainer` (DI) and/or `ISerializationRegistry`. The game developer ("Assembler") should be responsible for retrieving them via `container.get(QUEST_PLUGIN_KEY)`.
-
-* **FLAG #10 (Opinionated): `SpeakerRegistry` auto-registers "narrator"**
-    * **File:** `engine/rendering/SpeakerRegistry.ts`
-    * **Violation:** The constructor `register`s a default "narrator" speaker.
-    * **Analysis:** A "Step 1" library provides the `SpeakerRegistry`. The *developer* (or a "Step 2" framework) provides the content, including the narrator. This default must be removed.
-
-* **FLAG #11 (Opinionated): `TypewriterEffect` has hard-coded defaults**
-    * **File:** `engine/rendering/helpers/TypewriterEffect.ts`
-    * **Violation:** `charsPerSecond = 30` and `punctuationDelay = 200`.
-    * **Analysis:** These are *opinions* about game feel. A library component should force these values to be provided in the constructor or default to 0/instant.
-
-* **FLAG #12 (Opinionated): `Dice` uses `Math.random`**
-    * **File:** `engine/utils/Dice.ts`
-    * **Violation:** Directly calls `Math.random()`.
-    * **Analysis:** This is not agnostic. A true library would allow for a pluggable Random Number Generator (RNG) interface (`IRNG`) to be passed in, enabling seeded randoms for deterministic testing and gameplay.
-
----
-
-### **Category 3: Code, Test & Documentation Violations**
-
-These are failures of discipline, consistency, and correctness.
-
-* **FLAG #13 (Discipline): Emoji use in documentation**
-    * **File:** `CLAUDE.md`, `ISSUES.txt`, `Improvements.md`, `docs/architecture/plugin-guide.md`
-    * **Violation:** These files contain numerous emojis (🏆, 🔌, ✅, etc.).
-    * **Analysis:** `CLAUDE.md` explicitly states: "NEVER use emojis... in any communication related to this project." This is a severe and pervasive breach of your own stated project discipline.
-
+### Category 3: Code & Documentation
 * **FLAG #14 (Documentation): Contradictory Status in `SESSION_STATE.md`**
-    * **File:** `SESSION_STATE.md`
-    * **Violation:** This file claims "Rule 5 (SRP): FIXED" and "Rule 6 (Lifecycle): FIXED".
-    * **Analysis:** This is false.
-        * **Rule 5 (SRP) is NOT fixed:** As detailed in FLAG #15, interface files (`IRenderContainer.ts`, `IInputAdapter.ts`, etc.) contain concrete function implementations (type guards), and concrete class implementations (`DomRenderContainer.ts`) were moved *into* the `interfaces/` folder. This is the *opposite* of the rule.
-        * **Rule 6 (Lifecycle) is NOT fixed:** As detailed in FLAG #16, the `InventoryManagerPlugin` has a bug and fails to call the `unregisterSerializableSystem` method (which *does* exist on `Engine.ts`).
+    * **STATUS: FIXED.**
+    * **Analysis:** The provided `SESSION_STATE.md` file no longer makes false claims of "FIXED". It now accurately reflects the project's "B-" grade and "IN PROGRESS" status, with all audit flags correctly listed as pending.
+
+---
+
+## Partially Corrected Violations
+
+**1** flag has been partially addressed, but still fails the audit's strict criteria.
 
 * **FLAG #15 (SRP): Interface files contain concrete logic**
-    * **File:** `engine/interfaces/IRenderContainer.ts`
-    * **File:** `engine/interfaces/IInputAdapter.ts`
-    * **File:** `engine/interfaces/IPlatformAdapter.ts`
-    * **Violation:** Per Rule 5, these files should *only* contain types/interfaces. They contain concrete `is...()` type guard *functions*. These functions are implementations and must be moved to a separate `utils` or `guards` file.
+    * **STATUS: PARTIALLY FIXED.**
+    * **Analysis:** The most significant part of this violation (embedding entire concrete classes like `DomRenderContainer` inside `IRenderContainer.ts`) has been corrected. These classes now reside in their own files (e.g., `engine/interfaces/DomRenderContainer.ts`, `engine/interfaces/CanvasRenderContainer.ts`).
+    * **Remaining Violation:** The interface files themselves—`engine/interfaces/IRenderContainer.ts` and `engine/interfaces/IPlatformAdapter.ts`—still contain concrete function implementations (`is...()` type guards and the `requiresCapability` helper), which violates the "only types/interfaces" rule.
+
+---
+
+## Outstanding Violations
+
+**11** flags remain unaddressed. The "Category 1" violations listed here are critical blockers to achieving the "Step 1" vision.
+
+### Category 1: Platform Coupling (CRITICAL)
+* **FLAG #4: `BackendAdapter` uses `fetch`**
+    * **STATUS: NOT FIXED.**
+    * **Analysis:** The file `engine/systems/BackendAdapter.ts` still exists in the agnostic `systems/` folder and continues to use the `fetch` global directly in its methods.
+
+* **FLAG #5: Asset Loaders use `fetch` and `new Image()`**
+    * **STATUS: NOT FIXED.**
+    * **Analysis:** All three loaders remain platform-coupled:
+        * `engine/systems/asset_loaders/AudioLoader.ts` uses `fetch`.
+        * `engine/systems/asset_loaders/JsonLoader.ts` uses `fetch`.
+        * `engine/systems/asset_loaders/ImageLoader.ts` uses `new Image()`.
+    * The `IPlatformAdapter` has not been expanded to provide abstract methods for asset loading as recommended.
+
+* **FLAG #7: `InputComboTracker` uses `Date.now()`**
+    * **STATUS: NOT FIXED.**
+    * **Analysis:** This is a subtle but clear failure. While `InputComboTracker.ts` was refactored to use an injected `ITimerProvider`, it *still* commits the original logic bug: it calls `this.timer.now()` inside its `addToBuffer` method. The audit's instruction was to "accept the timestamp from the `EngineInputEvent`". The `InputManager` receives events that *have* a timestamp but fails to pass them to the tracker. The logic flaw is identical.
+
+* **FLAG #8: `RenderContainer` implementations use `window`**
+    * **STATUS: NOT FIXED.**
+    * **Analysis:** Both `engine/interfaces/CanvasRenderContainer.ts` and `engine/interfaces/DomRenderContainer.ts` still contain hard-coded calls to `window.devicePixelRatio`, `window.requestAnimationFrame`, and `window.cancelAnimationFrame`.
+
+### Category 2: Opinionated Defaults
+* **FLAG #9: Plugins mutate `GameContext`**
+    * **STATUS: NOT FIXED.**
+    * **Analysis:** `GameClockPlugin.ts`, `InventoryManagerPlugin.ts`, and `RelationshipPlugin.ts` all continue to write `engine.context.pluginName = this;` in their `install` methods.
+
+* **FLAG #10: `SpeakerRegistry` auto-registers "narrator"**
+    * **STATUS: NOT FIXED.**
+    * **Analysis:** `engine/rendering/SpeakerRegistry.ts` still contains the hard-coded registration of a "narrator" speaker in its constructor.
+
+* **FLAG #11: `TypewriterEffect` has hard-coded defaults**
+    * **STATUS: NOT FIXED.**
+    * **Analysis:** `engine/rendering/helpers/TypewriterEffect.ts` still defaults `charsPerSecond` to `30` and `punctuationDelay` to `200`, rather than non-opinionated values like `0` or `Infinity`.
+
+* **FLAG #12: `Dice` uses `Math.random`**
+    * **STATUS: NOT FIXED.**
+    * **Analysis:** `engine/utils/Dice.ts` still calls `Math.random()` directly, preventing deterministic testing.
+
+### Category 3: Code, Test & Documentation
+* **FLAG #13 (Discipline): Emoji use in documentation**
+    * **STATUS: NOT FIXED.**
+    * **Analysis:** The rule in `CLAUDE.md` to "NEVER use emojis" is still violated in `Improvements.md` (e.g., "🔌", "🔴"), `docs/architecture/plugin-guide.md` (e.g., "🏆", "✅"), and `CLAUDE.md` itself (e.g., "🏆", "🔌").
 
 * **FLAG #16 (Code Defect): `InventoryManagerPlugin` uninstall is bugged**
-    * **File:** `engine/plugins/InventoryManagerPlugin.ts`
-    * **Violation:** The `uninstall` method contains a comment: `// Note: We don't unregister the serializable system, // as the Engine class doesn't currently support it.`
-    * **Analysis:** This comment is *wrong*. `engine/Engine.ts` *does* provide `public unregisterSerializableSystem(key: string)`. The `uninstall` method *must* be corrected to call `engine.unregisterSerializableSystem('inventory');`.
+    * **STATUS: NOT FIXED.**
+    * **Analysis:** The `uninstall` method in `engine/plugins/InventoryManagerPlugin.ts` still contains the incorrect comment and fails to call `engine.unregisterSerializableSystem('inventory');`. `engine/Engine.ts` confirms the `unregisterSerializableSystem` method does exist.
 
 * **FLAG #17 (Test Defect): Stale test for `InputManager`**
-    * **File:** `engine/tests/InputManager.test.ts`
-    * **Violation:** The test file contains `vi.stubGlobal('navigator', { getGamepads: ... })`.
-    * **Analysis:** The `InputManager` was (correctly) refactored into a facade that *no longer* accesses `navigator`. This test is stale. It is testing a ghost of a previous implementation and provides no value. It must be rewritten to test the `InputManager` facade *only* (i.e., verifying that it correctly delegates events to the `GameStateManager`, `ActionMapper`, and `ComboTracker`).
-
-### **Final Assessment**
-
-The project is not "A+". It is a "B-" with a clear path to "A".
-
-The hard work (DI, abstraction interfaces, facade patterns) is done. The remaining work is a "cleanup" pass, but it is a *critical* one. You must hunt down *every* remaining platform-specific global (`window`, `fetch`, `Date.now`, `Math.random`, `localStorage`) and eradicate it from the `engine/systems`, `engine/utils`, and `engine/audio` directories, ensuring all such functionality is provided *by* the `IPlatformAdapter`.
-
-This is the only way to achieve the "Step 1" vision. No excuses.
+    * **STATUS: NOT FIXED.**
+    * **Analysis:** The test file `engine/tests/InputManager.test.ts` still contains a `vi.stubGlobal('navigator', ...)` mock, despite the `InputManager` having been refactored into a facade that no longer accesses `navigator`. The test is stale and provides no value.
