@@ -92,13 +92,18 @@ These are the non-negotiable rules for the "Refactor-of-the-Refactor."
 * Tests *must* only use the public API of a class.  
 * If a class is "hard to test," it is a sign that the *class's API is bad*, and the *class* must be refactored.
 
+### **Communication Style**
+
+* **NEVER use emojis** in code, comments, commit messages, documentation, or any communication related to this project.
+* Use clear, technical, professional language without unnecessary embellishments or emotional expressions.
+
 ### **General Guidelines**
 
 When working on this codebase:
 
-* Prioritize decoupling and clear interfaces (adhere to the rules above).  
-* Always consider: "Does this belong in Step 1 (Library) or Step 2 (Framework)?"  
-* Maintain comprehensive test coverage for engine systems.  
+* Prioritize decoupling and clear interfaces (adhere to the rules above).
+* Always consider: "Does this belong in Step 1 (Library) or Step 2 (Framework)?"
+* Maintain comprehensive test coverage for engine systems.
 * Document all public APIs with TSDoc.
 
 ## **Common Tasks**
@@ -122,3 +127,8 @@ When working on this codebase:
 * If the user needs help with an Nx configuration or project graph error, use the nx\_workspace tool to get any errors
 
 \<\!-- nx configuration end--\>
+- avoid emojis at all costs
+- avoid having unused variables or imports in typescript files
+- always stick to the strictest TS guidelines and best practices
+- when discussing or explaining, maintain a friendly, less formal tone. when writing documentation or update audits or state files or code comments, use neutral, clear language.
+- always assume the reader or user doesn't know or doesn't understand the advanced concepts.

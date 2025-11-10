@@ -82,11 +82,9 @@ export type {
     AudioCapabilities,
     AudioFormat
 } from './IAudioPlatform';
-export {
-    WebAudioPlatform,
-    MockAudioPlatform,
-    supportsAudioFormat
-} from './IAudioPlatform';
+export { supportsAudioFormat } from './IAudioPlatform';
+export { WebAudioPlatform } from '../platform/webaudio/WebAudioPlatform';
+export { MockAudioPlatform } from '../platform/mock/MockAudioPlatform';
 
 // ============================================================================
 // INPUT ADAPTER (SINGLETON)

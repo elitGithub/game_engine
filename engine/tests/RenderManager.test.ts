@@ -1,9 +1,8 @@
 // engine/tests/RenderManager.test.ts
 
 import {beforeEach, describe, expect, it, vi} from 'vitest';
-import {RenderManager} from '@engine/core/RenderManager';
+import {RenderManager, type IRendererProvider} from '@engine/core/RenderManager';
 import {EventBus} from '@engine/core/EventBus';
-import {SystemRegistry} from '';
 import type {IRenderer, RenderCommand} from '@engine/types/RenderingTypes';
 import type { IDomRenderContainer } from '@engine/interfaces/IRenderContainer';
 
@@ -21,7 +20,7 @@ const mockRenderer: IRenderer = {
 describe('RenderManager', () => {
     let renderManager: RenderManager;
     let mockEventBus: EventBus;
-    let mockRegistry: SystemRegistry;
+    let mockRendererProvider: IRendererProvider;
     let mockContainer: HTMLElement;
     let renderContainer: IDomRenderContainer;
 
@@ -29,7 +28,6 @@ describe('RenderManager', () => {
         vi.clearAllMocks();
 
         mockEventBus = new EventBus();
-        mockRegistry = new SystemRegistry();
         mockContainer = document.createElement('div');
 
         // Create mock IDomRenderContainer
@@ -37,7 +35,7 @@ describe('RenderManager', () => {
             getType: () => 'dom',
             getElement: () => mockContainer,
             getDimensions: () => ({ width: 800, height: 600 }),
-            setDimensions: (width: number, height: number) => true,
+            setDimensions: (_width: number, _height: number) => true,
             getPixelRatio: () => 1.0,
             requestAnimationFrame: (callback: () => void) => {
                 const id = setTimeout(callback, 16);
@@ -45,22 +43,21 @@ describe('RenderManager', () => {
             }
         };
 
-        // Register the mock renderer
-        mockRegistry.registerRenderer('dom', mockRenderer);
-
-        // --- FIX: Spy on the method *before* it gets called ---
-        vi.spyOn(mockRegistry, 'getRenderer');
+        // Create mock IRendererProvider
+        mockRendererProvider = {
+            getRenderer: vi.fn(() => mockRenderer)
+        };
 
         renderManager = new RenderManager(
             {type: 'dom'},
             mockEventBus,
             renderContainer,
-            mockRegistry
+            mockRendererProvider
         );
     });
 
     it('should initialize the correct renderer', () => {
-        expect(mockRegistry.getRenderer).toHaveBeenCalledWith('dom');
+        expect(mockRendererProvider.getRenderer).toHaveBeenCalledWith('dom');
         expect(mockRenderer.init).toHaveBeenCalledWith(renderContainer);
     });
 
@@ -71,8 +68,11 @@ describe('RenderManager', () => {
         renderManager.pushSceneCommand(sceneCmd);
         renderManager.pushUICommand(uiCmd);
 
-        expect((renderManager as any).sceneQueue).toContain(sceneCmd);
-        expect((renderManager as any).uiQueue).toContain(uiCmd);
+        // Verify by flushing and checking renderer received the commands
+        renderManager.flush();
+
+        expect(mockRenderer.flush).toHaveBeenCalledWith([sceneCmd]);
+        expect(mockRenderer.flush).toHaveBeenCalledWith([uiCmd]);
     });
 
     it('should call renderer.clear() if a clear command exists', () => {
@@ -99,9 +99,10 @@ describe('RenderManager', () => {
         expect(mockRenderer.flush).toHaveBeenNthCalledWith(1, [sceneCmd]);
         expect(mockRenderer.flush).toHaveBeenNthCalledWith(2, [uiCmd]);
 
-        // Queues should be empty
-        expect((renderManager as any).sceneQueue).toHaveLength(0);
-        expect((renderManager as any).uiQueue).toHaveLength(0);
+        // Verify queues are empty by flushing again (should not call renderer)
+        vi.clearAllMocks();
+        renderManager.flush();
+        expect(mockRenderer.flush).not.toHaveBeenCalled();
     });
 
     it('should sort commands by zIndex before flushing', () => {

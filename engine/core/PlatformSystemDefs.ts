@@ -21,8 +21,9 @@ import { AudioLoader } from '../systems/asset_loaders/AudioLoader';
 import { JsonLoader } from '../systems/asset_loaders/JsonLoader';
 import { DomRenderer } from '../rendering/DomRenderer';
 import { CanvasRenderer } from '../rendering/CanvasRenderer';
-import type { IPlatformAdapter } from '../interfaces/IPlatformAdapter';
+import type { IPlatformAdapter } from '@engine/interfaces';
 import type { IRenderer } from '../types/RenderingTypes';
+import { isDomRenderContainer } from '@engine/interfaces';
 import { CORE_SYSTEMS } from './CoreSystemDefs';
 
 /**
@@ -95,7 +96,7 @@ export function createPlatformSystemDefinitions(
                 // Get AudioContext from platform (NOT from window)
                 const audioPlatform = platform.getAudioPlatform?.();
                 if (audioPlatform) {
-                    const audioContext = audioPlatform.getContext();
+                    const audioContext = audioPlatform.getNativeContext?.();
                     if (audioContext) {
                         assetManager.registerLoader(new AudioLoader(audioContext));
                     }
@@ -129,7 +130,7 @@ export function createPlatformSystemDefinitions(
                     throw new Error('[PlatformSystemDefs] Platform does not support audio. Cannot create AudioManager.');
                 }
 
-                const audioContext = audioPlatform.getContext();
+                const audioContext = audioPlatform.getNativeContext?.();
                 if (!audioContext) {
                     throw new Error('[PlatformSystemDefs] Platform audio context is null. Cannot create AudioManager.');
                 }
@@ -161,7 +162,7 @@ export function createPlatformSystemDefinitions(
 
     if (config.effects !== false) {
         const renderContainer = platform.getRenderContainer?.();
-        if (renderContainer) {
+        if (renderContainer && isDomRenderContainer(renderContainer)) {
             const domElement = renderContainer.getElement();
             if (domElement) {
                 definitions.push({
@@ -192,7 +193,6 @@ export function createPlatformSystemDefinitions(
             dependencies: [CORE_SYSTEMS.EventBus, PLATFORM_SYSTEMS.AssetManager],
             factory: (c) => {
                 const eventBus = c.get<EventBus>(CORE_SYSTEMS.EventBus);
-                const assetManager = c.get<AssetManager>(PLATFORM_SYSTEMS.AssetManager);
 
                 // Ensure renderer provider is available (provided by extended context)
                 const platformContext = c as IPlatformFactoryContext;
@@ -213,7 +213,7 @@ export function createPlatformSystemDefinitions(
                     rendererProvider
                 );
             },
-            initialize: (renderManager, c) => {
+            initialize: (_renderManager, c) => {
                 const assetManager = c.get<AssetManager>(PLATFORM_SYSTEMS.AssetManager);
 
                 // Register renderers with the factory context

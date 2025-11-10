@@ -266,7 +266,8 @@ describe('BrowserPlatformAdapter', () => {
 
             const input = platform.getInputAdapter();
             expect(input).toBeDefined();
-            expect(input!.getType()).toBe('dom');
+            // BrowserPlatformAdapter uses CompositeInputAdapter (combines DOM + gamepad)
+            expect(input!.getType()).toBe('composite');
         });
 
         it('should return undefined when input disabled', () => {

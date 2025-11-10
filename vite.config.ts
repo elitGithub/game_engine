@@ -15,7 +15,7 @@ export default defineConfig({
         // Look for test files in the entire 'engine' directory
         include: ['engine/**/*.{test,spec}.ts'],
         // Point to your tsconfig for path resolution
-        setupFiles: [],
+        setupFiles: ['./engine/tests/setup.ts'],
         coverage: {
             provider: 'v8',
             reporter: ['text', 'html'],
