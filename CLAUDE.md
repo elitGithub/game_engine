@@ -1,4 +1,4 @@
-# Build & Test Configuration
+# **Build & Test Configuration**
 
 This project uses:
 
@@ -39,41 +39,46 @@ These are the non-negotiable rules for the "Refactor-of-the-Refactor."
 
 ### **1\. The "One Container" Rule (DI)**
 
-* This project will have **one and only one** Dependency Injection (DI) tool: engine/core/SystemContainer.ts.  
-* The Engine class is a minimal "host." Its constructor *must* only create the SystemContainer and register itself and the IPlatformAdapter.  
-* The monolithic SystemDefinitions.ts and the conflicting SystemFactory.ts, SystemRegistry.ts, and SystemContainerBridge.ts **must be deleted**.
+* **STATUS: FIXED.** This project has **one and only one** Dependency Injection (DI) tool: engine/core/SystemContainer.ts.  
+* The monolithic SystemDefinitions.ts and the conflicting SystemFactory.ts, SystemRegistry.ts, and SystemContainerBridge.ts **have been deleted**.  
+* **PENDING:** Engine.ts must be refactored to be a minimal "host" that adheres to Rule \#2.
 
 ### **2\. The "Empty Engine" Rule (No "Non-Negotiables")**
 
-* The "Step 1" Engine Library has **zero** "non-negotiable" systems.  
+* **STATUS: PENDING.** This is the **last major architectural violation.**  
+* The "Step 1" Engine Library must have **zero** "non-negotiable" systems.  
 * The Engine constructor **must not** register *any* systems (like EventBus or StateManager).  
-* The **developer ("assembler")** is 100% responsible for importing and registering all system *definitions* (recipes) in their main.ts file.
+* The **developer ("assembler")** is 100% responsible for importing and registering all system *definitions* (recipes) in their main.ts file.  
+* **VIOLATION:** Engine.ts currently auto-registers all systems from CoreSystemDefs.ts and PlatformSystemDefs.ts. This must be refactored.
 
 ### **3\. The "Platform-Agnostic" Rule (Zero Coupling)**
 
+* **STATUS: FIXED.**  
 * Core engine code (engine/core/, engine/systems/) is **strictly forbidden** from *any* direct platform access.  
 * **FORBIDDEN GLOBALS:** window, document, navigator, localStorage, setInterval, setTimeout, AudioContext.  
 * All platform interaction *must* be abstracted through the IPlatformAdapter provided to the Engine's constructor.  
-* Any system that violates this (e.g., the current InputManager.ts) **must be refactored**.
+* **FIXED:** InputManager.ts and PlatformSystemDefs.ts no longer violate this rule.
 
 ### **4\. The "Facade" Rule (No "God Classes")**
 
+* **STATUS: FIXED.**  
 * Systems (InputManager, AudioManager, etc.) *must* be clean **facades**.  
-* The AudioManager \[cite: elitgithub/game\_engine/game\_engine-97312d31af0acb511da0844a575f09467cd18bb4/engine/systems/AudioManager.ts\] is the **gold standard**: it is a simple class that delegates all complex logic to specialized helpers (MusicPlayer, SfxPool).  
-* "God Classes" that perform multiple, unrelated jobs (like the current InputManager.ts \[cite: elitgithub/game\_engine/game\_engine-97312d31af0acb511da0844a575f09467cd18bb4/engine/systems/InputManager.ts\] doing state management, gamepad polling, and action mapping) are **forbidden**.  
-* Platform-specific logic (like gamepad polling) **must** be moved into a dedicated IInputAdapter (e.g., GamepadInputAdapter.ts).
+* AudioManager.ts is the **gold standard**.  
+* **FIXED:** InputManager.ts has been refactored into a clean facade. Platform-specific logic (gamepad polling) has been correctly moved into GamepadInputAdapter.ts.
 
 ### **5\. The "Single Responsibility" Rule (Clean Files)**
 
+* **STATUS: PARTIALLY FIXED.**  
 * **Interface files** (I\*.ts) *must* contain *only* types, interfaces, and enums.  
-* **Concrete implementations** (e.g., WebAudioPlatform, DomRenderContainer) *must* be in their own separate files in a platform-specific directory (e.g., engine/platform/webaudio/).  
-* Bloated interface files like the current IAudioPlatform.ts \[cite: elitgithub/game\_engine/game\_engine-97312d31af0acb511da0844a575f09467cd18bb4/engine/interfaces/IAudioPlatform.ts\] and IRenderContainer.ts \[cite: elitgithub/game\_engine/game\_engine-97312d31af0acb511da0844a575f09467cd18bb4/engine/interfaces/IRenderContainer.ts\] **must be broken up**.
+* **Concrete implementations** (e.g., WebAudioPlatform, DomRenderContainer) *must* be in their own separate files.  
+* **FIXED:** IAudioPlatform.ts is now a clean interface file.  
+* **PENDING:** IRenderContainer.ts still contains concrete class implementations and must be cleaned up.
 
 ### **6\. The "Complete Lifecycle" Rule (No Leaks)**
 
+* **STATUS: PENDING.**  
 * All systems and plugins must have a complete lifecycle.  
-* If a system has a register method, it *must* have a corresponding unregister method (e.g., registerSerializableSystem requires unregisterSerializableSystem).  
-* Bugs like the InventoryManagerPlugin's \[cite: elitgithub/game\_engine/game\_engine-97312d31af0acb511da0844a575f09467cd18bb4/engine/plugins/InventoryManagerPlugin.ts\] incomplete uninstall **must be fixed**.
+* **PENDING:** The Engine class must expose unregisterSerializableSystem so that PluginManager's uninstall method can function correctly.
 
 ## **Development & Test Rules**
 
@@ -88,23 +93,32 @@ These are the non-negotiable rules for the "Refactor-of-the-Refactor."
 
 ### **Test Quality**
 
+* **STATUS: FIXED.**  
 * Tests **must not** access private state via (as any).  
 * Tests *must* only use the public API of a class.  
 * If a class is "hard to test," it is a sign that the *class's API is bad*, and the *class* must be refactored.
 
 ### **Communication Style**
 
-* **NEVER use emojis** in code, comments, commit messages, documentation, or any communication related to this project.
+* **NEVER use emojis** in code, comments, commit messages, documentation, or any communication related to this project.  
 * Use clear, technical, professional language without unnecessary embellishments or emotional expressions.
 
 ### **General Guidelines**
 
 When working on this codebase:
 
-* Prioritize decoupling and clear interfaces (adhere to the rules above).
-* Always consider: "Does this belong in Step 1 (Library) or Step 2 (Framework)?"
-* Maintain comprehensive test coverage for engine systems.
+* Prioritize decoupling and clear interfaces (adhere to the rules above).  
+* Always consider: "Does this belong in Step 1 (Library) or Step 2 (Framework)?"  
+* Maintain comprehensive test coverage for engine systems.  
 * Document all public APIs with TSDoc.
+
+## **Next Steps: Final Cleanup**
+
+The primary refactoring is complete. The final goal is to execute the remaining cleanup tasks:
+
+1. **Align Engine.ts with Rule \#2 ("Empty Engine").**  
+2. **Fix IRenderContainer.ts to adhere to Rule \#5 (SRP).**  
+3. **Remove all unused code** (e.g., AudioSourceAdapter).
 
 ## **Common Tasks**
 
@@ -127,8 +141,9 @@ When working on this codebase:
 * If the user needs help with an Nx configuration or project graph error, use the nx\_workspace tool to get any errors
 
 \<\!-- nx configuration end--\>
-- avoid emojis at all costs
-- avoid having unused variables or imports in typescript files
-- always stick to the strictest TS guidelines and best practices
-- when discussing or explaining, maintain a friendly, less formal tone. when writing documentation or update audits or state files or code comments, use neutral, clear language.
-- always assume the reader or user doesn't know or doesn't understand the advanced concepts.
+
+* avoid emojis at all costs  
+* avoid having unused variables or imports in typescript files  
+* always stick to the strictest TS guidelines and best practices  
+* when discussing or explaining, maintain a friendly, less formal tone. when writing documentation or update audits or state files or code comments, use neutral, clear language.  
+* always assume the reader or user doesn't know or doesn't understand the advanced concepts.

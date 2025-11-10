@@ -1,5 +1,6 @@
 // engine/plugins/GameClockPlugin.ts
 import type { IEngineHost, IEnginePlugin, TypedGameContext, ISerializable } from '../types';
+import {EventBus} from "@engine/core/EventBus";
 
 export interface ClockConfig {
     unitsPerDay: number;
@@ -18,7 +19,7 @@ export class GameClockPlugin implements IEnginePlugin, ISerializable {
 
     private absoluteTime: number;
     private unitsPerDay: number;
-    private eventBus: any;
+    private eventBus: EventBus | undefined = undefined;
     private timeRanges: Map<string, TimeRange>;
 
     constructor(config: ClockConfig) {

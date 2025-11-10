@@ -10,13 +10,13 @@ import {InputManager} from './systems/InputManager';
 import type {AssetManager, AssetManifestEntry} from './systems/AssetManager';
 import type {StorageAdapter} from './core/StorageAdapter';
 import {GameData} from "@engine/types/EngineEventMap";
-import {PlatformContainer, BrowserContainer} from "@engine/core/PlatformContainer";
+import {PlatformContainer} from "@engine/core/PlatformContainer";
 import {RenderManager} from "@engine/core/RenderManager";
 import {PluginManager} from './core/PluginManager';
-import {SystemContainer, type SystemDefinition, type ISystemFactoryContext} from './core/SystemContainer';
+import {SystemContainer} from './core/SystemContainer';
 import {createCoreSystemDefinitions, CORE_SYSTEMS} from './core/CoreSystemDefs';
 import {createPlatformSystemDefinitions, PLATFORM_SYSTEMS, type PlatformSystemConfig, type IPlatformFactoryContext} from './core/PlatformSystemDefs';
-import type {IPlatformAdapter} from './interfaces/IPlatformAdapter';
+import type {IPlatformAdapter} from '@engine/interfaces';
 import {BrowserPlatformAdapter} from './platform/BrowserPlatformAdapter';
 import type {IRenderer} from './types/RenderingTypes';
 
@@ -306,15 +306,6 @@ export class Engine implements ISerializationRegistry {
 
     get pluginManager(): PluginManager {
         return this.container.get<PluginManager>(CORE_SYSTEMS.PluginManager);
-    }
-
-    // Temporary bridge for old code that uses registry
-    get registry(): any {
-        return {
-            get: <T>(key: symbol) => this.container.get<T>(key),
-            getOptional: <T>(key: symbol) => this.container.getOptional<T>(key),
-            has: (key: symbol) => this.container.has(key)
-        };
     }
 
     // ========================================================================

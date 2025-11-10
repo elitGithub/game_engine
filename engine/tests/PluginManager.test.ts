@@ -2,7 +2,6 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { PluginManager } from '@engine/core/PluginManager';
-// --- FIX: Import GameContext ---
 import type { IEngineHost, IEnginePlugin, GameContext } from '@engine/types';
 
 // Create mock plugins
