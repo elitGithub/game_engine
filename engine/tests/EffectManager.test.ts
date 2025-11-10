@@ -3,7 +3,8 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { EffectManager } from '@engine/systems/EffectManager';
 import type { GameContext } from '@engine/types';
-import type { IDynamicEffect, IEffectTarget, IGlobalEffect } from '@engine/types/EffectTypes';
+import type { IDynamicEffect, IEffectTarget } from '@engine/types/EffectTypes';
+import type { ITimerProvider } from '@engine/interfaces/ITimerProvider';
 import { DomEffectTarget } from '@engine/rendering/DomEffectTarget';
 
 // Mock dependencies
@@ -13,22 +14,16 @@ const mockDynamicEffect: IDynamicEffect = {
     onStop: vi.fn(),
 };
 
-const mockGlobalEffect: IGlobalEffect = {
-    onCreate: vi.fn(),
-    onUpdate: vi.fn(),
-    onDestroy: vi.fn(),
-};
-
 const mockTarget: IEffectTarget = {
     id: 'target1',
     getProperty: vi.fn(),
     setProperty: vi.fn(),
-    getRaw: vi.fn(() => document.createElement('div')), // Return a real div for static effects
+    getRaw: vi.fn(() => document.createElement('div')),
 };
 
 describe('EffectManager', () => {
     let effectManager: EffectManager;
-    let mockContainer: HTMLElement;
+    let mockTimerProvider: ITimerProvider;
     let mockContext: GameContext;
     let mockDomElement: HTMLElement;
     let domTarget: DomEffectTarget;
@@ -37,12 +32,17 @@ describe('EffectManager', () => {
         vi.clearAllMocks();
         vi.useFakeTimers();
 
-        mockContainer = document.createElement('div');
         mockContext = {} as GameContext;
-        effectManager = new EffectManager(mockContainer);
+
+        // Mock timer provider to use Vitest's fake timers
+        mockTimerProvider = {
+            setTimeout: vi.fn((cb, ms) => window.setTimeout(cb, ms) as unknown),
+            clearTimeout: vi.fn((id) => window.clearTimeout(id as number))
+        };
+
+        effectManager = new EffectManager(mockTimerProvider);
 
         effectManager.registerDynamicEffect('test_dynamic', mockDynamicEffect);
-        effectManager.registerGlobalEffect('test_global', mockGlobalEffect);
         effectManager.registerStaticEffect('test_static', 'fade-in');
 
         // Setup for static effect test
@@ -79,6 +79,7 @@ describe('EffectManager', () => {
         it('should apply an effect with a duration', async () => {
             const p = effectManager.apply(mockTarget, 'test_dynamic', mockContext, 1000); // 1 sec
             expect(mockDynamicEffect.onStart).toHaveBeenCalled();
+            expect(mockTimerProvider.setTimeout).toHaveBeenCalledWith(expect.any(Function), 1000);
 
             vi.advanceTimersByTime(500);
             expect(mockDynamicEffect.onStop).not.toHaveBeenCalled();
@@ -141,23 +142,4 @@ describe('EffectManager', () => {
         });
     });
 
-    // --- NEW TEST SUITE ---
-    describe('Global Effects', () => {
-        it('should start and update a global effect', () => {
-            effectManager.startGlobalEffect('test_global', mockContext);
-            expect(mockGlobalEffect.onCreate).toHaveBeenCalledWith(mockContainer, mockContext);
-
-            effectManager.update(0.16, mockContext);
-            expect(mockGlobalEffect.onUpdate).toHaveBeenCalledWith(mockContext, 0.16);
-        });
-
-        it('should stop a global effect', () => {
-            effectManager.startGlobalEffect('test_global', mockContext);
-            effectManager.stopGlobalEffect('test_global', mockContext);
-            expect(mockGlobalEffect.onDestroy).toHaveBeenCalledWith(mockContext);
-
-            effectManager.update(0.16, mockContext);
-            expect(mockGlobalEffect.onUpdate).not.toHaveBeenCalled();
-        });
-    });
 });

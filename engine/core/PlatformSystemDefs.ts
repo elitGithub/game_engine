@@ -23,7 +23,6 @@ import { DomRenderer } from '../rendering/DomRenderer';
 import { CanvasRenderer } from '../rendering/CanvasRenderer';
 import type { IPlatformAdapter } from '@engine/interfaces';
 import type { IRenderer } from '../types/RenderingTypes';
-import { isDomRenderContainer } from '@engine/interfaces';
 import { CORE_SYSTEMS } from './CoreSystemDefs';
 
 /**
@@ -152,21 +151,15 @@ export function createPlatformSystemDefinitions(
     }
 
     // ====================================================================
-    // EFFECT MANAGER (Requires render container from platform)
+    // EFFECT MANAGER (Now platform-agnostic)
     // ====================================================================
 
     if (config.effects !== false) {
-        const renderContainer = platform.getRenderContainer?.();
-        if (renderContainer && isDomRenderContainer(renderContainer)) {
-            const domElement = renderContainer.getElement();
-            if (domElement) {
-                definitions.push({
-                    key: PLATFORM_SYSTEMS.EffectManager,
-                    factory: () => new EffectManager(domElement),
-                    lazy: false
-                });
-            }
-        }
+        definitions.push({
+            key: PLATFORM_SYSTEMS.EffectManager,
+            factory: () => new EffectManager(platform.getTimerProvider()),
+            lazy: false
+        });
     }
 
     // ====================================================================

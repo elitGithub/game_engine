@@ -11,7 +11,8 @@ import type {
     PlatformCapabilities,
     IRenderContainer,
     IAudioPlatform,
-    IInputAdapter
+    IInputAdapter,
+    ITimerProvider
 } from '../interfaces';
 import {
     DomRenderContainer,
@@ -22,7 +23,7 @@ import { LocalStorageAdapter } from '../systems/LocalStorageAdapter';
 import type { StorageAdapter } from '../core/StorageAdapter';
 import { DomInputAdapter } from '../core/DomInputAdapter';
 import { GamepadInputAdapter } from './GamepadInputAdapter';
-import { CompositeInputAdapter } from '../interfaces/IInputAdapter';
+import { CompositeInputAdapter } from '@engine/interfaces';
 
 /**
  * Browser platform configuration
@@ -90,6 +91,7 @@ export class BrowserPlatformAdapter implements IPlatformAdapter {
     private audioPlatform: IAudioPlatform | null = null;
     private inputAdapter: IInputAdapter | null = null;
     private storageAdapter: StorageAdapter | null = null;
+    private timerProvider: ITimerProvider | null = null;
 
     constructor(config: BrowserPlatformConfig) {
         this.config = {
@@ -185,6 +187,20 @@ export class BrowserPlatformAdapter implements IPlatformAdapter {
     }
 
     // ========================================================================
+    // TIMER (SINGLETON)
+    // ========================================================================
+
+    getTimerProvider(): ITimerProvider {
+        if (!this.timerProvider) {
+            this.timerProvider = {
+                setTimeout: (callback: () => void, ms: number) => window.setTimeout(callback, ms) as unknown,
+                clearTimeout: (id: unknown) => window.clearTimeout(id as number)
+            };
+        }
+        return this.timerProvider;
+    }
+
+    // ========================================================================
     // CAPABILITIES
     // ========================================================================
 
@@ -224,6 +240,7 @@ export class BrowserPlatformAdapter implements IPlatformAdapter {
         // Clear singletons
         this.renderContainer = null;
         this.storageAdapter = null;
+        this.timerProvider = null;
     }
 
     // ========================================================================

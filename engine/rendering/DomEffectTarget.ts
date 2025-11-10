@@ -38,4 +38,12 @@ export class DomEffectTarget implements IEffectTarget {
     getRaw(): any {
         return this.element;
     }
+
+    addClass(className: string): void {
+        this.element.classList.add(className);
+    }
+
+    removeClass(className: string): void {
+        this.element.classList.remove(className);
+    }
 }

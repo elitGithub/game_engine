@@ -4,20 +4,24 @@ Last updated: 2025-11-10
 
 **Purpose**: Quick context for resuming work.
 
-**Current Goal**: Maintain the "A+" grade Step 1 library. All critical architectural violations resolved.
+**Current Goal**: A+ grade achieved. Step 1 library vision complete.
 
 ## **Summary of Latest Session**
 
-**Flag 2 (SRP Violations - ALL REMAINING) - FIXED:**
-- IRenderContainer.ts cleaned - DomRenderContainer, CanvasRenderContainer, HeadlessRenderContainer moved to separate files
-- WebAudioPlatform.ts cleaned - 5 wrapper classes (WebAudioContext, WebAudioBuffer, WebAudioSource, WebAudioGain, WebAudioDestination) moved to separate files
-- MockAudioPlatform.ts cleaned - MockAudioContext moved to separate file
-- PlatformContainer.ts cleaned - BrowserContainer, NativeContainer, HeadlessContainer moved to separate files
+**Flag 1 (CRITICAL): EffectManager Platform Coupling - FIXED:**
+- Created ITimerProvider interface for timer abstraction
+- Added getTimerProvider() to IPlatformAdapter
+- Implemented timer providers in BrowserPlatformAdapter and HeadlessPlatformAdapter
+- Refactored EffectManager: constructor now takes ITimerProvider (not HTMLElement)
+- Replaced all window.setTimeout/clearTimeout with this.timer.setTimeout/clearTimeout
+- Removed IGlobalEffect interface and global effects (Step 2 concept)
+- Added optional addClass/removeClass to IEffectTarget interface
+- Implemented addClass/removeClass in DomEffectTarget
+- Updated static effects to use target.addClass/removeClass (no HTMLElement casting)
+- Updated PlatformSystemDefs.ts registration
+- Updated all tests
 
-**Flag 3 (Unused Method) - FIXED:**
-- Removed unused textStyleToData method from DialogueLayoutHelper.ts
-
-**Result:** 376/376 tests passing, type check clean, no regressions. ALL classes now in separate files - strict "one class per file" rule achieved.
+**Result:** 374/374 tests passing, type check clean, zero regressions. EffectManager is now 100% platform-agnostic with ZERO platform dependencies. Step 1 vision fully achieved.
 
 ## **The Vision (Clarified)**
 
@@ -35,13 +39,13 @@ My core conflict was trying to build two different products at once. The new vis
   * They *will* be "batteries-included," pre-registering all the core systems and plugins (like SaveManager, DialoguePlugin, etc.) so the developer can just "plug-and-play" their game data.  
   * This solves the "RenPy trauma" by building an easy-to-use framework on a non-monolithic base.
 
-## **Current Status: A+ (All Critical Violations Resolved)**
+## **Current Status: A+ (Step 1 Vision Complete)**
 
-**Last Updated:** 2025-11-10 (Final SRP Cleanup - All Classes Separated)
+**Last Updated:** 2025-11-10 (EffectManager Refactor - Platform-Agnostic Achieved)
 
-All major architectural violations have been resolved. The codebase now adheres to strict Step 1 principles with no opinionated defaults or auto-registration.
+All critical architectural violations have been resolved. The codebase now adheres to strict Step 1 principles with 100% platform abstraction, no opinionated defaults, and no auto-registration.
 
-The codebase is stable, testable, and correctly decoupled. All systems follow the clean facade pattern.
+The engine is stable, testable, correctly decoupled, and fully platform-agnostic. All systems follow the clean facade pattern with zero platform dependencies.
 
 ### **Key Issues Status:**
 
@@ -76,33 +80,48 @@ The codebase is stable, testable, and correctly decoupled. All systems follow th
    * Empty constructor - no auto-registration of 'default' or 'story' scene types.
    * Fail-fast loadScenes with clear, actionable error messages.
    * Developer must explicitly register all scene factories.
+7. **CRITICAL: EffectManager Platform Coupling** (FIXED)
+   * Created ITimerProvider interface for timer abstraction.
+   * EffectManager constructor now takes ITimerProvider (not HTMLElement).
+   * All window.setTimeout/clearTimeout replaced with timer adapter calls.
+   * Removed IGlobalEffect interface (Step 2 concept).
+   * Static effects use optional IEffectTarget.addClass/removeClass methods.
+   * Zero platform dependencies - fully agnostic.
 
 ## **Repository State**
 
 * **Branch:** master
-* **Working State:** **COMPLETE.** All critical violations resolved. All tests passing (376/376). Type check clean.
+* **Working State:** **COMPLETE.** Step 1 vision achieved. All tests passing (374/374). Type check clean.
 * **Files Modified (Uncommitted):**
   * engine/Engine.ts (Empty Engine pattern, removed ExtendedSystemContainer)
   * engine/core/RenderManager.ts (Accepts IRenderer via DI, removed IRendererProvider)
-  * engine/core/PlatformSystemDefs.ts (Renderers as systems, removed IPlatformFactoryContext)
+  * engine/core/PlatformSystemDefs.ts (EffectManager registration - pass timer provider)
   * engine/core/PlatformContainer.ts (Cleaned - interfaces only, re-exports implementations)
   * engine/systems/Scene.ts (Removed generic, now game-agnostic)
   * engine/systems/SceneManager.ts (Removed generic, empty constructor, fail-fast)
+  * engine/systems/EffectManager.ts (Platform-agnostic - uses ITimerProvider, removed global effects)
   * engine/interfaces/IInputAdapter.ts (Cleaned - interfaces only, re-exports implementations)
   * engine/interfaces/IRenderContainer.ts (Cleaned - interfaces only, re-exports implementations)
-  * engine/platform/HeadlessPlatformAdapter.ts (Cleaned - InMemoryStorageAdapter moved)
+  * engine/interfaces/IPlatformAdapter.ts (Added getTimerProvider method)
+  * engine/interfaces/index.ts (Export ITimerProvider)
+  * engine/platform/BrowserPlatformAdapter.ts (Implement getTimerProvider)
+  * engine/platform/HeadlessPlatformAdapter.ts (Implement getTimerProvider, cleaned)
   * engine/platform/webaudio/WebAudioPlatform.ts (Cleaned - wrapper classes moved to separate files)
   * engine/platform/mock/MockAudioPlatform.ts (Cleaned - MockAudioContext moved)
+  * engine/types/EffectTypes.ts (Added addClass/removeClass to IEffectTarget, removed IGlobalEffect)
+  * engine/rendering/DomEffectTarget.ts (Implement addClass/removeClass)
   * engine/rendering/helpers/UIRenderer.ts (Removed unused imports/params)
   * engine/rendering/helpers/DialogueLayoutHelper.ts (Removed unused textStyleToData method)
   * engine/tests/RenderManager.test.ts (Updated for new RenderManager signature)
   * engine/tests/SceneManager.test.ts (Updated for agnostic SceneManager)
+  * engine/tests/EffectManager.test.ts (Mock timer provider, removed global effect tests)
   * engine/tests/Engine.test.ts (Added scene factory registration)
   * engine/tests/UIRenderer.test.ts (Removed unused mocks)
   * engine/tests/DialogueLayoutHelper.test.ts (Fixed constructor)
   * engine/tests/TextRenderer.test.ts (Fixed constructor)
+  * ISSUES.txt (Removed Flag 1 - marked as resolved)
   * CLAUDE.md (Updated with SRP rule)
-  * SESSION\_STATE.md (This file)
+  * SESSION_STATE.md (This file)
 * **Files Created (Uncommitted):**
   * engine/input/BaseInputAdapter.ts
   * engine/input/MockInputAdapter.ts
@@ -111,6 +130,7 @@ The codebase is stable, testable, and correctly decoupled. All systems follow th
   * engine/interfaces/DomRenderContainer.ts
   * engine/interfaces/CanvasRenderContainer.ts
   * engine/interfaces/HeadlessRenderContainer.ts
+  * engine/interfaces/ITimerProvider.ts
   * engine/platform/webaudio/WebAudioContext.ts
   * engine/platform/webaudio/WebAudioBuffer.ts
   * engine/platform/webaudio/WebAudioSource.ts
@@ -155,11 +175,24 @@ The codebase is stable, testable, and correctly decoupled. All systems follow th
 * \[X\] **Fail-fast loadScenes**: Clear error messages for missing sceneType or unregistered factories
 * \[X\] **Developer control**: Must explicitly register all scene factories
 
-### **4. REMAINING OPTIONAL TASKS** (Non-Critical)
+### **4. FIX EffectManager Platform Coupling** (COMPLETED)
+
+* \[X\] **Created ITimerProvider interface**: Timer abstraction for platform-agnostic timing
+* \[X\] **Updated IPlatformAdapter**: Added getTimerProvider() method
+* \[X\] **Implemented timer providers**: BrowserPlatformAdapter and HeadlessPlatformAdapter
+* \[X\] **Refactored EffectManager constructor**: Now takes ITimerProvider (not HTMLElement)
+* \[X\] **Replaced global timer calls**: All window.setTimeout/clearTimeout → this.timer methods
+* \[X\] **Removed IGlobalEffect**: Step 2 concept, not part of Step 1 library
+* \[X\] **Updated IEffectTarget**: Added optional addClass/removeClass methods
+* \[X\] **Implemented in DomEffectTarget**: addClass/removeClass for CSS class manipulation
+* \[X\] **Updated static effects**: Use target.addClass/removeClass (no HTMLElement casting)
+* \[X\] **Updated registration**: PlatformSystemDefs.ts passes timer provider
+* \[X\] **Updated tests**: Mock timer provider, removed global effect tests
+
+### **5. REMAINING OPTIONAL TASKS** (Non-Critical)
 
 * \[ \] **SaveManager**: Convert to proper SystemDefinition
 * \[ \] **GameClockPlugin.ts**: Fix any type on eventBus
-* \[ \] **Flag 1 (CRITICAL)**: EffectManager platform coupling - refactor to be platform-agnostic
 
 ### **CRITICAL RULES**
 

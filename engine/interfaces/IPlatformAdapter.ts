@@ -16,6 +16,7 @@ import type { IRenderContainer } from './IRenderContainer';
 import type { IAudioPlatform } from './IAudioPlatform';
 import type { StorageAdapter } from '../core/StorageAdapter';
 import type { IInputAdapter } from './IInputAdapter';
+import type { ITimerProvider } from './ITimerProvider';
 
 /**
  * Platform type identifier
@@ -118,6 +119,20 @@ export interface IPlatformAdapter {
      * is handled by InputManager.
      */
     getInputAdapter?(): IInputAdapter | undefined;
+
+    // ========================================================================
+    // TIMER (SINGLETON)
+    // ========================================================================
+
+    /**
+     * Get timer provider for this platform (singleton)
+     *
+     * Returns the same timer provider instance on multiple calls.
+     * All platforms MUST provide timer functionality.
+     *
+     * Used for scheduling callbacks with setTimeout/clearTimeout abstraction.
+     */
+    getTimerProvider(): ITimerProvider;
 
     // ========================================================================
     // PLATFORM CAPABILITIES

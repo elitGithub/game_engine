@@ -1,5 +1,6 @@
 import type { GameContext, EffectStep } from '@engine/types';
-import type { IEffectTarget, IDynamicEffect, IGlobalEffect } from '@engine/types/EffectTypes';
+import type { IEffectTarget, IDynamicEffect } from '@engine/types/EffectTypes';
+import type { ITimerProvider } from '@engine/interfaces';
 
 type ActiveDynamicEffect = {
     name: string;
@@ -8,28 +9,24 @@ type ActiveDynamicEffect = {
 };
 
 export class EffectManager {
-    private container: HTMLElement;
+    private timer: ITimerProvider;
 
     // Registries
     private staticEffects: Map<string, string | string[]>; // DOM-only
     private dynamicEffects: Map<string, IDynamicEffect>; // Generic
-    private globalEffects: Map<string, IGlobalEffect>; // Generic
 
     // Active effect trackers
     // Use target.id as the key
     private activeDynamicEffects: Map<string, ActiveDynamicEffect[]>;
-    private activeGlobalEffects: Map<string, IGlobalEffect>;
-    private timedEffects: Map<string, number[]>; // Keyed by target.id
+    private timedEffects: Map<string, unknown[]>; // Keyed by target.id
 
-    constructor(container: HTMLElement) {
-        this.container = container;
+    constructor(timerProvider: ITimerProvider) {
+        this.timer = timerProvider;
 
         this.staticEffects = new Map();
         this.dynamicEffects = new Map();
-        this.globalEffects = new Map();
 
         this.activeDynamicEffects = new Map();
-        this.activeGlobalEffects = new Map();
         this.timedEffects = new Map();
     }
 
@@ -38,10 +35,6 @@ export class EffectManager {
             effects.forEach(effect => {
                 effect.logic.onUpdate(effect.target, context, deltaTime);
             });
-        });
-
-        this.activeGlobalEffects.forEach(effect => {
-            effect.onUpdate(context, deltaTime);
         });
     }
 
@@ -53,10 +46,6 @@ export class EffectManager {
 
     registerDynamicEffect(name: string, logic: IDynamicEffect): void {
         this.dynamicEffects.set(name, logic);
-    }
-
-    registerGlobalEffect(name: string, logic: IGlobalEffect): void {
-        this.globalEffects.set(name, logic);
     }
 
     // --- ELEMENT-BASED EFFECTS ---
@@ -86,13 +75,12 @@ export class EffectManager {
             existing.push({ name: effectName, logic, target });
 
         } else if (this.staticEffects.has(effectName)) {
-            // Static effects are DOM-ONLY. We must check the target.
-            const element = target.getRaw() as HTMLElement;
-            if (element && typeof element.classList === 'object') {
-                const cssClass = this.staticEffects.get(effectName)!;
-                element.classList.add(...(Array.isArray(cssClass) ? cssClass : [cssClass]));
+            const cssClass = this.staticEffects.get(effectName)!;
+            if (target.addClass) {
+                const classes = Array.isArray(cssClass) ? cssClass : [cssClass];
+                classes.forEach(c => target.addClass!(c));
             } else {
-                console.warn(`[EffectManager] Static effect '${effectName}' can only be applied to DOM targets.`);
+                console.warn(`[EffectManager] Static effect '${effectName}' not supported by target '${target.id}'.`);
             }
 
         } else {
@@ -102,7 +90,7 @@ export class EffectManager {
 
         if (duration) {
             return new Promise(resolve => {
-                const timerId = window.setTimeout(() => {
+                const timerId = this.timer.setTimeout(() => {
                     this.remove(target, effectName, context);
 
                     const timers = this.timedEffects.get(targetId);
@@ -141,10 +129,10 @@ export class EffectManager {
             }
 
         } else if (this.staticEffects.has(effectName)) {
-            const element = target.getRaw() as HTMLElement;
-             if (element && typeof element.classList === 'object') {
+            if (target.removeClass) {
                 const cssClass = this.staticEffects.get(effectName)!;
-                element.classList.remove(...(Array.isArray(cssClass) ? cssClass : [cssClass]));
+                const classes = Array.isArray(cssClass) ? cssClass : [cssClass];
+                classes.forEach(c => target.removeClass!(c));
             }
         }
     }
@@ -152,32 +140,10 @@ export class EffectManager {
     async sequence(target: IEffectTarget, steps: EffectStep[], context: GameContext): Promise<void> {
         for (const step of steps) {
             if ('wait' in step) {
-                await new Promise(r => setTimeout(r, step.wait));
+                await new Promise<void>(r => this.timer.setTimeout(() => r(), step.wait));
             } else {
                 await this.apply(target, step.name, context, step.duration);
             }
-        }
-    }
-
-    // --- GLOBAL EFFECTS ---
-    // (No changes needed for start/stop GlobalEffect)
-    startGlobalEffect(effectName: string, context: GameContext): void {
-        if (this.activeGlobalEffects.has(effectName)) return;
-
-        const logic = this.globalEffects.get(effectName);
-        if (logic) {
-            logic.onCreate(this.container, context);
-            this.activeGlobalEffects.set(effectName, logic);
-        } else {
-            console.warn(`[EffectManager] Global effect '${effectName}' not registered.`);
-        }
-    }
-
-    stopGlobalEffect(effectName: string, context: GameContext): void {
-        const logic = this.activeGlobalEffects.get(effectName);
-        if (logic) {
-            logic.onDestroy(context);
-            this.activeGlobalEffects.delete(effectName);
         }
     }
 
@@ -189,13 +155,8 @@ export class EffectManager {
         });
         this.activeDynamicEffects.clear();
 
-        this.activeGlobalEffects.forEach(effect => {
-            effect.onDestroy(context);
-        });
-        this.activeGlobalEffects.clear();
-
         this.timedEffects.forEach(timers => {
-            timers.forEach(clearTimeout);
+            timers.forEach(id => this.timer.clearTimeout(id));
         });
         this.timedEffects.clear();
     }
@@ -205,9 +166,7 @@ export class EffectManager {
 
         this.staticEffects.clear();
         this.dynamicEffects.clear();
-        this.globalEffects.clear();
         this.activeDynamicEffects.clear();
-        this.activeGlobalEffects.clear();
         this.timedEffects.clear();
     }
 }

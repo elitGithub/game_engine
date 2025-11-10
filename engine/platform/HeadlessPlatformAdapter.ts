@@ -11,7 +11,8 @@ import type {
     PlatformCapabilities,
     IRenderContainer,
     IAudioPlatform,
-    IInputAdapter
+    IInputAdapter,
+    ITimerProvider
 } from '../interfaces';
 import {
     HeadlessRenderContainer,
@@ -98,6 +99,7 @@ export class HeadlessPlatformAdapter implements IPlatformAdapter {
     private audioPlatform: IAudioPlatform | null = null;
     private inputAdapter: IInputAdapter | null = null;
     private storageAdapter: InMemoryStorageAdapter | null = null;
+    private timerProvider: ITimerProvider | null = null;
 
     constructor(config: HeadlessPlatformConfig = {}) {
         this.config = {
@@ -169,6 +171,20 @@ export class HeadlessPlatformAdapter implements IPlatformAdapter {
     }
 
     // ========================================================================
+    // TIMER (SINGLETON)
+    // ========================================================================
+
+    getTimerProvider(): ITimerProvider {
+        if (!this.timerProvider) {
+            this.timerProvider = {
+                setTimeout: (callback: () => void, ms: number) => setTimeout(callback, ms) as unknown,
+                clearTimeout: (id: unknown) => clearTimeout(id as ReturnType<typeof setTimeout>)
+            };
+        }
+        return this.timerProvider;
+    }
+
+    // ========================================================================
     // CAPABILITIES
     // ========================================================================
 
@@ -212,6 +228,7 @@ export class HeadlessPlatformAdapter implements IPlatformAdapter {
 
         // Clear singletons
         this.renderContainer = null;
+        this.timerProvider = null;
     }
 
     // ========================================================================

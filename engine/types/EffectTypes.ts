@@ -33,6 +33,20 @@ export interface IEffectTarget {
      * that need renderer-specific logic.
      */
     getRaw(): HTMLElement | unknown;
+
+    /**
+     * Applies a static effect class, if supported by the target.
+     * Optional - only implemented by DOM-based targets.
+     * @param className The class name to add.
+     */
+    addClass?(className: string): void;
+
+    /**
+     * Removes a static effect class, if supported by the target.
+     * Optional - only implemented by DOM-based targets.
+     * @param className The class name to remove.
+     */
+    removeClass?(className: string): void;
 }
 
 /**
@@ -43,13 +57,4 @@ export interface IDynamicEffect<TGame = Record<string, unknown>> {
     onStart(target: IEffectTarget, context: TypedGameContext<TGame>): void;
     onUpdate(target: IEffectTarget, context: TypedGameContext<TGame>, deltaTime: number): void;
     onStop(target: IEffectTarget, context: TypedGameContext<TGame>): void;
-}
-
-/**
- * The refactored interface for a global effect.
- */
-export interface IGlobalEffect<TGame = Record<string, unknown>> {
-    onCreate(container: HTMLElement, context: TypedGameContext<TGame>): void;
-    onUpdate(context: TypedGameContext<TGame>, deltaTime: number): void;
-    onDestroy(context: TypedGameContext<TGame>): void;
 }
