@@ -1,12 +1,20 @@
 // engine/systems/asset_loaders/JsonLoader.ts
-import type { IAssetLoader, AssetType } from '@engine/core/IAssetLoader';
+import type {AssetType, IAssetLoader} from '@engine/core/IAssetLoader';
 
 export class JsonLoader implements IAssetLoader {
     public readonly type: AssetType = 'json';
 
+    constructor(
+        private platformFetch: (url: string, options?: RequestInit) => Promise<Response>
+    ) {
+        if (!platformFetch) {
+            throw new Error("[JsonLoader] A platform-specific fetch implementation is required.");
+        }
+    }
+
     async load(url: string): Promise<Record<string, any>> {
         try {
-            const response = await fetch(url);
+            const response = await this.platformFetch(url);
             if (!response.ok) {
                 throw new Error(`[JsonLoader] HTTP error ${response.status} for ${url}`);
             }

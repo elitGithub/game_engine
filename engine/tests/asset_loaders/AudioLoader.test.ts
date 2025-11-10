@@ -1,14 +1,15 @@
 // engine/tests/asset_loaders/AudioLoader.test.ts
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { AudioLoader } from '@engine/systems/asset_loaders/AudioLoader';
+import {beforeEach, describe, expect, it, vi} from 'vitest';
+import {AudioLoader} from "@engine/platform/browser/asset_loaders/AudioLoader";
+
 
 // Mock global fetch
 const mockFetch = vi.fn();
 vi.stubGlobal('fetch', mockFetch);
 
 // Mock AudioContext
-const mockAudioBuffer = { duration: 1.0 } as AudioBuffer;
+const mockAudioBuffer = {duration: 1.0} as AudioBuffer;
 const mockAudioContext = {
     decodeAudioData: vi.fn().mockResolvedValue(mockAudioBuffer),
 };
@@ -18,12 +19,20 @@ describe('AudioLoader', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
-        loader = new AudioLoader(mockAudioContext as any);
+        loader = new AudioLoader(mockAudioContext as any, mockFetch as any);
     });
 
     it('should throw if no AudioContext is provided', () => {
-        expect(() => new AudioLoader(null as any)).toThrow(
+        expect(() => new AudioLoader(null as any, mockFetch as any)).toThrow(
             '[AudioLoader] AudioContext is required.'
+        );
+    });
+
+    // [NEW TEST]
+    it('should throw if no platformFetch is provided', () => {
+        // Pass a valid audioContext, but null for the fetch
+        expect(() => new AudioLoader(mockAudioContext as any, null as any)).toThrow(
+            '[AudioLoader] A platform-specific fetch implementation is required.'
         );
     });
 

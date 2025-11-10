@@ -6,24 +6,20 @@
  */
 
 import type {
-    IPlatformAdapter,
-    PlatformType,
-    PlatformCapabilities,
-    IRenderContainer,
     IAudioPlatform,
     IInputAdapter,
-    ITimerProvider
+    IPlatformAdapter,
+    IRenderContainer,
+    ITimerProvider,
+    PlatformCapabilities,
+    PlatformType
 } from '../interfaces';
-import {
-    DomRenderContainer,
-    CanvasRenderContainer,
-    WebAudioPlatform
-} from '../interfaces';
-import { LocalStorageAdapter } from './browser/LocalStorageAdapter';
-import type { StorageAdapter } from '../core/StorageAdapter';
-import { DomInputAdapter } from '../core/DomInputAdapter';
-import { GamepadInputAdapter } from './GamepadInputAdapter';
-import { CompositeInputAdapter } from '@engine/interfaces';
+import {CanvasRenderContainer, DomRenderContainer, WebAudioPlatform} from '../interfaces';
+import {LocalStorageAdapter} from './browser/LocalStorageAdapter';
+import type {StorageAdapter} from '../core/StorageAdapter';
+import {DomInputAdapter} from '../core/DomInputAdapter';
+import {GamepadInputAdapter} from './GamepadInputAdapter';
+import {CompositeInputAdapter} from '@engine/interfaces';
 
 /**
  * Browser platform configuration
@@ -205,14 +201,58 @@ export class BrowserPlatformAdapter implements IPlatformAdapter {
     // CAPABILITIES
     // ========================================================================
 
+// [NEW CODE - Drop-in replacement for getCapabilities()]
+
     getCapabilities(): PlatformCapabilities {
         return {
+            // --- Boolean Flags (Unchanged) ---
             rendering: true,
             audio: this.config.audio && this.isAudioSupported(),
             input: this.config.input,
             storage: this.isLocalStorageSupported(),
-            network: true, // Browsers always have network
-            realtime: true  // Browsers support requestAnimationFrame
+            network: true,
+            realtime: true,
+
+            // --- NEW: Platform Function Implementations ---
+
+            /**
+             * Provides the platform's 'fetch' implementation.
+             */
+            fetch: (url: string, options?: RequestInit) => window.fetch(url, options),
+
+            /**
+             * Provides the platform's implementation for loading an image from a URL.
+             */
+            loadImage: (src: string) => {
+                return new Promise((resolve, reject) => {
+                    const img = new Image();
+                    img.onload = () => resolve(img);
+                    img.onerror = () => reject(new Error(`[BrowserPlatform] Failed to load image: ${src}`));
+                    img.src = src;
+                });
+            },
+
+            /**
+             * Provides the platform's storage adapter.
+             */
+            getStorage: () => this.getStorageAdapter(),
+
+            /**
+             * Provides the platform's 'requestAnimationFrame' implementation.
+             */
+            requestAnimationFrame: (callback: FrameRequestCallback) => window.requestAnimationFrame(callback),
+
+            /**
+             * Provides the platform's 'cancelAnimationFrame' implementation.
+             */
+            cancelAnimationFrame: (handle: number) => window.cancelAnimationFrame(handle),
+
+            /**
+             * Provides the platform's device pixel ratio.
+             */
+            get devicePixelRatio() {
+                return window.devicePixelRatio || 1;
+            }
         };
     }
 
@@ -250,7 +290,7 @@ export class BrowserPlatformAdapter implements IPlatformAdapter {
 
     private isAudioSupported(): boolean {
         return typeof window !== 'undefined' &&
-               (typeof window.AudioContext !== 'undefined' ||
+            (typeof window.AudioContext !== 'undefined' ||
                 typeof (window as any).webkitAudioContext !== 'undefined');
     }
 

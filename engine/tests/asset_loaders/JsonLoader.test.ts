@@ -1,7 +1,8 @@
 // engine/tests/asset_loaders/JsonLoader.test.ts
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { JsonLoader } from '@engine/systems/asset_loaders/JsonLoader';
+import {beforeEach, describe, expect, it, vi} from 'vitest';
+import {JsonLoader} from "@engine/platform/browser/asset_loaders/JsonLoader";
+
 
 // Mock global fetch
 const mockFetch = vi.fn();
@@ -12,11 +13,11 @@ describe('JsonLoader', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
-        loader = new JsonLoader();
+        loader = new JsonLoader(mockFetch as any);
     });
 
     it('should successfully load and parse JSON', async () => {
-        const mockData = { key: 'value' };
+        const mockData = {key: 'value'};
         mockFetch.mockResolvedValue({
             ok: true,
             json: vi.fn().mockResolvedValue(mockData),

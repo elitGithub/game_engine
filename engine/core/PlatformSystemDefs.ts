@@ -8,22 +8,25 @@
  * These are still library components, but they require platform adapters.
  */
 
-import { SystemDefinition } from './SystemContainer';
-import { EventBus } from './EventBus';
-import { AssetManager } from '../systems/AssetManager';
-import { AudioManager } from '../systems/AudioManager';
-import { EffectManager } from '../systems/EffectManager';
-import { RenderManager } from './RenderManager';
-import { InputManager } from '../systems/InputManager';
-import { GameStateManager } from './GameStateManager';
-import { ImageLoader } from '../systems/asset_loaders/ImageLoader';
-import { AudioLoader } from '../systems/asset_loaders/AudioLoader';
-import { JsonLoader } from '../systems/asset_loaders/JsonLoader';
-import { DomRenderer } from '../rendering/DomRenderer';
-import { CanvasRenderer } from '../rendering/CanvasRenderer';
-import type { IPlatformAdapter } from '@engine/interfaces';
-import type { IRenderer } from '../types/RenderingTypes';
-import { CORE_SYSTEMS } from './CoreSystemDefs';
+import {SystemDefinition} from '@engine/core/SystemContainer';
+import {EventBus} from '@engine/core/EventBus';
+import {AssetManager} from '@engine/systems/AssetManager';
+import {AudioManager} from '@engine/systems/AudioManager';
+import {EffectManager} from '@engine/systems/EffectManager';
+import {RenderManager} from '@engine/core/RenderManager';
+import {InputManager} from '@engine/systems/InputManager';
+import {GameStateManager} from '@engine/core/GameStateManager';
+
+
+import {DomRenderer} from '@engine/rendering/DomRenderer';
+import {CanvasRenderer} from '@engine/rendering/CanvasRenderer';
+import type {IPlatformAdapter} from '@engine/interfaces';
+import type {IRenderer} from '@engine/types/RenderingTypes';
+import {CORE_SYSTEMS} from "@engine/core/CoreSystemDefs";
+import {ImageLoader} from "@engine/platform/browser/asset_loaders/ImageLoader";
+import {JsonLoader} from "@engine/platform/browser/asset_loaders/JsonLoader";
+import {AudioLoader} from "@engine/platform/browser/asset_loaders/AudioLoader";
+
 
 /**
  * System keys for platform-aware systems
@@ -83,16 +86,22 @@ export function createPlatformSystemDefinitions(
                 const eventBus = c.get<EventBus>(CORE_SYSTEMS.EventBus);
                 const assetManager = new AssetManager(eventBus);
 
-                // Register default loaders
-                assetManager.registerLoader(new ImageLoader());
-                assetManager.registerLoader(new JsonLoader());
+                // FIX: Get platform-specific loader functions from capabilities
+                const capabilities = platform.getCapabilities();
+                const platformFetch = capabilities.fetch;
+                const platformLoadImage = capabilities.loadImage;
+
+                // FIX: Register default loaders, now with platform functions injected
+                assetManager.registerLoader(new ImageLoader(platformLoadImage));
+                assetManager.registerLoader(new JsonLoader(platformFetch));
 
                 // Get AudioContext from platform (NOT from window)
                 const audioPlatform = platform.getAudioPlatform?.();
                 if (audioPlatform) {
                     const audioContext = audioPlatform.getNativeContext?.();
                     if (audioContext) {
-                        assetManager.registerLoader(new AudioLoader(audioContext));
+                        // FIX: Inject both AudioContext and the platform's fetch
+                        assetManager.registerLoader(new AudioLoader(audioContext, platformFetch));
                     }
                 }
 
@@ -255,7 +264,7 @@ export function createPlatformSystemDefinitions(
 
                 // Attach adapter to platform
                 const renderContainer = platform.getRenderContainer?.();
-                const attached = inputAdapter.attach(renderContainer, { tabindex: '0' });
+                const attached = inputAdapter.attach(renderContainer, {tabindex: '0'});
                 if (!attached) {
                     console.warn('[PlatformSystemDefs] Could not attach input adapter.');
                 }

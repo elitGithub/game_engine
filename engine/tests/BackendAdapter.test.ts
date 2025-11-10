@@ -1,7 +1,7 @@
 // engine/tests/BackendAdapter.test.ts
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { BackendAdapter } from '@engine/systems/BackendAdapter';
+import {BackendAdapter} from "@engine/platform/browser/BackendAdapter";
 
 // Mock global fetch
 const mockFetch = vi.fn();

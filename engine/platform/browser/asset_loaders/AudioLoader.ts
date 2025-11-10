@@ -3,18 +3,20 @@ import type {AssetType, IAssetLoader} from '@engine/core/IAssetLoader';
 
 export class AudioLoader implements IAssetLoader {
     public readonly type: AssetType = 'audio';
-    private audioContext: AudioContext;
 
-    constructor(audioContext: AudioContext) {
+    constructor(private audioContext: AudioContext,
+                private platformFetch: (url: string, options?: RequestInit) => Promise<Response>) {
         if (!audioContext) {
             throw new Error("[AudioLoader] AudioContext is required.");
         }
-        this.audioContext = audioContext;
+        if (!platformFetch) {
+            throw new Error("[AudioLoader] A platform-specific fetch implementation is required.");
+        }
     }
 
     async load(url: string): Promise<AudioBuffer> {
         try {
-            const response = await fetch(url);
+            const response = await this.platformFetch(url);
             if (!response.ok) {
                 throw new Error(`[AudioLoader] HTTP error ${response.status} for ${url}`);
             }

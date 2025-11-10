@@ -39,8 +39,8 @@
 // MASTER PLATFORM ADAPTER (SINGLETON)
 // ============================================================================
 
-export type { IPlatformAdapter, PlatformType, PlatformCapabilities } from './IPlatformAdapter';
-export { requiresCapability } from './IPlatformAdapter';
+export type { IPlatformAdapter, PlatformType, PlatformCapabilities } from '@engine/interfaces/IPlatformAdapter';
+export { requiresCapability } from '@engine/interfaces/IPlatformAdapter';
 
 // ============================================================================
 // RENDER CONTAINER (SINGLETON)
