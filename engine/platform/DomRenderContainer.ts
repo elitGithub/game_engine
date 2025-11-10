@@ -2,7 +2,7 @@
  * DOM Container Implementation
  */
 
-import type { IDomRenderContainer } from './IRenderContainer';
+import type { IDomRenderContainer } from '@engine/interfaces/IRenderContainer';
 
 export class DomRenderContainer implements IDomRenderContainer {
     constructor(private element: HTMLElement) {}

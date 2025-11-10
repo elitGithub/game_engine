@@ -2,7 +2,7 @@
  * Canvas Container Implementation
  */
 
-import type { ICanvasRenderContainer } from './IRenderContainer';
+import type { ICanvasRenderContainer } from '@engine/interfaces/IRenderContainer';
 
 export class CanvasRenderContainer implements ICanvasRenderContainer {
     private context: CanvasRenderingContext2D;
