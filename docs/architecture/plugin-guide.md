@@ -301,7 +301,7 @@ export const AchievementPlugin: GamePlugin = {
 
     // Show notification on unlock
     context.eventBus.on('achievement:unlocked', (achievement) => {
-      console.log(`🏆 Achievement Unlocked: ${achievement.name}`);
+      console.log(`Achievement Unlocked: ${achievement.name}`);
       // Could trigger UI notification here
     });
   }

@@ -5,9 +5,9 @@ Welcome to the game engine documentation. This engine is designed as a **plug-an
 ## Quick Links
 
 ### Getting Started
-- 🎯 **[Architecture Overview](./architecture/README.md)** - **Start here!** Understand the vision, goals, and core concepts
-- 📦 **[Plugin Development Guide](./architecture/plugin-guide.md)** - Learn how to extend the engine
-- 🏗️ **[Refactor History](./architecture/plug-and-develop-refactor.md)** - How we got to v2.0
+- **[Architecture Overview](./architecture/README.md)** - **Start here!** Understand the vision, goals, and core concepts
+- **[Plugin Development Guide](./architecture/plugin-guide.md)** - Learn how to extend the engine
+- **[Refactor History](./architecture/plug-and-develop-refactor.md)** - How we got to v2.0
 
 ### For Game Developers
 

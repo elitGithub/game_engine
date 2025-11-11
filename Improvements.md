@@ -8,16 +8,16 @@ This document outlines the plugin ecosystem and future enhancements. The goal is
 
 ---
 
-## 🔌 Plugin Ecosystem (Build FIRST)
+## Plugin Ecosystem (Build FIRST)
 
 ### Core Game Systems
 
-#### ✅ Already Built
+#### Already Built
 - **Inventory System** - Item management, collections
 - **Relationship System** - NPC relationship tracking
 - **Game Clock** - Time progression, day/night cycles
 
-#### 🔴 Priority 1: Essential Game Systems
+#### Priority 1: Essential Game Systems
 
 * **Quest/Journal System Plugin** (`@game-engine/quest-system`)
   * Track quest state (inactive, active, completed, failed)
@@ -47,7 +47,7 @@ This document outlines the plugin ecosystem and future enhancements. The goal is
   * Support for multiple speakers
   * Dialogue skip/fast-forward
 
-#### 🟡 Priority 2: Progression Systems
+#### Priority 2: Progression Systems
 
 * **Stats/Skills Plugin** (`@game-engine/stats-skills`)
   * Character attribute management (strength, intellect, etc.)
@@ -74,7 +74,7 @@ This document outlines the plugin ecosystem and future enhancements. The goal is
   * Spell combinations
   * Area of effect spells
 
-#### 🟢 Priority 3: Economy & Crafting
+#### Priority 3: Economy & Crafting
 
 * **Shop/Trading Plugin** (`@game-engine/shop-system`)
   * Shop inventory management
@@ -92,7 +92,7 @@ This document outlines the plugin ecosystem and future enhancements. The goal is
   * Crafting skills/professions
   * Blueprint discovery
 
-#### 🔵 Priority 4: Social & Multiplayer
+#### Priority 4: Social & Multiplayer
 
 * **Party System Plugin** (`@game-engine/party-system`)
   * Party formation
@@ -110,7 +110,7 @@ This document outlines the plugin ecosystem and future enhancements. The goal is
 
 ---
 
-## 🎮 Renderer Enhancements
+## Renderer Enhancements
 
 ### DOM Renderer (`@game-engine/dom-renderer`)
 * **Rich Text Formatting** - Markdown, BBCode support
@@ -134,7 +134,7 @@ This document outlines the plugin ecosystem and future enhancements. The goal is
 
 ---
 
-## 🛠️ Developer Tools
+## Developer Tools
 
 * **CLI Scaffolding** (`@game-engine/cli`)
   * `npx game-engine create my-game` - Project scaffolding
@@ -156,7 +156,7 @@ This document outlines the plugin ecosystem and future enhancements. The goal is
 
 ---
 
-## 📦 Quality of Life Features
+## Quality of Life Features
 
 ### Auto-start / Quick Launch
 * **Game Template System** - Start from templates (RPG, Visual Novel, etc.)
@@ -184,7 +184,7 @@ This document outlines the plugin ecosystem and future enhancements. The goal is
 
 ---
 
-## 🧪 Testing & Quality
+## Testing & Quality
 
 * **Plugin Testing Framework** - Standardized plugin tests
 * **Visual Regression Testing** - UI screenshot comparison
@@ -193,7 +193,7 @@ This document outlines the plugin ecosystem and future enhancements. The goal is
 
 ---
 
-## 📚 Documentation & Community
+## Documentation & Community
 
 * **Plugin Starter Kit** - Template for creating plugins
 * **Video Tutorials** - Getting started, advanced topics
@@ -203,7 +203,7 @@ This document outlines the plugin ecosystem and future enhancements. The goal is
 
 ---
 
-## 🚀 Advanced Features (Long-term)
+## Advanced Features (Long-term)
 
 ### AI Integration
 * **Dialogue AI** - GPT-powered NPC conversations
@@ -246,7 +246,7 @@ This document outlines the plugin ecosystem and future enhancements. The goal is
 
 ---
 
-## 🎯 Success Metrics
+## Success Metrics
 
 * **Time to First Game**: < 1 day with plugins
 * **Plugin Coverage**: 80% of common game features
@@ -256,7 +256,7 @@ This document outlines the plugin ecosystem and future enhancements. The goal is
 
 ---
 
-## 💡 Philosophy
+## Philosophy
 
 Build the toolbox first, then build games with incredible speed. Each plugin should be:
 - **Production-ready**: Not just a demo, but battle-tested
