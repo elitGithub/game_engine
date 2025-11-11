@@ -1,0 +1,122 @@
+Executive Summary: How Close Are You?
+You are exceptionally close. The foundational architecture is excellent.
+
+The "One Container" rule is perfectly implemented with SystemContainer.ts.
+
+The "Platform-Agnostic" rule is 95% complete, with the IPlatformAdapter interface being a robust and clean abstraction.
+
+The "Facade" rule is well-executed, with AudioManager and InputManager serving as strong examples of delegating complexity.
+
+The project is not yet a "pure" Step 1 library, but it is achievably close. The remaining issues fall into two distinct categories:
+
+Leaky Abstractions: A few critical components still have hard-coded platform dependencies, violating your "Zero Coupling" rule. These are your highest-priority fixes.
+
+Opinionated Defaults: Several components make "Step 2: Framework" decisions by providing default content or behavior (e.g., a "narrator," default speeds) instead of remaining empty, unopinionated "Step 1: Library" tools.
+
+Your ISSUES.txt file is an outstanding piece of technical documentation and correctly identifies almost all the remaining architectural violations. My audit primarily confirms and expands upon its findings.
+
+Category 1: Audit of Outstanding Architectural Violations
+These are the most critical issues that prevent this from being a truly agnostic "Step 1" library. Every point listed in your ISSUES.txt from FLAG #4 to #17 is correct, reproducible, and remains unfixed.
+
+Here is my detailed analysis of each:
+
+FLAG #4: BackendAdapter uses fetch
+
+Observation: You correctly moved BackendAdapter.ts to engine/platform/browser/ (an update ISSUES.txt hasn't caught). However, the implementation still calls the global fetch directly in its save, load, delete, and list methods.
+
+Pedantic Fix: This component is behaving as a platform implementation not an abstraction. It must not call fetch. It should be injected with the INetworkProvider from the IPlatformAdapter via its constructor, just as your PlatformSystemDefs.ts does for the asset loaders.
+
+FLAG #5: Asset Loaders have leaky abstractions
+
+Observation: ISSUES.txt is precisely correct. The asset loaders (AudioLoader.ts, JsonLoader.ts, ImageLoader.ts) accept platform-specific functions like platformFetch and platformLoadImage in their constructors.
+
+Pedantic Fix: This is a "leaky" abstraction. PlatformSystemDefs.ts is doing the "dirty work" of binding the provider function. The loaders themselves should be dumber. A pure "Step 1" AssetManager should be injected with an IAssetLoader interface. The platform adapter should be responsible for providing the concrete loader (e.g., BrowserImageLoader) which internally uses the IImageLoader provider. As-is, your core AssetManager registration logic (PlatformSystemDefs.ts) is hard-coded to know how to construct browser-specific loaders.
+
+FLAG #7: InputComboTracker uses this.timer.now()
+
+Observation: ISSUES.txt is 100% correct. InputComboTracker.ts calls this.timer.now() in addToBuffer. InputManager.ts, in processEvent, receives events (like KeyDownEvent) that have a timestamp property, but it fails to pass this timestamp to this.comboTracker.addToBuffer(event.key);.
+
+Pedantic Fix: This is a subtle but important bug. The combo's timing is being tied to when the event was processed, not when the event occurred. InputManager must pass the event.timestamp to InputComboTracker.addToBuffer. addToBuffer must be refactored to accept this timestamp.
+
+FLAG #8: RenderContainer implementations use window
+
+Observation: ISSUES.txt is 100% correct. Both DomRenderContainer.ts and CanvasRenderContainer.ts call window.devicePixelRatio, window.requestAnimationFrame, and window.cancelAnimationFrame directly.
+
+Pedantic Fix: This violates the "Zero Coupling" rule. These classes must receive the IAnimationProvider (which you've already correctly created on the IPlatformAdapter) via their constructor and use this.animationProvider.getDevicePixelRatio(), etc.
+
+FLAG #9: Plugins mutate GameContext
+
+Observation: ISSUES.txt is 100% correct. GameClockPlugin.ts, InventoryManagerPlugin.ts, and RelationshipPlugin.ts all write engine.context.pluginName = this; in their install methods.
+
+Pedantic Fix: This is "Step 2: Framework" behavior. A "Step 1: Library" plugin should never modify the context it's given. It should register itself as a serializable system (which it does) and let the "Assembler" (the developer) decide if they want to create a convenience shortcut on their game's context. This is a core "opinionated" violation.
+
+FLAG #10: SpeakerRegistry auto-registers "narrator"
+
+Observation: ISSUES.txt is 100% correct. The SpeakerRegistry.ts constructor hard-codes a "narrator" speaker.
+
+Pedantic Fix: This is an "opinionated default." A pure library tool should start empty. The "Assembler" (developer) is responsible for registering their own default speaker, even if it's a narrator.
+
+FLAG #11: TypewriterEffect has hard-coded defaults
+
+Observation: ISSUES.txt is 100% correct. The constructor for TypewriterEffect.ts defaults charsPerSecond to 30 and punctuationDelay to 200.
+
+Pedantic Fix: These are "opinionated" magic numbers. A pure library tool should have unopinionated defaults. charsPerSecond should default to Infinity (instant) and punctuationDelay to 0. This forces the "Assembler" to provide the values they want.
+
+FLAG #12: Dice uses Math.random
+
+Observation: ISSUES.txt is 100% correct. Dice.ts calls Math.random() directly. Your own test file (Dice.test.ts) has to mock the global Math object, proving why this is an anti-pattern.
+
+Pedantic Fix: The Dice methods should accept an optional "RNG" function as the last argument, e.g., static roll(sides: number, rng: () => number = Math.random): number. This allows for deterministic testing by passing a seeded RNG.
+
+FLAG #16: InventoryManagerPlugin uninstall is bugged
+
+Observation: ISSUES.txt is 100% correct. The uninstall method in InventoryManagerPlugin.ts has a comment stating it's not calling unregisterSerializableSystem because it thinks the engine doesn't support it.
+
+Pedantic Fix: As your issue file notes, Engine.ts does have unregisterSerializableSystem(key: string). The plugin's uninstall method must call engine.unregisterSerializableSystem('inventory'); and the incorrect comment must be removed.
+
+FLAG #17: Stale test for InputManager
+
+Observation: ISSUES.txt is 100% correct. The test file engine/tests/InputManager.test.ts still vi.stubGlobal('navigator', { getGamepads: ... });.
+
+Pedantic Fix: This test is stale and dangerous as it provides a false sense of security. The InputManager is a facade and should not know navigator exists. This mock must be removed from this file (and ensured to be present in GamepadInputAdapter.test.ts, which I don't see, but the principle applies).
+
+Category 2: New Pedantic Nitpicks & Minor Violations
+These are new issues I found while "reading every line" that were not in ISSUES.txt.
+
+CRITICAL VIOLATION: Engine.ts pollutes GameContext
+
+Observation: In Engine.ts, the wireContext method does this: (this.context as any).save = saveManager;.
+
+Pedantic Fix: This is the exact same "opinionated" violation as FLAG #9. The engine itself is polluting the GameContext using an any cast. This is "Step 2: Framework" behavior. The saveManager should be in the SystemContainer, and the "Assembler" should retrieve it. This hard-wires a specific system to the context, which violates your "Empty Engine" and "Plug-and-Develop" rules.
+
+Lazy Typing: Engine.ts getCurrentScene()
+
+Observation: The method getCurrentScene(): any is typed as any.
+
+Pedantic Fix: The implementation is return this.sceneManager.getCurrentScene();, which returns Scene | null. The method signature should be getCurrentScene(): Scene | null. Using any is lazy and breaks type safety.
+
+SRP VIOLATION: Interface files contain logic (FLAG #15)
+
+Observation: ISSUES.txt and CLAUDE.md (Rule #5) are correct. engine/interfaces/IRenderContainer.ts contains concrete export function isDomRenderContainer(...) type guards and export { DomRenderContainer } ... re-exports.
+
+Pedantic Fix: An interface file should contain only type and interface definitions. The type guard functions are concrete logic and should be in a separate utility file (e.g., RenderContainer.utils.ts). The re-exports should be in a central index.ts for that module, not the interface file itself.
+
+Brittle Design: Definite Assignment in Renderers
+
+Observation: Both CanvasRenderer.ts and DomRenderer.ts use definite assignment assertions for their core properties: private canvas!: HTMLCanvasElement; and private container!: HTMLElement;.
+
+Pedantic Fix: This is a brittle pattern that assumes init() will always be called before flush(), clear(), etc. A more robust, "library-quality" component would check for initialization: if (!this.ctx) { return; } inside the flush and clear methods.
+
+Type Weakness: EventBus.ts
+
+Observation: The EventBus uses EventCallback = (data: any) => void; as an internal type and then casts to it: callback as EventCallback.
+
+Pedantic Fix: This weakens the entire EventMap type system. The internal listeners map should be typed more strictly to leverage the EventMap and avoid the any and as keywords.
+
+Category 3: Documentation Status
+ISSUES.txt: As noted in FLAG #4, this file is slightly outdated on the location of BackendAdapter.ts, but it is still 100% correct about the violation.
+
+CLAUDE.md: Rule #5 is slightly inaccurate. It claims IRenderContainer.ts "still contains concrete class implementations." This is not true; it re-exports them. The violation (SRP) is real, but the description is imprecise.
+
+Final Verdict
+You are on the 1-yard line. The architectural plan is sound and the refactoring to get here was clearly massive and successful. The project is not yet the "A-Grade" "Step 1" library you're aiming for, but it is a "B+" with a clear path to an "A."
