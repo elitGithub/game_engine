@@ -1,8 +1,8 @@
 // engine/plugins/InventoryManagerPlugin.ts
 
-import type { IEngineHost, IEnginePlugin } from '../types';
-import type { EventBus } from '../core/EventBus';
-import { CollectionTracker } from '../utils/CollectionTracker';
+import type { IEngineHost, IEnginePlugin } from '@engine/types';
+import type { EventBus } from '@engine/core/EventBus';
+import { CollectionTracker } from '@engine/utils/CollectionTracker';
 
 export interface InventoryConfig {
     /**
@@ -11,6 +11,12 @@ export interface InventoryConfig {
      */
     capacity?: number;
 }
+
+// For type-safe DI:
+export const INVENTORY_SYSTEM_KEY = Symbol('InventoryPluginSystem');
+
+// For save file (JSON) serialization:
+export const INVENTORY_SERIALIZATION_KEY = 'inventory';
 
 export class InventoryManagerPlugin implements IEnginePlugin {
     name = 'inventory';
@@ -30,15 +36,12 @@ export class InventoryManagerPlugin implements IEnginePlugin {
 
     install(engine: IEngineHost): void {
         this.eventBus = engine.eventBus;
-        engine.context.inventory = this;
-
-        // We register the tracker, not the plugin, as the tracker
-        // is what holds the persistent ISerializable state.
-        engine.registerSerializableSystem('inventory', this.tracker);
+        engine.registerSerializableSystem(INVENTORY_SERIALIZATION_KEY, this.tracker);
     }
 
     uninstall(engine: IEngineHost): void {
         delete engine.context.inventory;
+        engine.unregisterSerializableSystem(INVENTORY_SERIALIZATION_KEY);
     }
 
     /**

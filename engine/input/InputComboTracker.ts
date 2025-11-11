@@ -26,10 +26,10 @@ export class InputComboTracker {
         this.combos.set(name, { inputs, timeWindow });
     }
 
-    public addToBuffer(input: string): void {
+    public addToBuffer(input: string, timestamp: number): void {
         this.inputBuffer.push({
             input,
-            timestamp: this.timer.now()
+            timestamp
         });
 
         if (this.inputBuffer.length > this.bufferSize) {

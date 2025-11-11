@@ -1,5 +1,5 @@
 // engine/plugins/GameClockPlugin.ts
-import type { IEngineHost, IEnginePlugin, TypedGameContext, ISerializable } from '../types';
+import type { IEngineHost, IEnginePlugin, TypedGameContext, ISerializable } from '@engine/types';
 import {EventBus} from "@engine/core/EventBus";
 
 export interface ClockConfig {
@@ -12,6 +12,12 @@ interface TimeRange {
     startUnit: number;
     endUnit: number;
 }
+
+// For type-safe DI:
+export const CLOCK_SYSTEM_KEY = Symbol('ClockPluginSystem');
+
+// For save file (JSON) serialization:
+export const CLOCK_SERIALIZATION_KEY = 'clock';
 
 export class GameClockPlugin implements IEnginePlugin, ISerializable {
     name = 'clock';
@@ -30,12 +36,12 @@ export class GameClockPlugin implements IEnginePlugin, ISerializable {
 
     install(engine: IEngineHost): void {
         this.eventBus = engine.eventBus;
-        engine.context.clock = this;
-        engine.registerSerializableSystem('clock', this);
+        engine.registerSerializableSystem(CLOCK_SERIALIZATION_KEY, this);
     }
 
     uninstall(engine: IEngineHost): void {
         delete engine.context.clock;
+        engine.unregisterSerializableSystem(CLOCK_SERIALIZATION_KEY);
     }
 
     update(deltaTime: number, context: TypedGameContext<any>): void {

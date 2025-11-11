@@ -158,6 +158,7 @@ export interface IEngineHost<TGame = Record<string, unknown>> {
     eventBus: EventBus;
 
     registerSerializableSystem(key: string, system: ISerializable): void;
+    unregisterSerializableSystem(key: string): void;
 }
 
 export interface IEnginePlugin<TGame = Record<string, unknown>> {

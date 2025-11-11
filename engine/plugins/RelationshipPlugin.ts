@@ -1,6 +1,6 @@
 // engine/plugins/RelationshipPlugin.ts
-import type { IEngineHost, IEnginePlugin } from '../types';
-import { ValueTracker } from '../utils/ValueTracker';
+import type {IEngineHost, IEnginePlugin} from '@engine/types';
+import {ValueTracker} from '@engine/utils/ValueTracker';
 
 export interface RelationshipConfig {
     defaultValue?: number;
@@ -8,11 +8,17 @@ export interface RelationshipConfig {
     max?: number;
 }
 
+// For type-safe DI:
+export const RELATIONSHIP_SYSTEM_KEY = Symbol('RelationshipPluginSystem');
+
+// For save file (JSON) serialization:
+export const RELATIONSHIP_SERIALIZATION_KEY = 'relationships';
+
 export class RelationshipPlugin implements IEnginePlugin {
     name = 'relationships';
     version = '1.0.0';
 
-    private tracker: ValueTracker;
+    private readonly tracker: ValueTracker;
     private config: Required<RelationshipConfig>;
     private ranks: Map<string, { threshold: number }>;
 
@@ -28,11 +34,11 @@ export class RelationshipPlugin implements IEnginePlugin {
 
     install(engine: IEngineHost): void {
         engine.context.relationships = this;
-        engine.registerSerializableSystem('relationships', this.tracker);
+        engine.registerSerializableSystem(RELATIONSHIP_SERIALIZATION_KEY, this.tracker);
     }
 
     uninstall(engine: IEngineHost): void {
-        delete engine.context.relationships;
+        engine.unregisterSerializableSystem(RELATIONSHIP_SERIALIZATION_KEY);
     }
 
     setValue(npcId: string, value: number): void {
@@ -57,7 +63,7 @@ export class RelationshipPlugin implements IEnginePlugin {
     }
 
     registerRank(rankName: string, threshold: number): void {
-        this.ranks.set(rankName, { threshold });
+        this.ranks.set(rankName, {threshold});
     }
 
     getRank(npcId: string): string | null {
@@ -65,7 +71,7 @@ export class RelationshipPlugin implements IEnginePlugin {
         let bestRank: string | null = null;
         let bestThreshold = -Infinity;
 
-        this.ranks.forEach(({ threshold }, name) => {
+        this.ranks.forEach(({threshold}, name) => {
             if (value >= threshold && threshold > bestThreshold) {
                 bestRank = name;
                 bestThreshold = threshold;

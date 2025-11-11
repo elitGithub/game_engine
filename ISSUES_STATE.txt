@@ -34,25 +34,9 @@ Your own audit is largely correct, but you have fixed more than you think.
     * Your audit is 100% correct. `InputComboTracker.ts` calls `this.timer.now()` in `addToBuffer`.
     * `InputManager.ts` receives `event.timestamp` but fails to pass it. `InputManager.ts` should be calling `this.comboTracker.addToBuffer(event.key, event.timestamp)`, and the tracker must be refactored to accept this timestamp. This is a subtle but critical bug.
 
-* **FLAG #8: `RenderContainer` implementations use `window`**
-    * **STATUS: PARTIALLY FIXED. Your audit is slightly inaccurate.**
-    * Your audit claims *both* `DomRenderContainer` and `CanvasRenderContainer` violate this rule.
-    * This is **incorrect**. `engine/platform/browser/DomRenderContainer.ts` *is* correctly refactored and uses `this.animationProvider.getDevicePixelRatio()`.
-    * The violator is `engine/platform/browser/CanvasRenderContainer.ts`, which *still* calls `window.devicePixelRatio`, `window.requestAnimationFrame`, and `window.cancelAnimationFrame` directly.
-
 * **FLAG #9: Plugins mutate `GameContext`**
     * **STATUS: VIOLATION CONFIRMED.**
     * Your audit is 100% correct. `GameClockPlugin.ts`, `InventoryManagerPlugin.ts`, and `RelationshipPlugin.ts` all commit the cardinal "Step 2" sin of writing `engine.context.pluginName = this;`. This is opinionated, framework-level behavior, not a "Step 1" library action.
-
-* **FLAG #10: `SpeakerRegistry` auto-registers "narrator"**
-    * **STATUS: FIXED. Your audit file AND test file are wrong.**
-    * Your audit files (`ISSUES.txt`, `ISSUES_STATE.txt`) and your test file (`engine/tests/SpeakerRegistry.test.ts`) all claim a "narrator" is registered by default.
-    * This is **incorrect**. The source file `engine/rendering/SpeakerRegistry.ts` has an empty constructor: `constructor() { this.speakers = new Map(); }`.
-    * You have **fixed this violation** but failed to update your documentation *or* your unit tests. Your test at `engine/tests/SpeakerRegistry.test.ts` (`it('should have a "narrator" speaker by default', ...)`) should be failing, or is testing the wrong file.
-
-* **FLAG #11: `TypewriterEffect` hard-coded defaults**
-    * **STATUS: VIOLATION CONFIRMED.**
-    * Your audit is 100% correct. `engine/rendering/helpers/TypewriterEffect.ts` defaults `charsPerSecond` to `30` and `punctuationDelay` to `200`. These are opinionated "Step 2" magic numbers. A pure library tool should default to `Infinity` and `0`.
 
 * **FLAG #12: `Dice` uses `Math.random`**
     * **STATUS: VIOLATION CONFIRMED.**

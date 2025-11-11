@@ -3,14 +3,12 @@ import type { GameStateManager } from '@engine/core/GameStateManager';
 import type { EventBus } from '@engine/core/EventBus';
 import type {
     EngineInputEvent,
-    GamepadAxisEvent,
-    GamepadButtonEvent,
-    InputBinding, // <-- This import is used by the fix
+    InputBinding,
 } from '@engine/core/InputEvents';
 import { InputMode } from "@engine/types/EngineEventMap";
 import {InputActionMapper} from "@engine/input/InputActionMapper";
 import {InputComboTracker} from "@engine/input/InputComboTracker";
-import {GamepadState, InputState} from "@engine/input/InputState";
+import {InputState} from "@engine/input/InputState";
 import type { ITimerProvider } from '@engine/interfaces/ITimerProvider';
 
 
@@ -65,7 +63,7 @@ export class InputManager {
         switch (event.type) {
             case 'keydown':
                 this.state.keysDown.add(event.key);
-                this.comboTracker.addToBuffer(event.key); // DELEGATE
+                this.comboTracker.addToBuffer(event.key, event.timestamp); // DELEGATE
                 this.dispatchEvent(event, true); // true = check combos
                 this.actionMapper.checkActionTriggers('key', event.key, { // DELEGATE
                     shift: event.shift,
@@ -82,7 +80,7 @@ export class InputManager {
 
             case 'mousedown':
                 this.state.mouseButtonsDown.add(event.button);
-                this.comboTracker.addToBuffer(`mouse${event.button}`); // DELEGATE
+                this.comboTracker.addToBuffer(`mouse${event.button}`, event.timestamp); // DELEGATE
                 this.dispatchEvent(event, true); // true = check combos
                 this.actionMapper.checkActionTriggers('mouse', event.button, { // DELEGATE
                     shift: event.shift,
@@ -126,7 +124,7 @@ export class InputManager {
                 event.touches.forEach(touch => {
                     this.state.touchPoints.set(touch.id, { x: touch.x, y: touch.y });
                 });
-                this.comboTracker.addToBuffer(`touch${event.touches.length}`); // DELEGATE
+                this.comboTracker.addToBuffer(`touch${event.touches.length}`, event.timestamp); // DELEGATE
                 this.dispatchEvent(event, true); // true = check combos
                 break;
 
@@ -157,7 +155,7 @@ export class InputManager {
                 this.state.gamepadStates.set(event.gamepadIndex, gamepadButtonState);
 
                 if (event.pressed) {
-                    this.comboTracker.addToBuffer(`gamepad${event.gamepadIndex}_button${event.button}`); // DELEGATE
+                    this.comboTracker.addToBuffer(`gamepad${event.gamepadIndex}_button${event.button}`, event.timestamp); // DELEGATE
                     this.actionMapper.checkActionTriggers('gamepad', event.button); // DELEGATE
                 }
                 this.dispatchEvent(event, event.pressed); // true = check combos if pressed
@@ -205,7 +203,6 @@ export class InputManager {
     }
 
     getTouchPoints(): Array<{ id: number; x: number; y: number }> {
-        // <-- FIX: Explicitly type the tuple to fix TS2345
         return Array.from(this.state.touchPoints.entries()).map(
             ([id, pos]: [number, { x: number; y: number }]) => ({
                 id,

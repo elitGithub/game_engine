@@ -1,14 +1,14 @@
 import type {GameContext, ISerializable, ISerializationRegistry, MigrationFunction, StateData} from '@engine/types';
-import {EventBus} from './core/EventBus';
-import {GameStateManager} from './core/GameStateManager';
-import {SceneManager} from './systems/SceneManager';
-import {ActionRegistry} from './systems/ActionRegistry';
-import {SaveManager} from './systems/SaveManager';
-import {AudioManager} from './systems/AudioManager';
-import {EffectManager} from './systems/EffectManager';
-import {InputManager} from './systems/InputManager';
+import {EventBus} from '@engine/core/EventBus';
+import {GameStateManager} from '@engine/core/GameStateManager';
+import {SceneManager} from '@engine/systems/SceneManager';
+import {ActionRegistry} from '@engine/systems/ActionRegistry';
+import {SaveManager} from '@engine/systems/SaveManager';
+import {AudioManager} from '@engine/systems/AudioManager';
+import {EffectManager} from '@engine/systems/EffectManager';
+import {InputManager} from '@engine/systems/InputManager';
 import type {AssetManager, AssetManifestEntry} from './systems/AssetManager';
-import type {StorageAdapter} from './core/StorageAdapter';
+import type {StorageAdapter} from '@engine/core/StorageAdapter';
 import {GameData} from "@engine/types/EngineEventMap";
 import {PlatformContainer} from "@engine/core/PlatformContainer";
 import {RenderManager} from "@engine/core/RenderManager";
@@ -17,7 +17,8 @@ import {SystemContainer} from './core/SystemContainer';
 import {createCoreSystemDefinitions, CORE_SYSTEMS} from './core/CoreSystemDefs';
 import {createPlatformSystemDefinitions, PLATFORM_SYSTEMS, type PlatformSystemConfig} from './core/PlatformSystemDefs';
 import type {IPlatformAdapter} from '@engine/interfaces';
-import {BrowserPlatformAdapter} from './platform/BrowserPlatformAdapter';
+import {BrowserPlatformAdapter} from '@engine/platform/BrowserPlatformAdapter';
+import {Scene} from "@engine/systems/Scene";
 
 /**
  * System configuration (kept for backward compatibility)
@@ -199,28 +200,6 @@ export class Engine implements ISerializationRegistry {
             stateManager.setContext(this.context);
         }
 
-        // Wire context to systems (readonly references)
-        this.wireContext();
-
-        // Create SaveManager if enabled (legacy special case)
-        // TODO: Convert this to a SystemDefinition in future version
-        if (this.userConfig.systems.save !== false) {
-            if (this.container.has(CORE_SYSTEMS.EventBus)) {
-                const eventBus = this.container.get<EventBus>(CORE_SYSTEMS.EventBus);
-                // Get storage adapter from userConfig or from platform
-                const storageAdapter = this.userConfig.storageAdapter ?? this.platform.getStorageAdapter();
-                const saveManager = new SaveManager(
-                    eventBus,
-                    this,
-                    storageAdapter
-                );
-                this.container.registerInstance(Symbol('SaveManager'), saveManager);
-                (this.context as any).save = saveManager;
-            } else {
-                console.warn('[Engine] SaveManager requires EventBus to be registered');
-            }
-        }
-
         // Load game data if provided
         if (this.userConfig.gameData) {
             if (this.container.has(CORE_SYSTEMS.SceneManager)) {
@@ -281,34 +260,6 @@ export class Engine implements ISerializationRegistry {
         engine.log('Engine created successfully');
 
         return engine;
-    }
-
-    /**
-     * Wire context to system references (readonly)
-     * @private
-     */
-    private wireContext(): void {
-        const ctx = this.context;
-
-        if (this.container.has(PLATFORM_SYSTEMS.AudioManager)) {
-            ctx.audio = this.container.get(PLATFORM_SYSTEMS.AudioManager);
-        }
-        if (this.container.has(PLATFORM_SYSTEMS.AssetManager)) {
-            ctx.assets = this.container.get(PLATFORM_SYSTEMS.AssetManager);
-        }
-        if (this.container.has(PLATFORM_SYSTEMS.EffectManager)) {
-            ctx.effects = this.container.get(PLATFORM_SYSTEMS.EffectManager);
-        }
-        if (this.container.has(PLATFORM_SYSTEMS.InputManager)) {
-            ctx.input = this.container.get(PLATFORM_SYSTEMS.InputManager);
-        }
-        if (this.container.has(PLATFORM_SYSTEMS.RenderManager)) {
-            ctx.renderer = this.container.get(PLATFORM_SYSTEMS.RenderManager);
-            ctx.renderManager = this.container.get(PLATFORM_SYSTEMS.RenderManager);
-        }
-        if (this.container.has(Symbol('Localization'))) {
-            ctx.loc = this.container.get(Symbol('Localization'));
-        }
     }
 
     // ========================================================================
@@ -556,7 +507,7 @@ export class Engine implements ISerializationRegistry {
         return this.stateManager.getCurrentStateName();
     }
 
-    getCurrentScene(): any {
+    getCurrentScene(): Scene | null {
         return this.sceneManager.getCurrentScene();
     }
 }

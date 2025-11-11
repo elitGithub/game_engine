@@ -1,8 +1,8 @@
 import type {IRenderer, RenderCommand, TextStyleData} from '@engine/types/RenderingTypes.ts';
 // Removed unused EventBus and container imports from constructor
 import type {AssetManager} from '@engine/systems/AssetManager.ts';
-import type { IRenderContainer } from '../interfaces/IRenderContainer';
-import { isCanvasRenderContainer } from '../interfaces/IRenderContainer';
+import type {IRenderContainer} from '@engine/interfaces';
+import {isCanvasRenderContainer} from '@engine/interfaces';
 
 /**
  * CanvasRenderer - Canvas-based "dumb" IRenderer implementation.
@@ -12,14 +12,11 @@ import { isCanvasRenderContainer } from '../interfaces/IRenderContainer';
  * Requires ICanvasRenderContainer - use with CanvasRenderContainer from platform adapter
  */
 export class CanvasRenderer implements IRenderer {
-    // FIX: Use definite assignment assertion '!'
-    private canvas!: HTMLCanvasElement;
-    private ctx!: CanvasRenderingContext2D;
+    private canvas: HTMLCanvasElement | null = null;
+    private ctx: CanvasRenderingContext2D | null = null;
 
-    constructor(
-        // AssetManager is required to resolve asset IDs
-        private assets: AssetManager
-    ) {}
+    constructor(private assets: AssetManager) {
+    }
 
     init(container: IRenderContainer): void {
         if (!isCanvasRenderContainer(container)) {
@@ -34,10 +31,16 @@ export class CanvasRenderer implements IRenderer {
     }
 
     clear(): void {
-        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+        if (!this.ctx || !this.canvas) {
+            return;
+        }
+        this.ctx.clearRect(0, 0, this.canvas.width, this?.canvas?.height);
     }
 
     flush(commands: RenderCommand[]): void {
+        if (!this.ctx) {
+            return;
+        }
         this.clear();
 
         // Type-safe helper to get zIndex
@@ -100,6 +103,7 @@ export class CanvasRenderer implements IRenderer {
     }
 
     private applyTextStyle(style: TextStyleData): void {
+        if (!this.ctx) return;
         const fontStyle = style.italic ? 'italic' : 'normal';
         const fontWeight = style.bold ? 'bold' : 'normal';
         const fontSize = '16px'; // Default
@@ -112,11 +116,13 @@ export class CanvasRenderer implements IRenderer {
     }
 
     resize(width: number, height: number): void {
+        if (!this.canvas) return;
         this.canvas.width = width;
         this.canvas.height = height;
     }
 
     dispose(): void {
+        if (!this.canvas) return;
         this.canvas.remove();
     }
 }

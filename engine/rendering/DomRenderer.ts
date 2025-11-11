@@ -2,8 +2,8 @@
 
 import type { IRenderer, RenderCommand, TextStyleData } from '../types/RenderingTypes';
 import type { AssetManager } from '@engine/systems/AssetManager.ts';
-import type { IRenderContainer } from '../interfaces/IRenderContainer';
-import { isDomRenderContainer } from '../interfaces/IRenderContainer';
+import type { IRenderContainer } from '@engine/interfaces';
+import { isDomRenderContainer } from '@engine/interfaces';
 
 /**
  * DomRenderer - DOM-based renderer implementation
@@ -13,7 +13,7 @@ import { isDomRenderContainer } from '../interfaces/IRenderContainer';
  */
 export class DomRenderer implements IRenderer {
     private elements: Map<string, HTMLElement> = new Map();
-    private container!: HTMLElement;
+    private container: HTMLElement | null = null;
 
     constructor(private assets: AssetManager) {}
 
@@ -33,6 +33,7 @@ export class DomRenderer implements IRenderer {
     }
 
     flush(commands: RenderCommand[]): void {
+        if (!this.container) return;
         this.clear();
 
         const getZ = (cmd: RenderCommand): number => {
