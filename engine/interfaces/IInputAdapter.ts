@@ -177,6 +177,6 @@ export interface InputCapabilities {
 }
 
 // Re-export concrete implementations from their own files
-export { BaseInputAdapter } from '../input/BaseInputAdapter';
-export { MockInputAdapter } from '../input/MockInputAdapter';
-export { CompositeInputAdapter } from '../input/CompositeInputAdapter';
+export { BaseInputAdapter } from '@engine/input/BaseInputAdapter';
+export { MockInputAdapter } from '@engine/input/MockInputAdapter';
+export { CompositeInputAdapter } from '@engine/input/CompositeInputAdapter';

@@ -12,13 +12,16 @@ import type {
     IRenderContainer,
     ITimerProvider,
     PlatformCapabilities,
-    PlatformType
-} from '../interfaces';
-import {CanvasRenderContainer, DomRenderContainer, WebAudioPlatform} from '../interfaces';
-import {LocalStorageAdapter} from './browser/LocalStorageAdapter';
-import type {StorageAdapter} from '../core/StorageAdapter';
-import {DomInputAdapter} from '../core/DomInputAdapter';
-import {GamepadInputAdapter} from './GamepadInputAdapter';
+    PlatformType,
+    IAnimationProvider,
+    INetworkProvider,
+    IImageLoader
+} from '@engine/interfaces';
+import {CanvasRenderContainer, DomRenderContainer, WebAudioPlatform} from '@engine/interfaces';
+import {LocalStorageAdapter} from '@engine/platform/browser/LocalStorageAdapter';
+import type {StorageAdapter} from '@engine/core/StorageAdapter';
+import {DomInputAdapter} from '@engine/core/DomInputAdapter';
+import {GamepadInputAdapter} from '@engine/platform/GamepadInputAdapter';
 import {CompositeInputAdapter} from '@engine/interfaces';
 
 /**
@@ -88,6 +91,9 @@ export class BrowserPlatformAdapter implements IPlatformAdapter {
     private inputAdapter: IInputAdapter | null = null;
     private storageAdapter: StorageAdapter | null = null;
     private timerProvider: ITimerProvider | null = null;
+    private animationProvider: IAnimationProvider | null = null;
+    private networkProvider: INetworkProvider | null = null;
+    private imageLoader: IImageLoader | null = null;
 
     constructor(config: BrowserPlatformConfig) {
         this.config = {
@@ -198,61 +204,69 @@ export class BrowserPlatformAdapter implements IPlatformAdapter {
     }
 
     // ========================================================================
+    // ANIMATION (SINGLETON)
+    // ========================================================================
+
+    getAnimationProvider(): IAnimationProvider {
+        if (!this.animationProvider) {
+            this.animationProvider = {
+                requestAnimationFrame: (callback: FrameRequestCallback) =>
+                    window.requestAnimationFrame(callback),
+                cancelAnimationFrame: (handle: number) =>
+                    window.cancelAnimationFrame(handle),
+                getDevicePixelRatio: () => window.devicePixelRatio || 1
+            };
+        }
+        return this.animationProvider;
+    }
+
+    // ========================================================================
+    // NETWORK (SINGLETON)
+    // ========================================================================
+
+    getNetworkProvider(): INetworkProvider {
+        if (!this.networkProvider) {
+            this.networkProvider = {
+                fetch: (url: string, options?: RequestInit) =>
+                    window.fetch(url, options)
+            };
+        }
+        return this.networkProvider;
+    }
+
+    // ========================================================================
+    // IMAGE LOADING (SINGLETON)
+    // ========================================================================
+
+    getImageLoader(): IImageLoader {
+        if (!this.imageLoader) {
+            this.imageLoader = {
+                loadImage: (src: string) => {
+                    return new Promise((resolve, reject) => {
+                        const img = new Image();
+                        img.onload = () => resolve(img);
+                        img.onerror = () => reject(new Error(`[BrowserPlatform] Failed to load image: ${src}`));
+                        img.src = src;
+                    });
+                }
+            };
+        }
+        return this.imageLoader;
+    }
+
+    // ========================================================================
     // CAPABILITIES
     // ========================================================================
 
-// [NEW CODE - Drop-in replacement for getCapabilities()]
-
     getCapabilities(): PlatformCapabilities {
         return {
-            // --- Boolean Flags (Unchanged) ---
             rendering: true,
             audio: this.config.audio && this.isAudioSupported(),
             input: this.config.input,
             storage: this.isLocalStorageSupported(),
             network: true,
             realtime: true,
-
-            // --- NEW: Platform Function Implementations ---
-
-            /**
-             * Provides the platform's 'fetch' implementation.
-             */
-            fetch: (url: string, options?: RequestInit) => window.fetch(url, options),
-
-            /**
-             * Provides the platform's implementation for loading an image from a URL.
-             */
-            loadImage: (src: string) => {
-                return new Promise((resolve, reject) => {
-                    const img = new Image();
-                    img.onload = () => resolve(img);
-                    img.onerror = () => reject(new Error(`[BrowserPlatform] Failed to load image: ${src}`));
-                    img.src = src;
-                });
-            },
-
-            /**
-             * Provides the platform's storage adapter.
-             */
-            getStorage: () => this.getStorageAdapter(),
-
-            /**
-             * Provides the platform's 'requestAnimationFrame' implementation.
-             */
-            requestAnimationFrame: (callback: FrameRequestCallback) => window.requestAnimationFrame(callback),
-
-            /**
-             * Provides the platform's 'cancelAnimationFrame' implementation.
-             */
-            cancelAnimationFrame: (handle: number) => window.cancelAnimationFrame(handle),
-
-            /**
-             * Provides the platform's device pixel ratio.
-             */
-            get devicePixelRatio() {
-                return window.devicePixelRatio || 1;
-            }
+            imageLoading: true
         };
     }
 
@@ -282,6 +296,9 @@ export class BrowserPlatformAdapter implements IPlatformAdapter {
         this.renderContainer = null;
         this.storageAdapter = null;
         this.timerProvider = null;
+        this.animationProvider = null;
+        this.networkProvider = null;
+        this.imageLoader = null;
     }
 
     // ========================================================================

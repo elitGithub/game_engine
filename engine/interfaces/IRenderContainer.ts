@@ -157,9 +157,9 @@ export interface INativeRenderContainer<TNative = unknown> extends IRenderContai
 // CONCRETE IMPLEMENTATIONS (re-exported from separate files)
 // ============================================================================
 
-export { DomRenderContainer } from './DomRenderContainer';
-export { CanvasRenderContainer } from './CanvasRenderContainer';
-export { HeadlessRenderContainer } from './HeadlessRenderContainer';
+export { DomRenderContainer } from '@engine/platform/browser/DomRenderContainer';
+export { CanvasRenderContainer } from '@engine/platform/browser/CanvasRenderContainer';
+export { HeadlessRenderContainer } from '@engine/interfaces/HeadlessRenderContainer';
 
 // ============================================================================
 // TYPE GUARDS

@@ -14,7 +14,7 @@
 
 import type {IRenderContainer} from './IRenderContainer';
 import type {IAudioPlatform} from './IAudioPlatform';
-import type {StorageAdapter} from '../core/StorageAdapter';
+import type {StorageAdapter} from '@engine/core/StorageAdapter';
 import type {IInputAdapter} from './IInputAdapter';
 import type {ITimerProvider} from './ITimerProvider';
 
@@ -22,6 +22,72 @@ import type {ITimerProvider} from './ITimerProvider';
  * Platform type identifier
  */
 export type PlatformType = 'browser' | 'node' | 'mobile' | 'test' | 'custom';
+
+/**
+ * Animation frame provider interface
+ *
+ * Provides requestAnimationFrame/cancelAnimationFrame abstraction
+ * for platforms that support real-time rendering (browsers).
+ *
+ * Headless/testing platforms should return undefined from
+ * getAnimationProvider() and use timer-based game loop instead.
+ */
+export interface IAnimationProvider {
+    /**
+     * Request animation frame for next render cycle
+     * @returns Handle that can be passed to cancelAnimationFrame
+     */
+    requestAnimationFrame(callback: FrameRequestCallback): number;
+
+    /**
+     * Cancel a pending animation frame request
+     * @param handle Handle returned from requestAnimationFrame
+     */
+    cancelAnimationFrame(handle: number): void;
+
+    /**
+     * Get device pixel ratio for high-DPI displays
+     * @returns Pixel ratio (typically 1.0 for standard displays, 2.0+ for retina)
+     */
+    getDevicePixelRatio(): number;
+}
+
+/**
+ * Network provider interface
+ *
+ * Provides fetch API abstraction for platforms that support
+ * network access (browsers, Node.js with node-fetch).
+ *
+ * Headless/testing platforms should return undefined from
+ * getNetworkProvider() if network access is not available.
+ */
+export interface INetworkProvider {
+    /**
+     * Fetch a resource from the network
+     * @param url URL to fetch
+     * @param options Fetch options (method, headers, body, etc.)
+     * @returns Promise resolving to Response
+     */
+    fetch(url: string, options?: RequestInit): Promise<Response>;
+}
+
+/**
+ * Image loader interface
+ *
+ * Provides image loading abstraction for platforms that support
+ * image loading (browsers).
+ *
+ * Headless/testing platforms should return undefined from
+ * getImageLoader() if image loading is not supported.
+ */
+export interface IImageLoader {
+    /**
+     * Load an image from a source URL
+     * @param src Image source URL
+     * @returns Promise resolving to loaded image element
+     */
+    loadImage(src: string): Promise<HTMLImageElement>;
+}
 
 /**
  * IPlatformAdapter - Master platform abstraction
@@ -135,6 +201,48 @@ export interface IPlatformAdapter {
     getTimerProvider(): ITimerProvider;
 
     // ========================================================================
+    // ANIMATION (SINGLETON, OPTIONAL)
+    // ========================================================================
+
+    /**
+     * Get animation frame provider (singleton, optional)
+     *
+     * Returns the same animation provider instance on multiple calls.
+     * Returns undefined if platform doesn't support requestAnimationFrame
+     * (e.g., headless server, testing environments).
+     *
+     * Browser platforms should implement this for smooth 60fps rendering.
+     * Headless platforms should return undefined and use timer-based loop.
+     */
+    getAnimationProvider?(): IAnimationProvider | undefined;
+
+    // ========================================================================
+    // NETWORK (SINGLETON, OPTIONAL)
+    // ========================================================================
+
+    /**
+     * Get network provider (singleton, optional)
+     *
+     * Returns the same network provider instance on multiple calls.
+     * Returns undefined if platform doesn't support network access
+     * (e.g., headless server without network, testing environments).
+     */
+    getNetworkProvider?(): INetworkProvider | undefined;
+
+    // ========================================================================
+    // IMAGE LOADING (SINGLETON, OPTIONAL)
+    // ========================================================================
+
+    /**
+     * Get image loader (singleton, optional)
+     *
+     * Returns the same image loader instance on multiple calls.
+     * Returns undefined if platform doesn't support image loading
+     * (e.g., headless server, testing environments).
+     */
+    getImageLoader?(): IImageLoader | undefined;
+
+    // ========================================================================
     // PLATFORM CAPABILITIES
     // ========================================================================
 
@@ -166,56 +274,63 @@ export interface IPlatformAdapter {
 
 /**
  * Platform capabilities - what features are available
+ *
+ * This interface contains ONLY boolean flags that indicate what
+ * capabilities the platform supports. It does NOT contain method
+ * implementations - those are provided through separate provider
+ * interfaces (IAnimationProvider, INetworkProvider, etc.).
+ *
+ * This design follows the Interface Segregation Principle and
+ * prevents platforms from being forced to implement methods they
+ * cannot support.
  */
 export interface PlatformCapabilities {
     /**
      * Can render graphics
+     * If true, getRenderContainer() should return a valid container
      */
     rendering: boolean;
 
     /**
      * Can play audio
+     * If true, getAudioPlatform() should return a valid audio platform
      */
     audio: boolean;
 
     /**
      * Can receive input
+     * If true, getInputAdapter() should return a valid input adapter
      */
     input: boolean;
 
     /**
      * Can persist data
+     * Always true - all platforms must provide storage (even if in-memory)
      */
     storage: boolean;
 
     /**
      * Can access network
+     * If true, getNetworkProvider() should return a valid network provider
      */
     network: boolean;
 
     /**
-     * Supports real-time features (game loop, animation)
+     * Supports real-time features (requestAnimationFrame)
+     * If true, getAnimationProvider() should return a valid animation provider
      */
     realtime: boolean;
+
+    /**
+     * Supports image loading
+     * If true, getImageLoader() should return a valid image loader
+     */
+    imageLoading: boolean;
 
     /**
      * Additional platform-specific capabilities
      */
     custom?: Record<string, boolean>;
-
-    fetch(url: string, options?: RequestInit): Promise<Response>;
-
-    loadImage(src: string): Promise<HTMLImageElement>;
-
-    // NEW: Storage
-    getStorage(): StorageAdapter | null;
-
-    // NEW: Timing & Rendering (for FLAG #8)
-    requestAnimationFrame(callback: FrameRequestCallback): number;
-
-    cancelAnimationFrame(handle: number): void;
-
-    get devicePixelRatio(): number;
 }
 
 /**

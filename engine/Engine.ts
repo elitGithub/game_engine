@@ -99,6 +99,7 @@ export class Engine implements ISerializationRegistry {
 
     private lastFrameTime: number;
     private frameCount: number;
+    private gameLoopHandle: unknown = null;
 
     private constructor(userConfig: EngineConfig) {
         this.userConfig = userConfig;
@@ -423,7 +424,17 @@ export class Engine implements ISerializationRegistry {
     private gameLoop(): void {
         if (!this.isRunning) return;
 
-        requestAnimationFrame(() => this.gameLoop());
+        // Use platform abstraction for scheduling next frame
+        const animProvider = this.platform.getAnimationProvider?.();
+        if (animProvider) {
+            // Browser: use requestAnimationFrame for smooth 60fps
+            this.gameLoopHandle = animProvider.requestAnimationFrame(() => this.gameLoop());
+        } else {
+            // Headless/testing: use timer-based loop
+            const timer = this.platform.getTimerProvider();
+            const frameDelay = 1000 / this.config.targetFPS;
+            this.gameLoopHandle = timer.setTimeout(() => this.gameLoop(), frameDelay);
+        }
 
         const currentTime = performance.now();
         const deltaTime = (currentTime - this.lastFrameTime) / 1000;
@@ -447,6 +458,19 @@ export class Engine implements ISerializationRegistry {
     stop(): void {
         this.log('Stopping engine...');
         this.isRunning = false;
+
+        // Cancel pending game loop
+        if (this.gameLoopHandle !== null) {
+            const animProvider = this.platform.getAnimationProvider?.();
+            if (animProvider) {
+                animProvider.cancelAnimationFrame(this.gameLoopHandle as number);
+            } else {
+                const timer = this.platform.getTimerProvider();
+                timer.clearTimeout(this.gameLoopHandle);
+            }
+            this.gameLoopHandle = null;
+        }
+
         this.eventBus.emit('engine.stopped', {});
     }
 

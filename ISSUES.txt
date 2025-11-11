@@ -1,8 +1,10 @@
-To borrow the parlance from the audit report, you have requested a pedantic, line-by-line verification of the codebase against the 17 flags listed in `ISSUES.txt`.
+This file tracks the 17 audit flags identified in the platform abstraction review.
 
-I have audited the repository. The grade has improved from "B-" to "B".
+Current grade: B
 
-You have made significant and correct progress on the most critical "Category 1" violations by fixing the platform abstractions for timing and storage. You have also completed FLAG #13 (emoji removal). However, violations related to `fetch`, `new Image()`, and `Date.now()` remain, meaning the library is still not fully platform-agnostic.
+Progress: Platform abstraction layer has been redesigned to eliminate Interface Segregation Principle violations and reduce direct platform coupling. Core systems now use provider interfaces instead of capability methods with fake implementations.
+
+The library is approaching platform-agnostic status, but several critical violations remain in asset loaders, render containers, and utility classes.
 
 Here is a complete list of the 17 flags and their current status.
 
@@ -42,18 +44,25 @@ You have successfully resolved **6** of the 17 flags, including three of the mos
 
 ## Partially Corrected Violations
 
-**1** flag has been partially addressed, but still fails the audit's strict criteria.
+**3** flags have been partially addressed, with infrastructure in place but implementation incomplete.
+
+* **FLAG #5: Asset Loaders use `fetch` and `new Image()`**
+    * **STATUS: PARTIALLY FIXED.**
+    * **Analysis:** Provider interfaces (INetworkProvider, IImageLoader) have been added to IPlatformAdapter. PlatformSystemDefs.ts injects these providers. However, the asset loader classes themselves still accept platform-specific functions as constructor parameters.
+
+* **FLAG #8: `RenderContainer` implementations use `window`**
+    * **STATUS: PARTIALLY FIXED.**
+    * **Analysis:** IAnimationProvider interface created with requestAnimationFrame, cancelAnimationFrame, and getDevicePixelRatio methods. Engine.ts game loop refactored to use platform abstraction. However, render container implementations have not been updated to use this abstraction.
 
 * **FLAG #15 (SRP): Interface files contain concrete logic**
     * **STATUS: PARTIALLY FIXED.**
-    * **Analysis:** The most significant part of this violation (embedding entire concrete classes like `DomRenderContainer` inside `IRenderContainer.ts`) has been corrected. These classes now reside in their own files (e.g., `engine/interfaces/DomRenderContainer.ts`, `engine/interfaces/CanvasRenderContainer.ts`).
-    * **Remaining Violation:** The interface files themselves—`engine/interfaces/IRenderContainer.ts` and `engine/interfaces/IPlatformAdapter.ts`—still contain concrete function implementations (`is...()` type guards and the `requiresCapability` helper), which violates the "only types/interfaces" rule.
+    * **Analysis:** Concrete classes like `DomRenderContainer` have been moved to separate files. However, interface files still contain concrete function implementations (type guards, helper functions).
 
 ---
 
 ## Outstanding Violations
 
-**10** flags remain unaddressed. The "Category 1" violations listed here are critical blockers to achieving the "Step 1" vision.
+**8** flags remain unaddressed. The "Category 1" violations listed here are critical blockers to achieving platform-agnostic status.
 
 ### Category 1: Platform Coupling (CRITICAL)
 * **FLAG #4: `BackendAdapter` uses `fetch`**
@@ -61,20 +70,22 @@ You have successfully resolved **6** of the 17 flags, including three of the mos
     * **Analysis:** The file `engine/systems/BackendAdapter.ts` still exists in the agnostic `systems/` folder and continues to use the `fetch` global directly in its methods.
 
 * **FLAG #5: Asset Loaders use `fetch` and `new Image()`**
-    * **STATUS: NOT FIXED.**
-    * **Analysis:** All three loaders remain platform-coupled:
-        * `engine/systems/asset_loaders/AudioLoader.ts` uses `fetch`.
-        * `engine/systems/asset_loaders/JsonLoader.ts` uses `fetch`.
-        * `engine/systems/asset_loaders/ImageLoader.ts` uses `new Image()`.
-    * The `IPlatformAdapter` has not been expanded to provide abstract methods for asset loading as recommended.
+    * **STATUS: PARTIALLY FIXED.**
+    * **Analysis:** The abstraction layer has been created. `IPlatformAdapter` now has optional provider methods: `getNetworkProvider()` returning `INetworkProvider` interface with `fetch()`, and `getImageLoader()` returning `IImageLoader` interface with `loadImage()`. PlatformSystemDefs.ts has been updated to inject these providers into asset loaders during registration.
+    * **Remaining Violation:** The asset loader implementations themselves have not been refactored. They still accept fetch/loadImage functions as constructor parameters rather than being pure platform-agnostic classes:
+        * `engine/platform/browser/asset_loaders/AudioLoader.ts` - accepts fetch function
+        * `engine/platform/browser/asset_loaders/JsonLoader.ts` - accepts fetch function
+        * `engine/platform/browser/asset_loaders/ImageLoader.ts` - accepts loadImage function
+    * These loaders are now correctly located in the platform layer but still have platform-specific signatures.
 
 * **FLAG #7: `InputComboTracker` uses `Date.now()`**
     * **STATUS: NOT FIXED.**
-    * **Analysis:** This is a subtle but clear failure. While `InputComboTracker.ts` was refactored to use an injected `ITimerProvider`, it *still* commits the original logic bug: it calls `this.timer.now()` inside its `addToBuffer` method. The audit's instruction was to "accept the timestamp from the `EngineInputEvent`". The `InputManager` receives events that *have* a timestamp but fails to pass them to the tracker. The logic flaw is identical.
+    * **Analysis:** While `InputComboTracker.ts` was refactored to use an injected `ITimerProvider`, it still calls `this.timer.now()` inside its `addToBuffer` method. The audit's instruction was to "accept the timestamp from the `EngineInputEvent`". The `InputManager` receives events that have a timestamp but fails to pass them to the tracker.
 
 * **FLAG #8: `RenderContainer` implementations use `window`**
-    * **STATUS: NOT FIXED.**
-    * **Analysis:** Both `engine/interfaces/CanvasRenderContainer.ts` and `engine/interfaces/DomRenderContainer.ts` still contain hard-coded calls to `window.devicePixelRatio`, `window.requestAnimationFrame`, and `window.cancelAnimationFrame`.
+    * **STATUS: PARTIALLY FIXED.**
+    * **Analysis:** The abstraction layer has been created. `IPlatformAdapter` now has `getAnimationProvider()` returning `IAnimationProvider` interface with `requestAnimationFrame()`, `cancelAnimationFrame()`, and `getDevicePixelRatio()` methods. Engine.ts game loop (line 424-437) has been refactored to use `platform.getAnimationProvider()` instead of calling `window.requestAnimationFrame` directly.
+    * **Remaining Violation:** The render container implementations (`engine/interfaces/CanvasRenderContainer.ts` and `engine/interfaces/DomRenderContainer.ts`) have not been updated to use the new abstraction. They still contain direct calls to `window.devicePixelRatio`, `window.requestAnimationFrame`, and `window.cancelAnimationFrame`.
 
 ### Category 2: Opinionated Defaults
 * **FLAG #9: Plugins mutate `GameContext`**

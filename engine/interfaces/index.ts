@@ -39,7 +39,14 @@
 // MASTER PLATFORM ADAPTER (SINGLETON)
 // ============================================================================
 
-export type { IPlatformAdapter, PlatformType, PlatformCapabilities } from '@engine/interfaces/IPlatformAdapter';
+export type {
+    IPlatformAdapter,
+    PlatformType,
+    PlatformCapabilities,
+    IAnimationProvider,
+    INetworkProvider,
+    IImageLoader
+} from '@engine/interfaces/IPlatformAdapter';
 export { requiresCapability } from '@engine/interfaces/IPlatformAdapter';
 
 // ============================================================================

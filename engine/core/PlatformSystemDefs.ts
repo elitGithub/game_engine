@@ -86,22 +86,25 @@ export function createPlatformSystemDefinitions(
                 const eventBus = c.get<EventBus>(CORE_SYSTEMS.EventBus);
                 const assetManager = new AssetManager(eventBus);
 
-                // FIX: Get platform-specific loader functions from capabilities
-                const capabilities = platform.getCapabilities();
-                const platformFetch = capabilities.fetch;
-                const platformLoadImage = capabilities.loadImage;
+                // Get platform-specific loader functions from providers
+                const networkProvider = platform.getNetworkProvider?.();
+                const imageLoader = platform.getImageLoader?.();
 
-                // FIX: Register default loaders, now with platform functions injected
-                assetManager.registerLoader(new ImageLoader(platformLoadImage));
-                assetManager.registerLoader(new JsonLoader(platformFetch));
+                // Register loaders based on platform capabilities
+                if (imageLoader) {
+                    assetManager.registerLoader(new ImageLoader(imageLoader.loadImage.bind(imageLoader)));
+                }
+                if (networkProvider) {
+                    assetManager.registerLoader(new JsonLoader(networkProvider.fetch.bind(networkProvider)));
+                }
 
                 // Get AudioContext from platform (NOT from window)
                 const audioPlatform = platform.getAudioPlatform?.();
-                if (audioPlatform) {
+                if (audioPlatform && networkProvider) {
                     const audioContext = audioPlatform.getNativeContext?.();
                     if (audioContext) {
-                        // FIX: Inject both AudioContext and the platform's fetch
-                        assetManager.registerLoader(new AudioLoader(audioContext, platformFetch));
+                        // Inject both AudioContext and the platform's fetch
+                        assetManager.registerLoader(new AudioLoader(audioContext, networkProvider.fetch.bind(networkProvider)));
                     }
                 }
 

@@ -13,14 +13,14 @@ import type {
     IAudioPlatform,
     IInputAdapter,
     ITimerProvider
-} from '../interfaces';
+} from '@engine/interfaces';
 import {
     HeadlessRenderContainer,
     MockAudioPlatform,
     MockInputAdapter
-} from '../interfaces';
-import type { StorageAdapter } from '../core/StorageAdapter';
-import { InMemoryStorageAdapter } from '../systems/InMemoryStorageAdapter';
+} from '@engine/interfaces';
+import type { StorageAdapter } from '@engine/core/StorageAdapter';
+import { InMemoryStorageAdapter } from '@engine/systems/InMemoryStorageAdapter';
 
 /**
  * Headless platform configuration
@@ -39,7 +39,7 @@ export interface HeadlessPlatformConfig {
     height?: number;
 
     /**
-     * Pixel ratio
+     * Pixel ratio (only used for virtual screen calculations)
      * Default: 1.0
      */
     pixelRatio?: number;
@@ -61,6 +61,19 @@ export interface HeadlessPlatformConfig {
      * Default: 'headless_'
      */
     storagePrefix?: string;
+
+    /**
+     * Timer implementation for dependency injection
+     * Default: Node.js/browser setTimeout/clearTimeout/Date.now
+     *
+     * This allows complete platform independence and custom timer
+     * implementations for testing (e.g., fake timers, manual time control)
+     */
+    timerImpl?: {
+        setTimeout: (callback: () => void, ms: number) => unknown;
+        clearTimeout: (id: unknown) => void;
+        now: () => number;
+    };
 }
 
 /**
@@ -92,7 +105,19 @@ export class HeadlessPlatformAdapter implements IPlatformAdapter {
     public readonly name = 'Headless Platform';
     public readonly version = '1.0.0';
 
-    private config: Required<HeadlessPlatformConfig>;
+    private config: {
+        width: number;
+        height: number;
+        pixelRatio: number;
+        audio: boolean;
+        input: boolean;
+        storagePrefix: string;
+    };
+    private timerImpl: {
+        setTimeout: (callback: () => void, ms: number) => unknown;
+        clearTimeout: (id: unknown) => void;
+        now: () => number;
+    };
 
     // Singletons
     private renderContainer: IRenderContainer | null = null;
@@ -109,6 +134,13 @@ export class HeadlessPlatformAdapter implements IPlatformAdapter {
             audio: config.audio ?? false,
             input: config.input ?? false,
             storagePrefix: config.storagePrefix ?? 'headless_'
+        };
+
+        // Default timer implementation (Node.js/browser compatible)
+        this.timerImpl = config.timerImpl ?? {
+            setTimeout: (cb, ms) => setTimeout(cb, ms),
+            clearTimeout: (id) => clearTimeout(id as ReturnType<typeof setTimeout>),
+            now: () => Date.now()
         };
     }
 
@@ -177,9 +209,9 @@ export class HeadlessPlatformAdapter implements IPlatformAdapter {
     getTimerProvider(): ITimerProvider {
         if (!this.timerProvider) {
             this.timerProvider = {
-                setTimeout: (callback: () => void, ms: number) => setTimeout(callback, ms) as unknown,
-                clearTimeout: (id: unknown) => clearTimeout(id as ReturnType<typeof setTimeout>),
-                now: () => Date.now()
+                setTimeout: (callback: () => void, ms: number) => this.timerImpl.setTimeout(callback, ms),
+                clearTimeout: (id: unknown) => this.timerImpl.clearTimeout(id),
+                now: () => this.timerImpl.now()
             };
         }
         return this.timerProvider;
@@ -191,12 +223,13 @@ export class HeadlessPlatformAdapter implements IPlatformAdapter {
 
     getCapabilities(): PlatformCapabilities {
         return {
-            rendering: true,  // Headless rendering (no visual output)
+            rendering: true,      // Headless rendering (no visual output)
             audio: this.config.audio,
             input: this.config.input,
-            storage: true,  // In-memory storage always available
-            network: false, // Headless typically no network
-            realtime: false // No requestAnimationFrame in headless
+            storage: true,        // In-memory storage always available
+            network: false,       // Headless has no network provider
+            realtime: false,      // Headless has no animation frame provider
+            imageLoading: false   // Headless has no image loader
         };
     }
 
