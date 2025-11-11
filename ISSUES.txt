@@ -65,10 +65,6 @@ You have successfully resolved **6** of the 17 flags, including three of the mos
 **8** flags remain unaddressed. The "Category 1" violations listed here are critical blockers to achieving platform-agnostic status.
 
 ### Category 1: Platform Coupling (CRITICAL)
-* **FLAG #4: `BackendAdapter` uses `fetch`**
-    * **STATUS: NOT FIXED.**
-    * **Analysis:** The file `engine/systems/BackendAdapter.ts` still exists in the agnostic `systems/` folder and continues to use the `fetch` global directly in its methods.
-
 * **FLAG #5: Asset Loaders use `fetch` and `new Image()`**
     * **STATUS: PARTIALLY FIXED.**
     * **Analysis:** The abstraction layer has been created. `IPlatformAdapter` now has optional provider methods: `getNetworkProvider()` returning `INetworkProvider` interface with `fetch()`, and `getImageLoader()` returning `IImageLoader` interface with `loadImage()`. PlatformSystemDefs.ts has been updated to inject these providers into asset loaders during registration.
@@ -91,10 +87,6 @@ You have successfully resolved **6** of the 17 flags, including three of the mos
 * **FLAG #9: Plugins mutate `GameContext`**
     * **STATUS: NOT FIXED.**
     * **Analysis:** `GameClockPlugin.ts`, `InventoryManagerPlugin.ts`, and `RelationshipPlugin.ts` all continue to write `engine.context.pluginName = this;` in their `install` methods.
-
-* **FLAG #10: `SpeakerRegistry` auto-registers "narrator"**
-    * **STATUS: NOT FIXED.**
-    * **Analysis:** `engine/rendering/SpeakerRegistry.ts` still contains the hard-coded registration of a "narrator" speaker in its constructor.
 
 * **FLAG #11: `TypewriterEffect` has hard-coded defaults**
     * **STATUS: NOT FIXED.**

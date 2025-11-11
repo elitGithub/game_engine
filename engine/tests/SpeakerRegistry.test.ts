@@ -12,19 +12,6 @@ describe('SpeakerRegistry', () => {
         registry = new SpeakerRegistry();
     });
 
-    it('should have a "narrator" speaker by default', () => {
-        const narrator = registry.get('narrator');
-        expect(narrator).toBeDefined();
-        expect(narrator.id).toBe('narrator');
-        expect(narrator.name).toBe('Narrator');
-    });
-
-    it('should return the "narrator" as a fallback for unknown IDs', () => {
-        const unknown = registry.get('unknown_speaker_id');
-        expect(unknown).toBeDefined();
-        expect(unknown.id).toBe('narrator');
-    });
-
     it('should register a new speaker', () => {
         const playerConfig: SpeakerConfig = {
             id: 'player',

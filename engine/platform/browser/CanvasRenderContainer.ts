@@ -3,11 +3,12 @@
  */
 
 import type { ICanvasRenderContainer } from '@engine/interfaces/IRenderContainer';
+import {IAnimationProvider} from "@engine/interfaces";
 
 export class CanvasRenderContainer implements ICanvasRenderContainer {
     private context: CanvasRenderingContext2D;
 
-    constructor(private canvas: HTMLCanvasElement) {
+    constructor(private canvas: HTMLCanvasElement, private animationProvider: IAnimationProvider | null = null) {
         const ctx = canvas.getContext('2d');
         if (!ctx) {
             throw new Error('Failed to get 2D context from canvas');
@@ -41,11 +42,11 @@ export class CanvasRenderContainer implements ICanvasRenderContainer {
     }
 
     getPixelRatio(): number {
-        return window.devicePixelRatio || 1.0;
+        return this.animationProvider?.getDevicePixelRatio() || 1.0;
     }
 
     requestAnimationFrame(callback: () => void): () => void {
-        const id = window.requestAnimationFrame(callback);
-        return () => window.cancelAnimationFrame(id);
+        const id = this.animationProvider?.requestAnimationFrame(callback);
+        return () => id ? this.animationProvider?.cancelAnimationFrame(id) : null;
     }
 }
