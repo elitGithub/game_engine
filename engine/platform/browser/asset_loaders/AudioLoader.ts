@@ -1,22 +1,23 @@
 // engine/systems/asset_loaders/AudioLoader.ts
 import type {AssetType, IAssetLoader} from '@engine/core/IAssetLoader';
+import {INetworkProvider} from "@engine/interfaces";
 
 export class AudioLoader implements IAssetLoader {
     public readonly type: AssetType = 'audio';
 
     constructor(private audioContext: AudioContext,
-                private platformFetch: (url: string, options?: RequestInit) => Promise<Response>) {
+                private networkProvider: INetworkProvider) {
         if (!audioContext) {
             throw new Error("[AudioLoader] AudioContext is required.");
         }
-        if (!platformFetch) {
+        if (!networkProvider) {
             throw new Error("[AudioLoader] A platform-specific fetch implementation is required.");
         }
     }
 
     async load(url: string): Promise<AudioBuffer> {
         try {
-            const response = await this.platformFetch(url);
+            const response = await this.networkProvider.fetch(url);
             if (!response.ok) {
                 throw new Error(`[AudioLoader] HTTP error ${response.status} for ${url}`);
             }

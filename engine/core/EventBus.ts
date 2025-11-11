@@ -1,13 +1,11 @@
 // engine/core/EventBus.ts
-import type { EventMap } from '@engine/types';
-
-export type EventCallback = (data: any) => void;
+import type {EventMap, ListenerMap} from '@engine/types';
 
 export class EventBus {
-    private listeners: Map<string, EventCallback[]>;
+    private listeners: ListenerMap;
 
     constructor() {
-        this.listeners = new Map();
+        this.listeners = {};
     }
 
     /**
@@ -18,10 +16,11 @@ export class EventBus {
         // CORRECTED: Removed the stray underscore before "=>"
         callback: (data: EventMap[K]) => void
     ): () => void {
-        if (!this.listeners.has(event)) {
-            this.listeners.set(event, []);
+        if (!this.listeners[event]) {
+            this.listeners[event] = [];
         }
-        this.listeners.get(event)!.push(callback as EventCallback);
+
+        this.listeners[event]!.push(callback);
 
         return () => this.off(event, callback);
     }
@@ -34,10 +33,11 @@ export class EventBus {
         // CORRECTED: Removed the stray underscore before "=>"
         callback: (data: EventMap[K]) => void
     ): void {
-        if (!this.listeners.has(event)) return;
+        const callbacks = this.listeners[event];
+        if (!callbacks) return;
 
-        const callbacks = this.listeners.get(event)!;
-        const index = callbacks.indexOf(callback as EventCallback);
+// No 'as' cast! Also 100% type-safe.
+        const index = callbacks.indexOf(callback);
         if (index > -1) {
             callbacks.splice(index, 1);
         }
@@ -47,9 +47,9 @@ export class EventBus {
      * Emit an event to all subscribers
      */
     emit<K extends keyof EventMap>(event: K, data: EventMap[K]): void {
-        if (!this.listeners.has(event)) return;
+        const callbacks = this.listeners[event];
+        if (!callbacks) return;
 
-        const callbacks = this.listeners.get(event)!;
         callbacks.forEach(callback => {
             try {
                 callback(data);
@@ -63,6 +63,6 @@ export class EventBus {
      * Clear all listeners
      */
     clear(): void {
-        this.listeners.clear();
+        this.listeners = {};
     }
 }

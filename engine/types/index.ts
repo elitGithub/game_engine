@@ -181,6 +181,10 @@ export interface BaseItem {
     stackable?: boolean;
 }
 
+export type ListenerMap = {
+  [K in keyof EventMap]?: ((data: EventMap[K]) => void)[];
+};
+
 /**
  * This is the final, extensible EventMap.
  * Game-specific code can extend this interface using declaration merging.
@@ -195,3 +199,4 @@ export interface BaseItem {
  */
 export interface EventMap extends EngineEventMap {
 }
+

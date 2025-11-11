@@ -13,7 +13,8 @@ describe('JsonLoader', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
-        loader = new JsonLoader(mockFetch as any);
+        const mockNetworkProvider = {fetch: mockFetch};
+        loader = new JsonLoader(mockNetworkProvider as any);
     });
 
     it('should successfully load and parse JSON', async () => {

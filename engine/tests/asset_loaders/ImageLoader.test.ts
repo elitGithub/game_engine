@@ -24,9 +24,9 @@ describe('ImageLoader', () => {
             mockImage.src = src;
             return mockImage as unknown as HTMLImageElement;
         });
-
+       const mockImageLoaderProvider = { loadImage: mockPlatformLoadImage };
         // FIX 5: Inject the mock function
-        loader = new ImageLoader(mockPlatformLoadImage);
+        loader = new ImageLoader(mockImageLoaderProvider);
     });
 
     it('should successfully load an image', async () => {

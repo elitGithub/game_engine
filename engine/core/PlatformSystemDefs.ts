@@ -92,10 +92,10 @@ export function createPlatformSystemDefinitions(
 
                 // Register loaders based on platform capabilities
                 if (imageLoader) {
-                    assetManager.registerLoader(new ImageLoader(imageLoader.loadImage.bind(imageLoader)));
+                    assetManager.registerLoader(new ImageLoader(imageLoader));
                 }
                 if (networkProvider) {
-                    assetManager.registerLoader(new JsonLoader(networkProvider.fetch.bind(networkProvider)));
+                    assetManager.registerLoader(new JsonLoader(networkProvider));
                 }
 
                 // Get AudioContext from platform (NOT from window)
@@ -104,7 +104,7 @@ export function createPlatformSystemDefinitions(
                     const audioContext = audioPlatform.getNativeContext?.();
                     if (audioContext) {
                         // Inject both AudioContext and the platform's fetch
-                        assetManager.registerLoader(new AudioLoader(audioContext, networkProvider.fetch.bind(networkProvider)));
+                        assetManager.registerLoader(new AudioLoader(audioContext, networkProvider));
                     }
                 }
 

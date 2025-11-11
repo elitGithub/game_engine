@@ -11,14 +11,14 @@ export class Dice {
     /**
      * Roll a single die
      */
-    static roll(sides: number = 6, rng: RngFunction = Math.random): number {
+    static roll(sides: number = 6, rng: RngFunction): number {
         return Math.floor(rng() * sides) + 1;
     }
 
     /**
      * Roll multiple dice and return the sum
      */
-    static rollSum(count: number = 1, sides: number = 6, rng: RngFunction = Math.random): number {
+    static rollSum(count: number = 1, sides: number = 6, rng: RngFunction): number {
         let total = 0;
         for (let i = 0; i < count; i++) {
             total += this.roll(sides, rng);
@@ -29,7 +29,7 @@ export class Dice {
     /**
      * Roll multiple dice and return individual results
      */
-    static rollMultiple(count: number = 1, sides: number = 6, rng: RngFunction = Math.random): number[] {
+    static rollMultiple(count: number = 1, sides: number = 6, rng: RngFunction): number[] {
         const results: number[] = [];
         for (let i = 0; i < count; i++) {
             results.push(this.roll(sides, rng));
@@ -47,7 +47,7 @@ export class Dice {
     /**
      * Roll with advantage (roll twice, take higher)
      */
-    static rollAdvantage(sides: number = 6, rng: RngFunction = Math.random): number {
+    static rollAdvantage(sides: number = 6, rng: RngFunction): number {
         const roll1 = this.roll(sides, rng);
         const roll2 = this.roll(sides, rng);
         return Math.max(roll1, roll2);
@@ -56,7 +56,7 @@ export class Dice {
     /**
      * Roll with disadvantage (roll twice, take lower)
      */
-    static rollDisadvantage(sides: number = 6, rng: RngFunction = Math.random): number {
+    static rollDisadvantage(sides: number = 6, rng: RngFunction): number {
         const roll1 = this.roll(sides, rng);
         const roll2 = this.roll(sides, rng);
         return Math.min(roll1, roll2);
