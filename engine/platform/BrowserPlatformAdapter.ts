@@ -138,7 +138,7 @@ export class BrowserPlatformAdapter implements IPlatformAdapter {
             }
             return new CanvasRenderContainer(element);
         } else {
-            return new DomRenderContainer(element);
+            return new DomRenderContainer(element, this.animationProvider);
         }
     }
 

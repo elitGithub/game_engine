@@ -9,13 +9,6 @@ export class SpeakerRegistry {
 
     constructor() {
         this.speakers = new Map();
-
-        // Register default narrator
-        this.register(new Speaker({
-            id: 'narrator',
-            name: 'Narrator',
-            color: '#e5e7eb'
-        }));
     }
 
     /**
@@ -28,8 +21,8 @@ export class SpeakerRegistry {
     /**
      * Get a speaker by ID
      */
-    get(speakerId: string): Speaker {
-        return this.speakers.get(speakerId) || this.speakers.get('narrator')!;
+    get(speakerId: string): Speaker | null | undefined {
+        return this.speakers.get(speakerId);
     }
 
     /**

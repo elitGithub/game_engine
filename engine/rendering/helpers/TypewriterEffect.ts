@@ -7,12 +7,12 @@ export class TypewriterEffect implements IDynamicEffect {
 
     // State for deltaTime-based animation
     private readonly timePerChar: number = 0;
-    private readonly punctuationDelay: number = 200; // in ms
+    private readonly punctuationDelay: number = 0; // in ms
     private timeAccumulator: number = 0;
     private currentDelay: number = 0; // Current delay (for punctuation)
 
     // Configurable
-    private readonly charsPerSecond: number = 30;
+    private readonly charsPerSecond: number = Infinity;
 
     constructor(config: { charsPerSecond?: number, punctuationDelay?: number } = {}) {
         this.charsPerSecond = config.charsPerSecond || 30;

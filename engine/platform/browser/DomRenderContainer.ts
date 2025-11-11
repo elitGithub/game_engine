@@ -3,9 +3,10 @@
  */
 
 import type { IDomRenderContainer } from '@engine/interfaces/IRenderContainer';
+import {IAnimationProvider} from "@engine/interfaces";
 
 export class DomRenderContainer implements IDomRenderContainer {
-    constructor(private element: HTMLElement) {}
+    constructor(private element: HTMLElement, private animationProvider: IAnimationProvider | null = null) {}
 
     getType(): 'dom' {
         return 'dom';
@@ -29,11 +30,11 @@ export class DomRenderContainer implements IDomRenderContainer {
     }
 
     getPixelRatio(): number {
-        return window.devicePixelRatio || 1.0;
+        return this.animationProvider?.getDevicePixelRatio() || 1.0;
     }
 
     requestAnimationFrame(callback: () => void): () => void {
-        const id = window.requestAnimationFrame(callback);
-        return () => window.cancelAnimationFrame(id);
+        const id = this.animationProvider?.requestAnimationFrame(callback);
+        return () => id ? this.animationProvider?.cancelAnimationFrame(id) : null;
     }
 }

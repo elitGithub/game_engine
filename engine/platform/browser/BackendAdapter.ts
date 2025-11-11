@@ -5,6 +5,7 @@
  * Copy and modify this for your own backend implementation.
  */
 import type { StorageAdapter, SaveSlotMetadata } from '@engine/core/StorageAdapter';
+import {INetworkProvider} from "@engine/interfaces";
 
 export interface BackendConfig {
     baseUrl: string;
@@ -13,15 +14,14 @@ export interface BackendConfig {
 }
 
 export class BackendAdapter implements StorageAdapter {
-    private config: BackendConfig;
 
-    constructor(config: BackendConfig) {
-        this.config = config;
+    constructor(private config: BackendConfig, private networkProvider: INetworkProvider) {
+
     }
 
     async save(slotId: string, data: string): Promise<boolean> {
         try {
-            const response = await fetch(`${this.config.baseUrl}/saves/${slotId}`, {
+            const response = await this.networkProvider.fetch(`${this.config.baseUrl}/saves/${slotId}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -43,7 +43,7 @@ export class BackendAdapter implements StorageAdapter {
 
     async load(slotId: string): Promise<string | null> {
         try {
-            const response = await fetch(`${this.config.baseUrl}/saves/${slotId}?userId=${this.config.userId}`, {
+            const response = await this.networkProvider.fetch(`${this.config.baseUrl}/saves/${slotId}?userId=${this.config.userId}`, {
                 headers: {
                     ...(this.config.authToken && { 'Authorization': `Bearer ${this.config.authToken}` })
                 }
@@ -61,7 +61,7 @@ export class BackendAdapter implements StorageAdapter {
 
     async delete(slotId: string): Promise<boolean> {
         try {
-            const response = await fetch(`${this.config.baseUrl}/saves/${slotId}?userId=${this.config.userId}`, {
+            const response = await this.networkProvider.fetch(`${this.config.baseUrl}/saves/${slotId}?userId=${this.config.userId}`, {
                 method: 'DELETE',
                 headers: {
                     ...(this.config.authToken && { 'Authorization': `Bearer ${this.config.authToken}` })
@@ -77,7 +77,7 @@ export class BackendAdapter implements StorageAdapter {
 
     async list(): Promise<SaveSlotMetadata[]> {
         try {
-            const response = await fetch(`${this.config.baseUrl}/saves?userId=${this.config.userId}`, {
+            const response = await this.networkProvider.fetch(`${this.config.baseUrl}/saves?userId=${this.config.userId}`, {
                 headers: {
                     ...(this.config.authToken && { 'Authorization': `Bearer ${this.config.authToken}` })
                 }
