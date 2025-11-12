@@ -1,11 +1,11 @@
 // engine/tests/SaveManager.test.ts
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { SaveManager } from '@engine/systems/SaveManager';
-import type { SaveData } from '@engine/systems/SaveManager';
-import { EventBus } from '@engine/core/EventBus';
-import type { ISerializationRegistry, ISerializable, MigrationFunction } from '@engine/types';
-import type { StorageAdapter } from '@engine/core/StorageAdapter';
+import {describe, it, expect, beforeEach, vi} from 'vitest';
+import {SaveManager} from '@engine/systems/SaveManager';
+import type {SaveData} from '@engine/systems/SaveManager';
+import {EventBus} from '@engine/core/EventBus';
+import type {ISerializationRegistry, ISerializable, MigrationFunction} from '@engine/types';
+import type {StorageAdapter} from '@engine/core/StorageAdapter';
 
 // Mock dependencies
 vi.mock('@engine/core/EventBus');
@@ -13,7 +13,7 @@ vi.mock('@engine/systems/LocalStorageAdapter'); // Mock the default adapter
 
 // Mock a sample serializable system (like a Player class)
 const mockPlayer: ISerializable = {
-    serialize: vi.fn(() => ({ health: 100 })),
+    serialize: vi.fn(() => ({health: 100})),
     deserialize: vi.fn(),
 };
 
@@ -48,11 +48,17 @@ describe('SaveManager', () => {
             restoreScene: vi.fn(),
         };
 
+        const mockTimerProvider = {
+            setTimeout: vi.fn((cb, ms) => window.setTimeout(cb, ms) as unknown),
+            clearTimeout: vi.fn((id) => window.clearTimeout(id as number)),
+            now: () => Date.now()
+        };
+
         // Spy on EventBus.emit
         vi.spyOn(mockEventBus, 'emit');
 
         // Instantiate the SaveManager, injecting the mock adapter
-        saveManager = new SaveManager(mockEventBus, mockRegistry, mockStorageAdapter);
+        saveManager = new SaveManager(mockEventBus, mockRegistry, mockStorageAdapter, mockTimerProvider);
     });
 
     afterEach(() => { // <-- ADD THIS ENTIRE BLOCK
@@ -74,7 +80,7 @@ describe('SaveManager', () => {
                 timestamp: mockDate.getTime(), // <-- CHANGE THIS: Use the exact time
                 currentSceneId: 'scene_start',
                 systems: {
-                    player: { health: 100 }
+                    player: {health: 100}
                 },
                 metadata: {}
             };
@@ -97,7 +103,7 @@ describe('SaveManager', () => {
             const error = new Error('Storage full');
             vi.mocked(mockStorageAdapter.save).mockRejectedValue(error);
             await saveManager.saveGame('slot1');
-            expect(mockEventBus.emit).toHaveBeenCalledWith('save.failed', { slotId: 'slot1', error });
+            expect(mockEventBus.emit).toHaveBeenCalledWith('save.failed', {slotId: 'slot1', error});
         });
     });
 
@@ -108,14 +114,14 @@ describe('SaveManager', () => {
                 timestamp: Date.now(),
                 currentSceneId: 'scene_2',
                 systems: {
-                    player: { health: 80 }
+                    player: {health: 80}
                 }
             };
             vi.mocked(mockStorageAdapter.load).mockResolvedValue(JSON.stringify(mockSaveFile));
 
             await saveManager.loadGame('slot1');
 
-            expect(mockPlayer.deserialize).toHaveBeenCalledWith({ health: 80 });
+            expect(mockPlayer.deserialize).toHaveBeenCalledWith({health: 80});
         });
 
         it('should call registry.restoreScene with the saved sceneId', async () => {
@@ -133,24 +139,24 @@ describe('SaveManager', () => {
         });
 
         it('should emit "save.loaded" on success', async () => {
-             const mockSaveFile: SaveData = { version: '1.0.0', timestamp: 12345, currentSceneId: 's1', systems: {} };
-             vi.mocked(mockStorageAdapter.load).mockResolvedValue(JSON.stringify(mockSaveFile));
+            const mockSaveFile: SaveData = {version: '1.0.0', timestamp: 12345, currentSceneId: 's1', systems: {}};
+            vi.mocked(mockStorageAdapter.load).mockResolvedValue(JSON.stringify(mockSaveFile));
 
-             await saveManager.loadGame('slot1');
+            await saveManager.loadGame('slot1');
 
-             expect(mockEventBus.emit).toHaveBeenCalledWith('save.loaded', { slotId: 'slot1', timestamp: 12345 });
+            expect(mockEventBus.emit).toHaveBeenCalledWith('save.loaded', {slotId: 'slot1', timestamp: 12345});
         });
 
         // This test now just checks that migration is *attempted*
         // not the complex logic itself.
         it('should call migration logic before deserializing', async () => {
-             // Set up a game version that differs from the save
+            // Set up a game version that differs from the save
             (mockRegistry as { gameVersion: string }).gameVersion = '1.1.0';
             const mockSaveFile: SaveData = {
                 version: '1.0.0', // Old save file
                 timestamp: 12345,
                 currentSceneId: 's1',
-                systems: { player: { oldHealth: 100 } } // Old data
+                systems: {player: {oldHealth: 100}} // Old data
             };
             vi.mocked(mockStorageAdapter.load).mockResolvedValue(JSON.stringify(mockSaveFile));
 
@@ -161,14 +167,19 @@ describe('SaveManager', () => {
                 return data;
             });
             mockRegistry.migrationFunctions.set('1.0.0_to_1.1.0', migrationV1toV2);
+            const mockTimerProvider = {
+                setTimeout: vi.fn((cb, ms) => window.setTimeout(cb, ms) as unknown),
+                clearTimeout: vi.fn((id) => window.clearTimeout(id as number)),
+                now: () => Date.now()
+            };
 
             // Re-create saveManager to pick up the new migration function
-            saveManager = new SaveManager(mockEventBus, mockRegistry, mockStorageAdapter);
+            saveManager = new SaveManager(mockEventBus, mockRegistry, mockStorageAdapter, mockTimerProvider);
 
             await saveManager.loadGame('slot1');
 
             // Check that the *migrated* data was passed to deserialize
-            expect(mockPlayer.deserialize).toHaveBeenCalledWith({ health: 100 });
+            expect(mockPlayer.deserialize).toHaveBeenCalledWith({health: 100});
         });
     });
 

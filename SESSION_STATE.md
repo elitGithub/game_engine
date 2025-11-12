@@ -1,22 +1,22 @@
 # SESSION STATE
 
-**Last Updated:** 2025-11-12 15:53 UTC
+**Last Updated:** 2025-11-12 16:09 UTC
 **Status:** COMPLETE - Platform abstraction refactoring (ALL flags resolved)
-**Grade:** A+ (17 of 17 flags fixed - 100% completion)
+**Grade:** A+ (18 of 18 flags fixed - 100% completion)
 
 ---
 
 ## WHERE ARE WE RIGHT NOW?
 
-**Current Task:** FLAG #17 fix - COMPLETE
+**Current Task:** FLAG #18 fix - COMPLETE
 
-**Last Action:** Fixed InputManager.test.ts by removing stale navigator.getGamepads mocks. All 17 audit flags now resolved. 100% test coverage maintained (373/373 tests passing).
+**Last Action:** Fixed InputManager DOM coupling by moving HTMLElement.dataset extraction from InputManager (core) to DomInputAdapter (platform-specific). All 18 audit flags now resolved.
 
-**Next Action:** Commit final flag resolution
+**Next Action:** Commit FLAG #18 resolution
 
 **Tests:** ALL PASS (373/373) | TypeScript: CLEAN
 
-**Git:** Multiple files modified (FLAG #17 fix + documentation updates) | Uncommitted changes
+**Git:** Multiple files modified (FLAG #18 fix + documentation updates) | Uncommitted changes
 
 ---
 
@@ -53,8 +53,9 @@
 - [x] FLAG #15: Interface files contain logic (FIXED - type guards moved to utils)
 - [x] FLAG #16: Plugin uninstall bugged (FIXED - unregisterSerializableSystem exists)
 - [x] FLAG #17: InputManager.test.ts stale mocks (FIXED - removed navigator.getGamepads mocks)
+- [x] FLAG #18: InputManager DOM coupling (FIXED - moved HTMLElement.dataset logic to DomInputAdapter)
 
-**All 17 Flags Resolved:** 100% completion achieved
+**All 18 Flags Resolved:** 100% completion achieved
 
 **Category 1 Completed (Platform Abstraction):**
 - [x] FLAG #1: MusicPlayer timer injection
@@ -145,6 +146,18 @@ All critical platform abstraction work is COMPLETE. The engine is now truly plat
 **Solution:** Removed all stale navigator mocking code. The existing tests already properly verify InputManager's facade behavior by testing event processing, action mapping delegation, and combo detection delegation.
 
 **Result:** All 17 audit flags now resolved. 373/373 tests passing. 100% test coverage maintained.
+
+**Session 2025-11-12 (Aftermath):** FLAG #18 discovered and resolved.
+
+**Problem:** During code review, InputManager.ts was found to have DOM-specific code at lines 106-121. It was directly casting `event.target` to `HTMLElement` and accessing the `dataset` property - a violation of Rule #3 (Platform-Agnostic). This meant the supposedly platform-agnostic InputManager had knowledge of HTML elements and DOM APIs.
+
+**Solution:**
+1. Added optional `data?: Record<string, string>` property to ClickEvent interface (InputEvents.ts)
+2. Moved dataset extraction logic from InputManager to DomInputAdapter.onClick() (platform-specific code)
+3. Updated InputManager to read from generic `event.data` property instead of casting to HTMLElement
+4. Updated EngineEventMap to use `EventTarget | null` instead of `HTMLElement` for input.hotspot event
+
+**Result:** InputManager is now truly platform-agnostic. All DOM-specific logic is in DomInputAdapter where it belongs. 373/373 tests passing. 18/18 flags resolved.
 
 ---
 

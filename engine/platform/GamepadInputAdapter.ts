@@ -10,10 +10,10 @@
  * platform-agnostic events from this adapter.
  */
 
-import { BaseInputAdapter, type InputAdapterType, type InputCapabilities, type InputAttachOptions } from '../interfaces/IInputAdapter';
-import type { EngineInputEvent, GamepadButtonEvent, GamepadAxisEvent } from '../core/InputEvents';
-import type { IRenderContainer } from '../interfaces/IRenderContainer';
-import type { ITimerProvider } from '../interfaces/ITimerProvider';
+import { BaseInputAdapter, type InputAdapterType, type InputCapabilities, type InputAttachOptions } from '@engine/interfaces/IInputAdapter';
+import type { GamepadButtonEvent, GamepadAxisEvent } from '@engine/core/InputEvents';
+import type { IRenderContainer } from '@engine/interfaces';
+import type { ITimerProvider } from '@engine/interfaces';
 
 /**
  * Gamepad button state
@@ -170,7 +170,7 @@ export class GamepadInputAdapter extends BaseInputAdapter {
                 if (button.pressed && !wasPressed) {
                     const event: GamepadButtonEvent = {
                         type: 'gamepadbutton',
-                        timestamp: Date.now(),
+                        timestamp: this.timer.now(),
                         gamepadIndex: i,
                         button: index,
                         pressed: true,
@@ -183,7 +183,7 @@ export class GamepadInputAdapter extends BaseInputAdapter {
                 if (!button.pressed && wasPressed) {
                     const event: GamepadButtonEvent = {
                         type: 'gamepadbutton',
-                        timestamp: Date.now(),
+                        timestamp: this.timer.now(),
                         gamepadIndex: i,
                         button: index,
                         pressed: false,
@@ -203,7 +203,7 @@ export class GamepadInputAdapter extends BaseInputAdapter {
                 if (Math.abs(value - lastValue) > 0.1) {
                     const event: GamepadAxisEvent = {
                         type: 'gamepadaxis',
-                        timestamp: Date.now(),
+                        timestamp: this.timer.now(),
                         gamepadIndex: i,
                         axis: index,
                         value

@@ -3,6 +3,7 @@ import type { StorageAdapter, SaveSlotMetadata } from '../core/StorageAdapter';
 import type { EventBus } from '../core/EventBus';
 import type {ISerializationRegistry} from '../types';
 import { MigrationManager } from "./MigrationManager";
+import {ITimerProvider} from "@engine/interfaces";
 
 export interface SaveData {
     version: string;
@@ -13,19 +14,15 @@ export interface SaveData {
 }
 
 export class SaveManager {
-    private eventBus: EventBus;
-    private registry: ISerializationRegistry;
-    private adapter: StorageAdapter;
+
     private migrationManager: MigrationManager;
 
     constructor(
-        eventBus: EventBus,
-        registry: ISerializationRegistry,
-        adapter: StorageAdapter
+        private eventBus: EventBus,
+        private registry: ISerializationRegistry,
+        private adapter: StorageAdapter,
+        private timeAdapter: ITimerProvider
     ) {
-        this.eventBus = eventBus;
-        this.registry = registry;
-        this.adapter = adapter;
         this.migrationManager = new MigrationManager(this.registry.migrationFunctions);
     }
 
@@ -97,7 +94,7 @@ export class SaveManager {
 
         return {
             version: this.registry.gameVersion,
-            timestamp: Date.now(),
+            timestamp: this.timeAdapter.now(),
             currentSceneId: this.registry.getCurrentSceneId(),
             systems: systemsData,
             metadata: metadata || {}

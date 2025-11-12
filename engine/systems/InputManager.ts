@@ -104,17 +104,12 @@ export class InputManager {
                 this.dispatchEvent(event, false);
                 break;
             case 'click':
-                const target = event.target as HTMLElement | null;
-                if (target?.dataset && Object.keys(target.dataset).length > 0) {
-                    const data: Record<string, string> = {};
-                    for (const [key, value] of Object.entries(target.dataset)) {
-                        if (value !== undefined) {
-                            data[key] = value;
-                        }
-                    }
+                // If the adapter provided data (e.g., dataset from HTMLElement),
+                // emit hotspot event. InputManager remains platform-agnostic.
+                if (event.data && Object.keys(event.data).length > 0) {
                     this.eventBus.emit('input.hotspot', {
-                        element: target,
-                        data
+                        element: event.target,
+                        data: event.data
                     });
                 }
                 this.dispatchEvent(event, false);

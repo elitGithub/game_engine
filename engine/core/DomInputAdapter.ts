@@ -294,13 +294,26 @@ export class DomInputAdapter extends BaseInputAdapter {
     }
 
     private onClick(e: MouseEvent): void {
+        // Extract dataset if target is HTMLElement (DOM-specific logic stays here)
+        let data: Record<string, string> | undefined;
+        const target = e.target;
+        if (target instanceof HTMLElement && target.dataset && Object.keys(target.dataset).length > 0) {
+            data = {};
+            for (const [key, value] of Object.entries(target.dataset)) {
+                if (value !== undefined) {
+                    data[key] = value;
+                }
+            }
+        }
+
         const event: ClickEvent = {
             type: 'click',
             timestamp: e.timeStamp,
             button: e.button,
             x: e.clientX,
             y: e.clientY,
-            target: e.target
+            target: e.target,
+            data // Pass extracted data to platform-agnostic event
         };
 
         this.emitEvent(event);

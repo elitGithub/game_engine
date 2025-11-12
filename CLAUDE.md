@@ -131,7 +131,7 @@ Minor code quality tasks for future consideration:
 2. Review and remove any unused utility files
 3. Consider migrating to NX monorepo structure (see vision below)
 
-Note: All 17 audit flags from ISSUES.txt have been resolved.
+Note: All 18 audit flags have been resolved (17 from ISSUES.txt + 1 discovered during code review).
 
 ## **Common Tasks**
 

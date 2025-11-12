@@ -97,7 +97,7 @@ export interface EngineEventMap {
     'input.touchend': TouchEndEvent;
     'input.gamepadbutton': GamepadButtonEvent;
     'input.gamepadaxis': GamepadAxisEvent;
-    'input.hotspot': { element: HTMLElement; data: Record<string, string> };
+    'input.hotspot': { element: EventTarget | null; data: Record<string, string> };
     'input.action': { action: string };
     'input.combo': { combo: string };
     'input.modeChanged': { mode: InputMode };

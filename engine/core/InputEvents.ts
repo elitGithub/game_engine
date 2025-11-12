@@ -74,6 +74,7 @@ export interface ClickEvent extends BaseInputEvent {
     x: number;
     y: number;
     target: EventTarget | null;
+    data?: Record<string, string>; // Generic data (e.g., dataset from HTMLElement)
 }
 
 export interface TouchStartEvent extends BaseInputEvent {
