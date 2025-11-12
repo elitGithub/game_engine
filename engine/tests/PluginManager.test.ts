@@ -29,7 +29,8 @@ const mockContext: GameContext = {
 const mockHost: IEngineHost = {
     context: mockContext, // <-- Use the valid mock context
     eventBus: null as any,
-    registerSerializableSystem: vi.fn()
+    registerSerializableSystem: vi.fn(),
+    unregisterSerializableSystem: vi.fn()
 };
 
 describe('PluginManager', () => {

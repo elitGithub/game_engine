@@ -4,7 +4,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { DomRenderer } from '@engine/rendering/DomRenderer';
 import { AssetManager } from '@engine/systems/AssetManager';
 import type { RenderCommand } from '@engine/types/RenderingTypes';
-import type { IDomRenderContainer } from '@engine/interfaces/IRenderContainer';
+import { DomRenderContainer } from '@engine/platform/browser/DomRenderContainer';
 
 // Mock dependencies
 vi.mock('@engine/systems/AssetManager');
@@ -17,25 +17,15 @@ describe('DomRenderer', () => {
     let renderer: DomRenderer;
     let mockAssets: AssetManager;
     let container: HTMLElement;
-    let renderContainer: IDomRenderContainer;
+    let renderContainer: DomRenderContainer;
 
     beforeEach(() => {
         vi.clearAllMocks();
         mockAssets = new (vi.mocked(AssetManager))(vi.fn() as any);
         container = document.createElement('div');
 
-        // Create mock IDomRenderContainer
-        renderContainer = {
-            getType: () => 'dom',
-            getElement: () => container,
-            getDimensions: () => ({ width: 800, height: 600 }),
-            setDimensions: (width: number, height: number) => true,
-            getPixelRatio: () => 1.0,
-            requestAnimationFrame: (callback: () => void) => {
-                const id = setTimeout(callback, 16);
-                return () => clearTimeout(id);
-            }
-        };
+        // Create real DomRenderContainer (animation provider can be null for tests)
+        renderContainer = new DomRenderContainer(container, null);
 
         // Mock AssetManager.get to return the mock image
         vi.mocked(mockAssets.get).mockReturnValue(mockImage as any);

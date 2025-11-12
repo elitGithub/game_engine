@@ -222,7 +222,7 @@ This document outlines the plugin ecosystem and future enhancements. The goal is
 
 ---
 
-## 📋 Implementation Priority
+## Implementation Priority
 
 **Phase 1** (After abstraction complete):
 1. Quest System

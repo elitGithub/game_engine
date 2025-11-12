@@ -32,23 +32,23 @@ describe('InputComboTracker', () => {
     });
 
     it('should add to buffer and respect size limit', () => {
-        tracker.addToBuffer('a');
-        tracker.addToBuffer('b');
-        tracker.addToBuffer('c');
-        tracker.addToBuffer('d');
-        tracker.addToBuffer('e');
+        tracker.addToBuffer('a', mockTimerProvider.now());
+        tracker.addToBuffer('b', mockTimerProvider.now());
+        tracker.addToBuffer('c', mockTimerProvider.now());
+        tracker.addToBuffer('d', mockTimerProvider.now());
+        tracker.addToBuffer('e', mockTimerProvider.now());
         expect(tracker.getInputBuffer()).toEqual(['a', 'b', 'c', 'd', 'e']);
 
-        tracker.addToBuffer('f');
+        tracker.addToBuffer('f', mockTimerProvider.now());
         expect(tracker.getInputBuffer()).toEqual(['b', 'c', 'd', 'e', 'f']); // 'a' is pushed out
     });
 
     it('should detect a correct combo', () => {
         tracker.registerCombo('test', ['a', 'b'], 1000);
 
-        tracker.addToBuffer('a');
+        tracker.addToBuffer('a', mockTimerProvider.now());
         vi.advanceTimersByTime(100);
-        tracker.addToBuffer('b');
+        tracker.addToBuffer('b', mockTimerProvider.now());
 
         tracker.checkCombos();
         expect(mockEventBus.emit).toHaveBeenCalledWith('input.combo', { combo: 'test' });
@@ -57,9 +57,9 @@ describe('InputComboTracker', () => {
     it('should not detect an incorrect combo', () => {
         tracker.registerCombo('test', ['a', 'b'], 1000);
 
-        tracker.addToBuffer('a');
+        tracker.addToBuffer('a', mockTimerProvider.now());
         vi.advanceTimersByTime(100);
-        tracker.addToBuffer('c');
+        tracker.addToBuffer('c', mockTimerProvider.now());
 
         tracker.checkCombos();
         expect(mockEventBus.emit).not.toHaveBeenCalled();
@@ -68,9 +68,9 @@ describe('InputComboTracker', () => {
     it('should not detect a combo outside the time window', () => {
         tracker.registerCombo('test', ['a', 'b'], 1000);
 
-        tracker.addToBuffer('a');
+        tracker.addToBuffer('a', mockTimerProvider.now());
         vi.advanceTimersByTime(1001); // Exceed time window
-        tracker.addToBuffer('b');
+        tracker.addToBuffer('b', mockTimerProvider.now());
 
         tracker.checkCombos();
         expect(mockEventBus.emit).not.toHaveBeenCalled();
@@ -79,17 +79,17 @@ describe('InputComboTracker', () => {
     it('should detect a combo at the end of the buffer', () => {
         tracker.registerCombo('test', ['c', 'd'], 1000);
 
-        tracker.addToBuffer('a');
-        tracker.addToBuffer('b');
-        tracker.addToBuffer('c');
-        tracker.addToBuffer('d');
+        tracker.addToBuffer('a', mockTimerProvider.now());
+        tracker.addToBuffer('b', mockTimerProvider.now());
+        tracker.addToBuffer('c', mockTimerProvider.now());
+        tracker.addToBuffer('d', mockTimerProvider.now());
 
         tracker.checkCombos();
         expect(mockEventBus.emit).toHaveBeenCalledWith('input.combo', { combo: 'test' });
     });
 
     it('should clear the buffer', () => {
-        tracker.addToBuffer('a');
+        tracker.addToBuffer('a', mockTimerProvider.now());
         tracker.clearBuffer();
         expect(tracker.getInputBuffer()).toEqual([]);
     });

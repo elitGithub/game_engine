@@ -38,7 +38,8 @@ describe('RelationshipPlugin', () => {
     it('should register its tracker on install', () => {
         plugin.install(mockHost);
 
-        expect(mockHost.context.relationships).toBe(plugin);
+        // Plugin no longer mutates context (FLAG #9 fixed)
+        // It only registers the tracker as a serializable system
         expect(mockHost.registerSerializableSystem).toHaveBeenCalledWith('relationships', mockTracker);
     });
 

@@ -25,7 +25,7 @@ describe('SpeakerRegistry', () => {
         expect(registry.has('player')).toBe(true);
         const retrieved = registry.get('player');
         expect(retrieved).toBe(player);
-        expect(retrieved.name).toBe('Hero');
+        expect(retrieved!.name).toBe('Hero');
     });
 
     it('should overwrite an existing speaker', () => {
@@ -33,7 +33,7 @@ describe('SpeakerRegistry', () => {
         registry.register(newNarrator);
 
         const retrieved = registry.get('narrator');
-        expect(retrieved.name).toBe('Storyteller');
+        expect(retrieved!.name).toBe('Storyteller');
     });
 
     it('should register multiple speakers from config', () => {
@@ -46,7 +46,7 @@ describe('SpeakerRegistry', () => {
 
         expect(registry.has('player')).toBe(true);
         expect(registry.has('npc1')).toBe(true);
-        expect(registry.get('npc1').name).toBe('Villager');
+        expect(registry.get('npc1')!.name).toBe('Villager');
     });
 
     it('should get all registered speakers', () => {
@@ -54,9 +54,8 @@ describe('SpeakerRegistry', () => {
 
         const all = registry.getAll();
 
-        // Includes default narrator + new player
-        expect(all).toHaveLength(2);
-        expect(all.map(s => s.id)).toContain('narrator');
+        // Only registered speakers (no auto-registration)
+        expect(all).toHaveLength(1);
         expect(all.map(s => s.id)).toContain('player');
     });
 });

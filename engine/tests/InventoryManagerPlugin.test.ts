@@ -47,7 +47,8 @@ describe('InventoryManagerPlugin', () => {
     it('should register itself and its tracker on install', () => {
         plugin.install(mockHost);
 
-        expect(mockHost.context.inventory).toBe(plugin);
+        // Plugin no longer mutates context (FLAG #9 fixed)
+        // It only registers the tracker as a serializable system
         expect(mockHost.registerSerializableSystem).toHaveBeenCalledWith('inventory', mockTracker);
     });
 

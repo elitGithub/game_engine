@@ -17,7 +17,7 @@ describe('Dice', () => {
     it('should roll a single d6', () => {
         const mockRng = vi.fn().mockReturnValue(0);
         const result = Dice.roll(6, mockRng);
-        expect(result).toBe(4);
+        expect(result).toBe(1);
     });
 
     it('should roll a 1', () => {

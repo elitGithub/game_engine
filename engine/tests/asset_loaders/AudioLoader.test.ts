@@ -2,11 +2,16 @@
 
 import {beforeEach, describe, expect, it, vi} from 'vitest';
 import {AudioLoader} from "@engine/platform/browser/asset_loaders/AudioLoader";
+import type {INetworkProvider} from "@engine/interfaces";
 
 
-// Mock global fetch
+// Mock fetch function
 const mockFetch = vi.fn();
-vi.stubGlobal('fetch', mockFetch);
+
+// Mock INetworkProvider
+const mockNetworkProvider: INetworkProvider = {
+    fetch: mockFetch
+};
 
 // Mock AudioContext
 const mockAudioBuffer = {duration: 1.0} as AudioBuffer;
@@ -19,18 +24,18 @@ describe('AudioLoader', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
-        loader = new AudioLoader(mockAudioContext as any, mockFetch as any);
+        loader = new AudioLoader(mockAudioContext as any, mockNetworkProvider);
     });
 
     it('should throw if no AudioContext is provided', () => {
-        expect(() => new AudioLoader(null as any, mockFetch as any)).toThrow(
+        expect(() => new AudioLoader(null as any, mockNetworkProvider)).toThrow(
             '[AudioLoader] AudioContext is required.'
         );
     });
 
     // [NEW TEST]
     it('should throw if no platformFetch is provided', () => {
-        // Pass a valid audioContext, but null for the fetch
+        // Pass a valid audioContext, but null for the networkProvider
         expect(() => new AudioLoader(mockAudioContext as any, null as any)).toThrow(
             '[AudioLoader] A platform-specific fetch implementation is required.'
         );
