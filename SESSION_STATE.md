@@ -1,22 +1,22 @@
 # SESSION STATE
 
-**Last Updated:** 2025-11-12 16:09 UTC
-**Status:** COMPLETE - Platform abstraction refactoring (ALL flags resolved)
-**Grade:** A+ (18 of 18 flags fixed - 100% completion)
+**Last Updated:** 2025-11-12 16:16 UTC
+**Status:** COMPLETE - Platform abstraction + critical documentation fixes
+**Grade:** A+ (19 of 19 flags fixed - 100% completion)
 
 ---
 
 ## WHERE ARE WE RIGHT NOW?
 
-**Current Task:** FLAG #18 fix - COMPLETE
+**Current Task:** Documentation audit - COMPLETE
 
-**Last Action:** Fixed InputManager DOM coupling by moving HTMLElement.dataset extraction from InputManager (core) to DomInputAdapter (platform-specific). All 18 audit flags now resolved.
+**Last Action:** Fixed catastrophically stale plugin-guide.md that referenced deleted architecture (SystemRegistry, createSystemKey). Completely rewrote with current IEnginePlugin/IEngineHost pattern.
 
-**Next Action:** Commit FLAG #18 resolution
+**Next Action:** Ready for production
 
 **Tests:** ALL PASS (373/373) | TypeScript: CLEAN
 
-**Git:** Multiple files modified (FLAG #18 fix + documentation updates) | Uncommitted changes
+**Git:** Clean working tree | All changes committed and pushed
 
 ---
 
@@ -54,8 +54,9 @@
 - [x] FLAG #16: Plugin uninstall bugged (FIXED - unregisterSerializableSystem exists)
 - [x] FLAG #17: InputManager.test.ts stale mocks (FIXED - removed navigator.getGamepads mocks)
 - [x] FLAG #18: InputManager DOM coupling (FIXED - moved HTMLElement.dataset logic to DomInputAdapter)
+- [x] FLAG #19: Stale plugin-guide.md (FIXED - completely rewritten with current IEnginePlugin architecture)
 
-**All 18 Flags Resolved:** 100% completion achieved
+**All 19 Flags Resolved:** 100% completion achieved
 
 **Category 1 Completed (Platform Abstraction):**
 - [x] FLAG #1: MusicPlayer timer injection
@@ -158,6 +159,27 @@ All critical platform abstraction work is COMPLETE. The engine is now truly plat
 4. Updated EngineEventMap to use `EventTarget | null` instead of `HTMLElement` for input.hotspot event
 
 **Result:** InputManager is now truly platform-agnostic. All DOM-specific logic is in DomInputAdapter where it belongs. 373/373 tests passing. 18/18 flags resolved.
+
+**Session 2025-11-12 (Documentation Audit):** FLAG #19 discovered and resolved.
+
+**Problem:** docs/architecture/plugin-guide.md was catastrophically out of date. Every example referenced the deleted SystemRegistry architecture (context.registry, createSystemKey, GamePlugin interface). Following this guide would result in 100% failure - developers would waste hours debugging why "correct" code doesn't work.
+
+**Examples of stale references:**
+- `context.registry.register()` (SystemRegistry deleted)
+- `createSystemKey from engine/core/SystemRegistry` (file deleted)
+- `install(context: GameContext)` signature (wrong - should be `install(engine: IEngineHost)`)
+- `SYSTEMS.ACTION_REGISTRY` and similar constants (old pattern)
+
+**Solution:** Complete rewrite of plugin-guide.md:
+1. Updated all examples to use IEnginePlugin/IEngineHost pattern
+2. Replaced context.registry with engine.registerSerializableSystem()
+3. Added real-world examples matching actual code (GameClockPlugin, InventoryPlugin)
+4. Documented proper serialization with ISerializable
+5. Added migration section showing old vs new patterns
+6. Updated test examples with correct mock structure
+7. Verified all interfaces match engine/types/index.ts
+
+**Result:** Documentation now matches reality. New developers can follow the guide and succeed. 373/373 tests passing. 19/19 flags resolved.
 
 ---
 
