@@ -3,7 +3,7 @@ import type { StorageAdapter, SaveSlotMetadata } from '../core/StorageAdapter';
 import type { EventBus } from '../core/EventBus';
 import type {ISerializationRegistry} from '../types';
 import { MigrationManager } from "./MigrationManager";
-import {ITimerProvider} from "@engine/interfaces";
+import {ILogger, ITimerProvider} from "@engine/interfaces";
 
 export interface SaveData {
     version: string;
@@ -21,9 +21,10 @@ export class SaveManager {
         private eventBus: EventBus,
         private registry: ISerializationRegistry,
         private adapter: StorageAdapter,
-        private timeAdapter: ITimerProvider
+        private timeAdapter: ITimerProvider,
+        private logger: ILogger
     ) {
-        this.migrationManager = new MigrationManager(this.registry.migrationFunctions);
+        this.migrationManager = new MigrationManager(this.registry.migrationFunctions, this.logger);
     }
 
     async saveGame(slotId: string, metadata?: Record<string, unknown>): Promise<boolean> {
@@ -41,7 +42,7 @@ export class SaveManager {
 
             return success;
         } catch (error) {
-            console.error('[SaveManager] Save failed:', error);
+            this.logger.error('[SaveManager] Save failed:', error);
             this.eventBus.emit('save.failed', { slotId, error });
             return false;
         }
@@ -63,7 +64,7 @@ export class SaveManager {
             });
             return true;
         } catch (error) {
-            console.error('[SaveManager] Load failed:', error);
+            this.logger.error('[SaveManager] Load failed:', error);
             this.eventBus.emit('save.loadFailed', { slotId, error });
             return false;
         }
@@ -88,7 +89,7 @@ export class SaveManager {
             try {
                 systemsData[key] = system.serialize();
             } catch (error) {
-                console.error(`[SaveManager] Failed to serialize system '${key}':`, error);
+                this.logger.error(`[SaveManager] Failed to serialize system '${key}':`, error);
             }
         }
 
@@ -109,10 +110,10 @@ export class SaveManager {
                     try {
                         system.deserialize(data);
                     } catch (error) {
-                        console.error(`[SaveManager] Failed to deserialize system '${key}':`, error);
+                        this.logger.error(`[SaveManager] Failed to deserialize system '${key}':`, error);
                     }
                 } else {
-                    console.warn(`[SaveManager] Found save data for unknown system '${key}'. Skipping.`);
+                    this.logger.warn(`[SaveManager] Found save data for unknown system '${key}'. Skipping.`);
                 }
             }
         }

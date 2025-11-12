@@ -1,18 +1,19 @@
 // engine/core/PluginManager.ts
 import type { IEngineHost, IEnginePlugin, TypedGameContext } from '../types';
+import {ILogger} from "@engine/interfaces";
 
 export class PluginManager<TGame = Record<string, unknown>> {
     private plugins: Map<string, IEnginePlugin<TGame>>;
     private installed: Set<string>;
 
-    constructor() {
+    constructor(private logger: ILogger) {
         this.plugins = new Map();
         this.installed = new Set();
     }
 
     register(plugin: IEnginePlugin<TGame>): void {
         if (this.plugins.has(plugin.name)) {
-            console.warn(`[PluginManager] Plugin '${plugin.name}' already registered. Skipping.`);
+            this.logger.warn(`[PluginManager] Plugin '${plugin.name}' already registered. Skipping.`);
             return;
         }
         this.plugins.set(plugin.name, plugin);
@@ -21,22 +22,22 @@ export class PluginManager<TGame = Record<string, unknown>> {
     install(pluginName: string, engine: IEngineHost<TGame>): boolean {
         const plugin = this.plugins.get(pluginName);
         if (!plugin) {
-            console.error(`[PluginManager] Plugin '${pluginName}' not found.`);
+            this.logger.error(`[PluginManager] Plugin '${pluginName}' not found.`);
             return false;
         }
 
         if (this.installed.has(pluginName)) {
-            console.warn(`[PluginManager] Plugin '${pluginName}' already installed.`);
+            this.logger.warn(`[PluginManager] Plugin '${pluginName}' already installed.`);
             return false;
         }
 
         try {
             plugin.install(engine);
             this.installed.add(pluginName);
-            console.log(`[PluginManager] Installed plugin: ${pluginName}`);
+            this.logger.log(`[PluginManager] Installed plugin: ${pluginName}`);
             return true;
         } catch (error) {
-            console.error(`[PluginManager] Failed to install '${pluginName}':`, error);
+            this.logger.error(`[PluginManager] Failed to install '${pluginName}':`, error);
             return false;
         }
     }
@@ -51,10 +52,10 @@ export class PluginManager<TGame = Record<string, unknown>> {
             try {
                 plugin.uninstall(engine);
                 this.installed.delete(pluginName);
-                console.log(`[PluginManager] Uninstalled plugin: ${pluginName}`);
+                this.logger.log(`[PluginManager] Uninstalled plugin: ${pluginName}`);
                 return true;
             } catch (error) {
-                console.error(`[PluginManager] Failed to uninstall '${pluginName}':`, error);
+                this.logger.error(`[PluginManager] Failed to uninstall '${pluginName}':`, error);
                 return false;
             }
         }
@@ -70,7 +71,7 @@ export class PluginManager<TGame = Record<string, unknown>> {
                 try {
                     plugin.update(deltaTime, context);
                 } catch (error) {
-                    console.error(`[PluginManager] Error updating plugin '${pluginName}':`, error);
+                    this.logger.error(`[PluginManager] Error updating plugin '${pluginName}':`, error);
                 }
             }
         });

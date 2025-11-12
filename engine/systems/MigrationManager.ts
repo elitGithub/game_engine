@@ -2,13 +2,14 @@
 import type { MigrationFunction } from '@engine/types';
 import type { SaveData } from './SaveManager';
 import semver from 'semver';
+import {ILogger} from "@engine/interfaces";
 
 /**
  * Handles all logic for migrating save data between versions.
  * This is a pure, stateless class.
  */
 export class MigrationManager {
-    constructor(private migrationFunctions: Map<string, MigrationFunction>) {}
+    constructor(private migrationFunctions: Map<string, MigrationFunction>, private logger: ILogger) {}
 
     /**
      * Migrates save data from its version to the current game version.
@@ -20,7 +21,7 @@ export class MigrationManager {
             return saveData;
         }
 
-        console.log(`[MigrationManager] Migrating save from ${saveVersion} to ${currentVersion}`);
+        this.logger.log(`[MigrationManager] Migrating save from ${saveVersion} to ${currentVersion}`);
 
         let migratedData: SaveData = saveData;
         const versions = this.getVersionPath(saveVersion, currentVersion);
@@ -32,13 +33,13 @@ export class MigrationManager {
 
             const migration = this.migrationFunctions.get(key);
             if (migration) {
-                console.log(`[MigrationManager] Applying migration ${key}`);
+                this.logger.log(`[MigrationManager] Applying migration ${key}`);
                 const result = migration(migratedData);
                 migratedData = result as SaveData;
                 migratedData.version = to; // Stamp the new version
             } else {
-                console.warn(`[MigrationManager] No migration found for ${key}. Stopping migration process.`);
-                break; // <-- THIS IS THE FIX
+                this.logger.warn(`[MigrationManager] No migration found for ${key}. Stopping migration process.`);
+                break;
             }
         }
 
@@ -68,7 +69,7 @@ export class MigrationManager {
         const toIndex = sorted.indexOf(to);
 
         if (fromIndex === -1 || toIndex === -1) {
-            console.warn(`[MigrationManager] Invalid version in migration path: from=${from}, to=${to}`);
+            this.logger.warn(`[MigrationManager] Invalid version in migration path: from=${from}, to=${to}`);
             return [from, to];
         }
 
