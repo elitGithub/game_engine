@@ -7,36 +7,52 @@
 Plugins are self-contained modules that extend the engine's functionality. They can:
 - Add new systems (managers, trackers, utilities)
 - Listen to engine events
-- Extend the game context
-- Register custom renderers or effects
-- Provide reusable game features (combat, quests, inventory, etc.)
+- Register serializable state for save/load
+- Provide reusable game features (timers, inventory, relationships, etc.)
 
 ## Plugin Architecture
 
-### Basic Structure
+### Current Architecture (Post-Refactor)
+
+The engine uses a strict dependency injection pattern with **no global registry**. Plugins interact with the engine through the `IEngineHost` interface.
 
 ```typescript
-interface GamePlugin {
+interface IEnginePlugin<TGame = any> {
   name: string;
-  install: (context: GameContext) => void | Promise<void>;
+  version?: string;
+  install(engine: IEngineHost<TGame>): void;
+  uninstall?(engine: IEngineHost<TGame>): void;
+  update?(deltaTime: number, context: TypedGameContext<TGame>): void;
 }
 ```
 
-Every plugin has:
-1. **Name**: Unique identifier
-2. **Install function**: Called during engine initialization with full access to game context
+### What IEngineHost Provides
+
+```typescript
+interface IEngineHost<TGame = any> {
+  context: TypedGameContext<TGame>;
+  eventBus: EventBus;
+  registerSerializableSystem(key: string, system: ISerializable): void;
+  unregisterSerializableSystem(key: string): void;
+}
+```
+
+**Key Points:**
+- Plugins receive `IEngineHost` (the engine interface), NOT `GameContext`
+- No `SystemRegistry` - that was removed
+- No `createSystemKey` - that pattern was deleted
+- Systems register themselves directly via `engine.registerSerializableSystem()`
 
 ### Plugin Lifecycle
 
 ```
 Engine.init() →
-  PluginManager.installAll() →
-    For each plugin:
-      1. Call plugin.install(context)
-      2. Plugin adds systems, listeners, etc.
-      3. Plugin completes
-  All plugins installed →
-  Engine ready
+  PluginManager.register(plugin) →
+  PluginManager.install(pluginName, engine) →
+    plugin.install(engine) →
+      Plugin registers systems, listeners, etc. →
+    Plugin completes →
+  Plugin installed
 ```
 
 ## Creating Your First Plugin
@@ -45,440 +61,451 @@ Engine.init() →
 
 ```typescript
 // plugins/LoggerPlugin.ts
-import type { GamePlugin, GameContext } from '../engine/types';
+import type { IEnginePlugin, IEngineHost } from '@engine/types';
 
-export const LoggerPlugin: GamePlugin = {
-  name: 'LoggerPlugin',
+export class LoggerPlugin implements IEnginePlugin {
+  name = 'logger';
+  version = '1.0.0';
 
-  install: (context: GameContext) => {
+  install(engine: IEngineHost): void {
     // Listen to engine events
-    context.eventBus.on('scene:loaded', (scene) => {
-      console.log(`Scene loaded: ${scene.name}`);
+    engine.eventBus.on('scene.changed', (data) => {
+      console.log(`Scene changed to: ${data.sceneId}`);
     });
 
-    context.eventBus.on('action:executed', (action) => {
-      console.log(`Action executed: ${action.type}`);
+    engine.eventBus.on('input.keydown', (event) => {
+      console.log(`Key pressed: ${event.key}`);
     });
   }
-};
 
-// Usage in your game
-engine.plugin(LoggerPlugin);
-```
-
-## Adding Custom Systems
-
-### Pattern: System with Dependencies
-
-```typescript
-// 1. Define your system class
-class QuestManager {
-  private quests = new Map<string, Quest>();
-
-  constructor(
-    private eventBus: EventBus,
-    private flags: FlagTracker
-  ) {}
-
-  startQuest(questId: string): void {
-    const quest = this.quests.get(questId);
-    if (!quest) throw new Error(`Quest not found: ${questId}`);
-
-    quest.status = 'active';
-    this.flags.set(`quest_${questId}_active`, true);
-    this.eventBus.emit('quest:started', { questId });
-  }
-
-  completeQuest(questId: string): void {
-    this.flags.set(`quest_${questId}_completed`, true);
-    this.eventBus.emit('quest:completed', { questId });
-  }
-
-  isQuestComplete(questId: string): boolean {
-    return this.flags.get(`quest_${questId}_completed`);
+  // Optional cleanup
+  uninstall(engine: IEngineHost): void {
+    // Remove listeners if needed
   }
 }
 
-// 2. Create a system key
-import { createSystemKey } from '../engine/core/SystemRegistry';
-export const QUEST_MANAGER = createSystemKey('QUEST_MANAGER');
-
-// 3. Create the plugin
-export const QuestPlugin: GamePlugin = {
-  name: 'QuestPlugin',
-
-  install: (context: GameContext) => {
-    const questManager = new QuestManager(
-      context.eventBus,
-      context.flags
-    );
-
-    context.registry.register(QUEST_MANAGER, questManager);
-  }
-};
-
-// 4. Use in your game
-engine.plugin(QuestPlugin);
-
-// 5. Access your system
-const questManager = context.registry.get(QUEST_MANAGER);
-questManager.startQuest('main_quest_1');
+// Usage
+const loggerPlugin = new LoggerPlugin();
+engine.pluginManager.register(loggerPlugin);
+engine.pluginManager.install('logger', engine);
 ```
 
-### Pattern: Lazy-Loaded System
+## Adding Serializable Systems
+
+### Pattern: System with Save/Load Support
 
 ```typescript
-export const HeavyFeaturePlugin: GamePlugin = {
-  name: 'HeavyFeaturePlugin',
+// plugins/QuestPlugin.ts
+import type { IEnginePlugin, IEngineHost, ISerializable } from '@engine/types';
 
-  install: (context: GameContext) => {
-    let instance: HeavyFeature | null = null;
+interface Quest {
+  id: string;
+  status: 'inactive' | 'active' | 'completed';
+  objectives: string[];
+}
 
-    const getHeavyFeature = () => {
-      if (!instance) {
-        instance = new HeavyFeature(context.eventBus);
-        console.log('Heavy feature initialized');
-      }
-      return instance;
-    };
+class QuestTracker implements ISerializable {
+  private quests = new Map<string, Quest>();
 
-    // Register lazy getter
-    context.registry.register(HEAVY_FEATURE, {
-      get: () => getHeavyFeature()
-    });
-
-    // Or initialize only when specific event occurs
-    context.eventBus.once('game:feature-needed', () => {
-      getHeavyFeature();
-    });
+  addQuest(quest: Quest): void {
+    this.quests.set(quest.id, quest);
   }
-};
+
+  startQuest(questId: string): void {
+    const quest = this.quests.get(questId);
+    if (quest) {
+      quest.status = 'active';
+    }
+  }
+
+  completeQuest(questId: string): void {
+    const quest = this.quests.get(questId);
+    if (quest) {
+      quest.status = 'completed';
+    }
+  }
+
+  // Required by ISerializable
+  serialize(): any {
+    return {
+      quests: Array.from(this.quests.entries())
+    };
+  }
+
+  // Required by ISerializable
+  deserialize(data: any): void {
+    this.quests = new Map(data.quests || []);
+  }
+}
+
+export class QuestPlugin implements IEnginePlugin {
+  name = 'quest';
+  version = '1.0.0';
+
+  private tracker: QuestTracker;
+
+  constructor() {
+    this.tracker = new QuestTracker();
+  }
+
+  install(engine: IEngineHost): void {
+    // Register as a serializable system (for save/load)
+    engine.registerSerializableSystem('quests', this.tracker);
+
+    // Access the tracker through engine.context in your game
+    // (You can expose methods through your game-specific context extension)
+  }
+
+  uninstall(engine: IEngineHost): void {
+    engine.unregisterSerializableSystem('quests');
+  }
+
+  // Expose tracker for game code
+  getTracker(): QuestTracker {
+    return this.tracker;
+  }
+}
 ```
 
 ## Real-World Plugin Examples
 
-### Example 1: Combat System Plugin
+### Example 1: Game Clock Plugin (Actual Implementation)
 
 ```typescript
-// plugins/CombatPlugin.ts
-interface CombatStats {
-  health: number;
-  maxHealth: number;
-  attack: number;
-  defense: number;
+// plugins/GameClockPlugin.ts
+import type { IEnginePlugin, IEngineHost, ISerializable } from '@engine/types';
+
+export interface ClockConfig {
+  unitsPerDay: number;
+  initialDay?: number;
+  initialUnit?: number;
 }
 
-class CombatManager {
-  private combatants = new Map<string, CombatStats>();
+export class GameClockPlugin implements IEnginePlugin, ISerializable {
+  name = 'clock';
+  version = '1.0.0';
 
-  constructor(private eventBus: EventBus) {}
+  private absoluteTime: number;
+  private unitsPerDay: number;
+  private eventBus: EventBus | undefined;
 
-  registerCombatant(id: string, stats: CombatStats): void {
-    this.combatants.set(id, { ...stats });
+  constructor(config: ClockConfig) {
+    this.unitsPerDay = config.unitsPerDay;
+    this.absoluteTime = (config.initialDay || 0) * this.unitsPerDay + (config.initialUnit || 0);
   }
 
-  attack(attackerId: string, targetId: string): number {
-    const attacker = this.combatants.get(attackerId);
-    const target = this.combatants.get(targetId);
-
-    if (!attacker || !target) {
-      throw new Error('Invalid combatant');
-    }
-
-    const damage = Math.max(0, attacker.attack - target.defense);
-    target.health = Math.max(0, target.health - damage);
-
-    this.eventBus.emit('combat:damage', {
-      attackerId,
-      targetId,
-      damage,
-      remaining: target.health
-    });
-
-    if (target.health === 0) {
-      this.eventBus.emit('combat:defeated', { targetId });
-    }
-
-    return damage;
+  install(engine: IEngineHost): void {
+    this.eventBus = engine.eventBus;
+    // Register self as serializable system
+    engine.registerSerializableSystem('clock', this);
   }
 
-  heal(targetId: string, amount: number): void {
-    const target = this.combatants.get(targetId);
-    if (!target) return;
-
-    target.health = Math.min(target.maxHealth, target.health + amount);
-    this.eventBus.emit('combat:healed', { targetId, amount });
-  }
-}
-
-export const COMBAT_MANAGER = createSystemKey('COMBAT_MANAGER');
-
-export const CombatPlugin: GamePlugin = {
-  name: 'CombatPlugin',
-
-  install: (context: GameContext) => {
-    const combat = new CombatManager(context.eventBus);
-    context.registry.register(COMBAT_MANAGER, combat);
-
-    // Optional: Register combat-related actions
-    context.registry.get(SYSTEMS.ACTION_REGISTRY).register(
-      'attack',
-      new AttackAction()
-    );
-  }
-};
-```
-
-### Example 2: Achievement System Plugin
-
-```typescript
-// plugins/AchievementPlugin.ts
-interface Achievement {
-  id: string;
-  name: string;
-  description: string;
-  condition: (context: GameContext) => boolean;
-  unlocked: boolean;
-}
-
-class AchievementManager {
-  private achievements = new Map<string, Achievement>();
-
-  constructor(
-    private eventBus: EventBus,
-    private flags: FlagTracker
-  ) {
-    // Check achievements on any flag change
-    this.eventBus.on('flag:changed', () => this.checkAchievements());
+  uninstall(engine: IEngineHost): void {
+    engine.unregisterSerializableSystem('clock');
   }
 
-  register(achievement: Achievement): void {
-    this.achievements.set(achievement.id, achievement);
-  }
+  advance(units: number): void {
+    const oldDay = this.getCurrentDay();
+    this.absoluteTime += units;
+    const newDay = this.getCurrentDay();
 
-  private checkAchievements(): void {
-    for (const [id, achievement] of this.achievements) {
-      if (!achievement.unlocked && achievement.condition(this.context)) {
-        this.unlock(id);
-      }
-    }
-  }
-
-  private unlock(id: string): void {
-    const achievement = this.achievements.get(id);
-    if (!achievement) return;
-
-    achievement.unlocked = true;
-    this.flags.set(`achievement_${id}`, true);
-    this.eventBus.emit('achievement:unlocked', achievement);
-  }
-
-  getProgress(): { total: number; unlocked: number; percentage: number } {
-    const total = this.achievements.size;
-    const unlocked = Array.from(this.achievements.values())
-      .filter(a => a.unlocked).length;
-
-    return {
-      total,
-      unlocked,
-      percentage: total > 0 ? (unlocked / total) * 100 : 0
-    };
-  }
-}
-
-export const ACHIEVEMENT_MANAGER = createSystemKey('ACHIEVEMENT_MANAGER');
-
-export const AchievementPlugin: GamePlugin = {
-  name: 'AchievementPlugin',
-
-  install: (context: GameContext) => {
-    const manager = new AchievementManager(
-      context.eventBus,
-      context.flags
-    );
-
-    context.registry.register(ACHIEVEMENT_MANAGER, manager);
-
-    // Show notification on unlock
-    context.eventBus.on('achievement:unlocked', (achievement) => {
-      console.log(`Achievement Unlocked: ${achievement.name}`);
-      // Could trigger UI notification here
-    });
-  }
-};
-```
-
-### Example 3: Day/Night Cycle Plugin
-
-```typescript
-// plugins/DayNightPlugin.ts
-type TimeOfDay = 'dawn' | 'day' | 'dusk' | 'night';
-
-class DayNightManager {
-  private currentTime: number = 0; // 0-23 hours
-
-  constructor(private eventBus: EventBus) {}
-
-  advance(hours: number): void {
-    const oldTime = this.getTimeOfDay();
-    this.currentTime = (this.currentTime + hours) % 24;
-    const newTime = this.getTimeOfDay();
-
-    this.eventBus.emit('time:advanced', {
-      hours,
-      currentHour: this.currentTime
-    });
-
-    if (oldTime !== newTime) {
-      this.eventBus.emit('timeofday:changed', {
-        from: oldTime,
-        to: newTime
+    if (newDay !== oldDay) {
+      this.eventBus?.emit('clock.dayChanged', {
+        day: newDay,
+        previousDay: oldDay
       });
     }
+
+    this.eventBus?.emit('clock.advanced', {
+      units,
+      currentUnit: this.getCurrentUnit(),
+      currentDay: newDay
+    });
   }
 
-  getTimeOfDay(): TimeOfDay {
-    if (this.currentTime >= 6 && this.currentTime < 9) return 'dawn';
-    if (this.currentTime >= 9 && this.currentTime < 18) return 'day';
-    if (this.currentTime >= 18 && this.currentTime < 21) return 'dusk';
-    return 'night';
+  getCurrentDay(): number {
+    return Math.floor(this.absoluteTime / this.unitsPerDay);
   }
 
-  getCurrentHour(): number {
-    return this.currentTime;
+  getCurrentUnit(): number {
+    return this.absoluteTime % this.unitsPerDay;
+  }
+
+  serialize(): any {
+    return {
+      absoluteTime: this.absoluteTime,
+      unitsPerDay: this.unitsPerDay
+    };
+  }
+
+  deserialize(data: any): void {
+    this.absoluteTime = data.absoluteTime || 0;
+    this.unitsPerDay = data.unitsPerDay || 24;
   }
 }
 
-export const DAY_NIGHT_MANAGER = createSystemKey('DAY_NIGHT_MANAGER');
+// Usage
+const clock = new GameClockPlugin({ unitsPerDay: 24 });
+engine.pluginManager.register(clock);
+engine.pluginManager.install('clock', engine);
 
-export const DayNightPlugin: GamePlugin = {
-  name: 'DayNightPlugin',
+// In your game code
+clock.advance(1); // Advance time by 1 unit
+```
 
-  install: (context: GameContext) => {
-    const manager = new DayNightManager(context.eventBus);
-    context.registry.register(DAY_NIGHT_MANAGER, manager);
+### Example 2: Inventory Plugin
 
-    // Apply visual effects based on time of day
-    context.eventBus.on('timeofday:changed', ({ to }) => {
-      const effectManager = context.registry.get(SYSTEMS.EFFECT_MANAGER);
+```typescript
+// plugins/InventoryPlugin.ts
+import type { IEnginePlugin, IEngineHost, ISerializable } from '@engine/types';
 
-      // Remove old effects
-      effectManager.remove(document.body, 'dawn-filter');
-      effectManager.remove(document.body, 'dusk-filter');
-      effectManager.remove(document.body, 'night-filter');
+interface InventoryConfig {
+  maxSlots?: number;
+}
 
-      // Apply new effect
-      if (to === 'dawn') {
-        effectManager.apply(document.body, 'dawn-filter');
-      } else if (to === 'dusk') {
-        effectManager.apply(document.body, 'dusk-filter');
-      } else if (to === 'night') {
-        effectManager.apply(document.body, 'night-filter');
-      }
-    });
+class InventoryTracker implements ISerializable {
+  private items: Map<string, number> = new Map();
+  private maxSlots: number;
+
+  constructor(config: InventoryConfig = {}) {
+    this.maxSlots = config.maxSlots || 50;
   }
-};
+
+  addItem(itemId: string, quantity: number = 1): boolean {
+    const currentQuantity = this.items.get(itemId) || 0;
+    const newQuantity = currentQuantity + quantity;
+
+    if (this.items.size >= this.maxSlots && !this.items.has(itemId)) {
+      return false; // Inventory full
+    }
+
+    this.items.set(itemId, newQuantity);
+    return true;
+  }
+
+  removeItem(itemId: string, quantity: number = 1): boolean {
+    const currentQuantity = this.items.get(itemId) || 0;
+    if (currentQuantity < quantity) {
+      return false; // Not enough items
+    }
+
+    const newQuantity = currentQuantity - quantity;
+    if (newQuantity === 0) {
+      this.items.delete(itemId);
+    } else {
+      this.items.set(itemId, newQuantity);
+    }
+    return true;
+  }
+
+  getQuantity(itemId: string): number {
+    return this.items.get(itemId) || 0;
+  }
+
+  hasItem(itemId: string, quantity: number = 1): boolean {
+    return this.getQuantity(itemId) >= quantity;
+  }
+
+  serialize(): any {
+    return {
+      items: Array.from(this.items.entries()),
+      maxSlots: this.maxSlots
+    };
+  }
+
+  deserialize(data: any): void {
+    this.items = new Map(data.items || []);
+    this.maxSlots = data.maxSlots || 50;
+  }
+}
+
+export class InventoryPlugin implements IEnginePlugin {
+  name = 'inventory';
+  version = '1.0.0';
+
+  private tracker: InventoryTracker;
+  private eventBus: EventBus | undefined;
+
+  constructor(config: InventoryConfig = {}) {
+    this.tracker = new InventoryTracker(config);
+  }
+
+  install(engine: IEngineHost): void {
+    this.eventBus = engine.eventBus;
+    engine.registerSerializableSystem('inventory', this.tracker);
+  }
+
+  uninstall(engine: IEngineHost): void {
+    engine.unregisterSerializableSystem('inventory');
+  }
+
+  addItem(itemId: string, quantity: number = 1): boolean {
+    const success = this.tracker.addItem(itemId, quantity);
+    if (success) {
+      this.eventBus?.emit('inventory.item.added', {
+        itemId,
+        quantityAdded: quantity,
+        newTotal: this.tracker.getQuantity(itemId)
+      });
+    } else {
+      this.eventBus?.emit('inventory.add.failed.full', {
+        itemId,
+        quantityAttempted: quantity
+      });
+    }
+    return success;
+  }
+
+  removeItem(itemId: string, quantity: number = 1): boolean {
+    const success = this.tracker.removeItem(itemId, quantity);
+    if (success) {
+      this.eventBus?.emit('inventory.item.removed', {
+        itemId,
+        quantityRemoved: quantity,
+        newTotal: this.tracker.getQuantity(itemId)
+      });
+    }
+    return success;
+  }
+
+  hasItem(itemId: string, quantity: number = 1): boolean {
+    return this.tracker.hasItem(itemId, quantity);
+  }
+
+  getQuantity(itemId: string): number {
+    return this.tracker.getQuantity(itemId);
+  }
+}
 ```
 
 ## Plugin Best Practices
 
-### 1. Single Responsibility
-
-Each plugin should do ONE thing well:
+### 1. Implement IEnginePlugin Correctly
 
 ```typescript
-// ✅ Good - focused plugin
-const SaveGamePlugin: GamePlugin = {
-  name: 'SaveGamePlugin',
-  install: (context) => {
-    // Only handles save/load functionality
-  }
-};
+// Good - implements interface properly
+class MyPlugin implements IEnginePlugin {
+  name = 'my-plugin';
+  version = '1.0.0';
 
-// ❌ Bad - does too much
-const MegaPlugin: GamePlugin = {
-  name: 'MegaPlugin',
-  install: (context) => {
-    // Adds combat, quests, achievements, shop, crafting...
+  install(engine: IEngineHost): void {
+    // Setup
   }
-};
+
+  uninstall(engine: IEngineHost): void {
+    // Cleanup
+  }
+}
+
+// Bad - wrong signature
+class BadPlugin {
+  name = 'bad-plugin';
+
+  install(context: GameContext): void {  // WRONG - takes GameContext
+    // This will fail
+  }
+}
 ```
 
-### 2. Declare Dependencies Clearly
+### 2. Use registerSerializableSystem for State
 
 ```typescript
-const MyPlugin: GamePlugin = {
-  name: 'MyPlugin',
-  install: (context) => {
-    // Check for required systems
-    if (!context.registry.has(SYSTEMS.AUDIO_MANAGER)) {
-      throw new Error('MyPlugin requires AudioManager');
-    }
+class MyPlugin implements IEnginePlugin, ISerializable {
+  name = 'my-plugin';
 
-    const audio = context.registry.get(SYSTEMS.AUDIO_MANAGER);
-    // Use audio...
+  install(engine: IEngineHost): void {
+    // Register yourself if you have state to save
+    engine.registerSerializableSystem('myPlugin', this);
   }
-};
+
+  uninstall(engine: IEngineHost): void {
+    // Always unregister in uninstall
+    engine.unregisterSerializableSystem('myPlugin');
+  }
+
+  serialize(): any {
+    return { /* your state */ };
+  }
+
+  deserialize(data: any): void {
+    // restore state
+  }
+}
 ```
 
-### 3. Clean Up After Yourself
+### 3. Clean Event Listeners
 
 ```typescript
-const CleanPlugin: GamePlugin = {
-  name: 'CleanPlugin',
-  install: (context) => {
+class CleanPlugin implements IEnginePlugin {
+  name = 'clean-plugin';
+  private handlers: Map<string, Function> = new Map();
+
+  install(engine: IEngineHost): void {
     const handler = (data: any) => {
       // Handle event
     };
 
-    context.eventBus.on('some:event', handler);
-
-    // Provide cleanup method
-    context.eventBus.on('engine:shutdown', () => {
-      context.eventBus.off('some:event', handler);
-    });
+    engine.eventBus.on('some.event', handler);
+    this.handlers.set('some.event', handler);
   }
-};
+
+  uninstall(engine: IEngineHost): void {
+    // Remove all listeners
+    this.handlers.forEach((handler, event) => {
+      engine.eventBus.off(event, handler);
+    });
+    this.handlers.clear();
+  }
+}
 ```
 
 ### 4. Make It Configurable
 
 ```typescript
-interface QuestPluginConfig {
-  autoSave?: boolean;
-  maxQuests?: number;
+interface MyPluginConfig {
+  enabled?: boolean;
+  maxValue?: number;
 }
 
-const createQuestPlugin = (config: QuestPluginConfig = {}): GamePlugin => ({
-  name: 'QuestPlugin',
-  install: (context) => {
-    const manager = new QuestManager({
-      autoSave: config.autoSave ?? true,
-      maxQuests: config.maxQuests ?? 50
-    });
+class ConfigurablePlugin implements IEnginePlugin {
+  name = 'configurable';
+  private config: MyPluginConfig;
 
-    context.registry.register(QUEST_MANAGER, manager);
+  constructor(config: MyPluginConfig = {}) {
+    this.config = {
+      enabled: config.enabled ?? true,
+      maxValue: config.maxValue ?? 100
+    };
   }
-});
+
+  install(engine: IEngineHost): void {
+    if (!this.config.enabled) {
+      console.log('Plugin disabled by config');
+      return;
+    }
+    // Use this.config.maxValue, etc.
+  }
+}
 
 // Usage
-engine.plugin(createQuestPlugin({ autoSave: false, maxQuests: 100 }));
+const plugin = new ConfigurablePlugin({ maxValue: 200 });
 ```
 
-### 5. Type Safety
+### 5. Access Engine Context Properly
 
 ```typescript
-// Export types for plugin users
-export interface QuestManager {
-  startQuest(id: string): void;
-  completeQuest(id: string): void;
-  isQuestActive(id: string): boolean;
-}
+class ContextAwarePlugin implements IEnginePlugin {
+  name = 'context-aware';
 
-// Type-safe registry access
-declare module '../engine/types' {
-  interface SystemRegistry {
-    get(key: typeof QUEST_MANAGER): QuestManager;
+  install(engine: IEngineHost): void {
+    // Access game state through engine.context
+    const currentScene = engine.context.currentScene;
+    const flags = engine.context.flags;
+
+    // Listen to events
+    engine.eventBus.on('scene.changed', (data) => {
+      // React to scene changes
+    });
   }
 }
 ```
@@ -489,79 +516,92 @@ declare module '../engine/types' {
 
 ```typescript
 // __tests__/QuestPlugin.test.ts
-import { describe, it, expect, beforeEach } from 'vitest';
-import { EventBus } from '../engine/core/EventBus';
-import { FlagTracker } from '../engine/utilities/FlagTracker';
-import { QuestPlugin, QUEST_MANAGER } from '../plugins/QuestPlugin';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { EventBus } from '@engine/core/EventBus';
+import { QuestPlugin } from '../plugins/QuestPlugin';
+import type { IEngineHost } from '@engine/types';
 
 describe('QuestPlugin', () => {
-  let context: GameContext;
+  let plugin: QuestPlugin;
+  let mockEngine: IEngineHost;
 
   beforeEach(() => {
-    context = {
+    mockEngine = {
+      context: {} as any,
       eventBus: new EventBus(),
-      flags: new FlagTracker(),
-      registry: new SystemRegistry()
+      registerSerializableSystem: vi.fn(),
+      unregisterSerializableSystem: vi.fn()
     };
 
-    QuestPlugin.install(context);
+    plugin = new QuestPlugin();
   });
 
-  it('should register quest manager', () => {
-    expect(context.registry.has(QUEST_MANAGER)).toBe(true);
+  it('should register serializable system on install', () => {
+    plugin.install(mockEngine);
+
+    expect(mockEngine.registerSerializableSystem).toHaveBeenCalledWith(
+      'quests',
+      expect.anything()
+    );
   });
 
-  it('should start quest and emit event', () => {
-    const questManager = context.registry.get(QUEST_MANAGER);
-    let eventEmitted = false;
+  it('should unregister on uninstall', () => {
+    plugin.install(mockEngine);
+    plugin.uninstall(mockEngine);
 
-    context.eventBus.on('quest:started', () => {
-      eventEmitted = true;
-    });
+    expect(mockEngine.unregisterSerializableSystem).toHaveBeenCalledWith('quests');
+  });
 
-    questManager.startQuest('test_quest');
-    expect(eventEmitted).toBe(true);
-    expect(context.flags.get('quest_test_quest_active')).toBe(true);
+  it('should track quest state', () => {
+    plugin.install(mockEngine);
+    const tracker = plugin.getTracker();
+
+    tracker.addQuest({ id: 'quest1', status: 'inactive', objectives: [] });
+    tracker.startQuest('quest1');
+
+    const data = tracker.serialize();
+    expect(data.quests).toHaveLength(1);
+    expect(data.quests[0][1].status).toBe('active');
   });
 });
 ```
 
-## Plugin Distribution
+## Migration from Old Pattern
 
-### Sharing Plugins
+### Old Pattern (DELETED - DO NOT USE)
 
 ```typescript
-// package.json for standalone plugin
-{
-  "name": "@mygame/quest-plugin",
-  "version": "1.0.0",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
-  "peerDependencies": {
-    "game-engine": "^2.0.0"
+// WRONG - This no longer works
+const plugin: GamePlugin = {
+  name: 'MyPlugin',
+  install: (context: GameContext) => {
+    const mySystem = new MySystem();
+    context.registry.register(SYSTEM_KEY, mySystem);  // registry deleted
   }
-}
-
-// index.ts
-export { QuestPlugin, QUEST_MANAGER } from './QuestPlugin';
-export type { QuestManager, Quest } from './types';
+};
 ```
 
-### Using External Plugins
+### New Pattern (Current)
 
 ```typescript
-// Install
-npm install @mygame/quest-plugin
+// CORRECT - Use this
+class MyPlugin implements IEnginePlugin {
+  name = 'MyPlugin';
 
-// Use
-import { QuestPlugin } from '@mygame/quest-plugin';
+  install(engine: IEngineHost): void {
+    const mySystem = new MySystem();
+    engine.registerSerializableSystem('mySystem', mySystem);
+  }
 
-engine.plugin(QuestPlugin);
+  uninstall(engine: IEngineHost): void {
+    engine.unregisterSerializableSystem('mySystem');
+  }
+}
 ```
 
 ## Next Steps
 
 - Review [existing plugins](../../engine/plugins/) for more examples
-- Check [plugin API reference](./plugin-api.md) for all available hooks
-- See [testing guide](./testing-strategy.md) for plugin testing patterns
+- See [IEnginePlugin interface](../../engine/types/IPlugin.ts) for full API
+- Check [testing guide](./testing-strategy.md) for plugin testing patterns
 - Explore [event reference](./events.md) for all engine events
