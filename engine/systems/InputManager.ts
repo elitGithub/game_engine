@@ -9,7 +9,7 @@ import { InputMode } from "@engine/types/EngineEventMap";
 import {InputActionMapper} from "@engine/input/InputActionMapper";
 import {InputComboTracker} from "@engine/input/InputComboTracker";
 import {InputState} from "@engine/input/InputState";
-import type { ITimerProvider } from '@engine/interfaces/ITimerProvider';
+import type { ITimerProvider, ILogger } from '@engine/interfaces';
 
 
 
@@ -22,6 +22,7 @@ import type { ITimerProvider } from '@engine/interfaces/ITimerProvider';
 export class InputManager {
     private stateManager: GameStateManager;
     private eventBus: EventBus;
+    private logger: ILogger;
 
     private state: InputState;
     private enabled: boolean;
@@ -32,9 +33,15 @@ export class InputManager {
     private comboTracker: InputComboTracker;
     // ----------------------------------
 
-    constructor(stateManager: GameStateManager, eventBus: EventBus, timer: ITimerProvider) {
+    constructor(
+        stateManager: GameStateManager,
+        eventBus: EventBus,
+        timer: ITimerProvider,
+        logger: ILogger
+    ) {
         this.stateManager = stateManager;
         this.eventBus = eventBus;
+        this.logger = logger;
 
         this.state = {
             keysDown: new Set(),
@@ -104,12 +111,18 @@ export class InputManager {
                 this.dispatchEvent(event, false);
                 break;
             case 'click':
-                // If the adapter provided data (e.g., dataset from HTMLElement),
-                // emit hotspot event. InputManager remains platform-agnostic.
-                if (event.data && Object.keys(event.data).length > 0) {
+                const target = event.target as HTMLElement | null;
+                // THIS LOGIC SHOULD BE MOVED TO DOMINPUTADAPTER
+                if (target?.dataset && Object.keys(target.dataset).length > 0) {
+                    const data: Record<string, string> = {};
+                    for (const [key, value] of Object.entries(target.dataset)) {
+                        if (value !== undefined) {
+                            data[key] = value;
+                        }
+                    }
                     this.eventBus.emit('input.hotspot', {
-                        element: event.target,
-                        data: event.data
+                        element: target,
+                        data
                     });
                 }
                 this.dispatchEvent(event, false);

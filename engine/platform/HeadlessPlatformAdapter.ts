@@ -12,7 +12,7 @@ import type {
     IRenderContainer,
     IAudioPlatform,
     IInputAdapter,
-    ITimerProvider
+    ITimerProvider,
 } from '@engine/interfaces';
 import {
     MockAudioPlatform,
@@ -21,6 +21,8 @@ import {
 import type { StorageAdapter } from '@engine/core/StorageAdapter';
 import { InMemoryStorageAdapter } from '@engine/systems/InMemoryStorageAdapter';
 import {HeadlessRenderContainer} from "@engine/interfaces/HeadlessRenderContainer";
+import { ConsoleLogger } from './ConsoleLogger';
+import {ILogger} from "@engine/interfaces/ILogger";
 
 /**
  * Headless platform configuration
@@ -91,10 +93,10 @@ export interface HeadlessPlatformConfig {
  * Example:
  * ```typescript
  * const platform = new HeadlessPlatformAdapter({
- *     width: 1920,
- *     height: 1080,
- *     audio: false,  // No audio in tests
- *     input: true    // Mock input for testing
+ * width: 1920,
+ * height: 1080,
+ * audio: false,  // No audio in tests
+ * input: true    // Mock input for testing
  * });
  *
  * const engine = new Engine({ platform, systems: { ... } });
@@ -120,6 +122,7 @@ export class HeadlessPlatformAdapter implements IPlatformAdapter {
     };
 
     // Singletons
+    private logger: ILogger | null = null;
     private renderContainer: IRenderContainer | null = null;
     private audioPlatform: IAudioPlatform | null = null;
     private inputAdapter: IInputAdapter | null = null;
@@ -142,6 +145,18 @@ export class HeadlessPlatformAdapter implements IPlatformAdapter {
             clearTimeout: (id) => clearTimeout(id as ReturnType<typeof setTimeout>),
             now: () => Date.now()
         };
+    }
+
+    // ========================================================================
+    // LOGGER (SINGLETON)
+    // ========================================================================
+
+    getLogger(): ILogger {
+        if (!this.logger) {
+            // Headless/test environments still benefit from console logging
+            this.logger = new ConsoleLogger();
+        }
+        return this.logger;
     }
 
     // ========================================================================
@@ -261,6 +276,7 @@ export class HeadlessPlatformAdapter implements IPlatformAdapter {
         }
 
         // Clear singletons
+        this.logger = null;
         this.renderContainer = null;
         this.timerProvider = null;
     }

@@ -15,7 +15,7 @@ import type {
     PlatformType,
     IAnimationProvider,
     INetworkProvider,
-    IImageLoader
+    IImageLoader,
 } from '@engine/interfaces';
 import {WebAudioPlatform} from '@engine/interfaces';
 import {LocalStorageAdapter} from '@engine/platform/browser/LocalStorageAdapter';
@@ -25,6 +25,8 @@ import {GamepadInputAdapter} from '@engine/platform/GamepadInputAdapter';
 import {CompositeInputAdapter} from '@engine/interfaces';
 import {CanvasRenderContainer} from "@engine/platform/browser/CanvasRenderContainer";
 import {DomRenderContainer} from "@engine/platform/browser/DomRenderContainer";
+import { ConsoleLogger } from './ConsoleLogger';
+import {ILogger} from "@engine/interfaces/ILogger";
 
 /**
  * Browser platform configuration
@@ -71,10 +73,10 @@ export interface BrowserPlatformConfig {
  * Example:
  * ```typescript
  * const platform = new BrowserPlatformAdapter({
- *     containerElement: document.getElementById('game')!,
- *     renderType: 'canvas',
- *     audio: true,
- *     input: true
+ * containerElement: document.getElementById('game')!,
+ * renderType: 'canvas',
+ * audio: true,
+ * input: true
  * });
  *
  * const engine = new Engine({ platform, systems: { ... } });
@@ -88,6 +90,7 @@ export class BrowserPlatformAdapter implements IPlatformAdapter {
     private config: Required<BrowserPlatformConfig>;
 
     // Singletons
+    private logger: ILogger | null = null;
     private renderContainer: IRenderContainer | null = null;
     private audioPlatform: IAudioPlatform | null = null;
     private inputAdapter: IInputAdapter | null = null;
@@ -109,6 +112,17 @@ export class BrowserPlatformAdapter implements IPlatformAdapter {
         // Detect browser name and version
         this.name = this.detectBrowserName();
         this.version = this.detectBrowserVersion();
+    }
+
+    // ========================================================================
+    // LOGGER (SINGLETON)
+    // ========================================================================
+
+    getLogger(): ILogger {
+        if (!this.logger) {
+            this.logger = new ConsoleLogger();
+        }
+        return this.logger;
     }
 
     // ========================================================================
@@ -296,6 +310,7 @@ export class BrowserPlatformAdapter implements IPlatformAdapter {
         }
 
         // Clear singletons
+        this.logger = null;
         this.renderContainer = null;
         this.storageAdapter = null;
         this.timerProvider = null;

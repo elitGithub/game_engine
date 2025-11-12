@@ -7,11 +7,16 @@ import { GameStateManager } from '@engine/core/GameStateManager';
 import type { KeyDownEvent, KeyUpEvent } from '@engine/core/InputEvents';
 import type { GameState } from '@engine/core/GameState';
 import type { ITimerProvider } from '@engine/interfaces/ITimerProvider';
+import {ILogger} from "@engine/interfaces";
 
 // Mock dependencies
 vi.mock('@engine/core/EventBus');
 vi.mock('@engine/core/GameStateManager');
-
+const mockLogger: ILogger = {
+    log: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+};
 describe('InputManager', () => {
     let inputManager: InputManager;
     let mockStateManager: GameStateManager;
@@ -42,7 +47,7 @@ describe('InputManager', () => {
             now: () => Date.now()
         };
 
-        inputManager = new InputManager(mockStateManager, mockEventBus, mockTimerProvider);
+        inputManager = new InputManager(mockStateManager, mockEventBus, mockTimerProvider, mockLogger);
     });
 
     afterEach(() => {

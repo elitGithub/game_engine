@@ -1,18 +1,24 @@
 // engine/tests/SystemContainer.test.ts
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { SystemContainer, SystemLifecycle, type SystemDefinition } from '@engine/core/SystemContainer';
+import {describe, it, expect, beforeEach, vi} from 'vitest';
+import {SystemContainer, SystemLifecycle, type SystemDefinition} from '@engine/core/SystemContainer';
+import {ILogger} from "@engine/interfaces";
 
 describe('SystemContainer', () => {
     let container: SystemContainer;
+    const mockLogger: ILogger = {
+        log: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+    };
 
     beforeEach(() => {
-        container = new SystemContainer();
+        container = new SystemContainer(mockLogger);
     });
 
     describe('Basic Registration', () => {
         it('should register a system definition', () => {
-            const mockSystem = { name: 'test' };
+            const mockSystem = {name: 'test'};
             const definition: SystemDefinition = {
                 key: Symbol('Test'),
                 factory: () => mockSystem
@@ -24,7 +30,7 @@ describe('SystemContainer', () => {
 
         it('should register an already-instantiated system', () => {
             const key = Symbol('Test');
-            const instance = { name: 'test' };
+            const instance = {name: 'test'};
 
             container.registerInstance(key, instance);
             expect(container.has(key)).toBe(true);
@@ -32,23 +38,20 @@ describe('SystemContainer', () => {
         });
 
         it('should warn when overwriting a registered system', () => {
-            const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
             const key = Symbol('Test');
 
-            container.register({ key, factory: () => ({}) });
-            container.register({ key, factory: () => ({}) });
+            container.register({key, factory: () => ({})});
+            container.register({key, factory: () => ({})});
 
-            expect(warnSpy).toHaveBeenCalledWith(
+            expect(mockLogger.warn).toHaveBeenCalledWith(
                 expect.stringContaining("System 'Symbol(Test)' already registered")
             );
-
-            warnSpy.mockRestore();
         });
     });
 
     describe('System Retrieval', () => {
         it('should get a registered system instance', () => {
-            const mockSystem = { name: 'test' };
+            const mockSystem = {name: 'test'};
             const key = Symbol('Test');
 
             container.register({
@@ -73,7 +76,7 @@ describe('SystemContainer', () => {
         });
 
         it('should return system for existing optional system', () => {
-            const mockSystem = { name: 'optional' };
+            const mockSystem = {name: 'optional'};
             const key = Symbol('Optional');
 
             container.register({
@@ -85,10 +88,10 @@ describe('SystemContainer', () => {
         });
 
         it('should cache system instances (factory called only once)', () => {
-            const factory = vi.fn(() => ({ name: 'test' }));
+            const factory = vi.fn(() => ({name: 'test'}));
             const key = Symbol('Test');
 
-            container.register({ key, factory });
+            container.register({key, factory});
 
             container.get(key);
             container.get(key);
@@ -108,7 +111,7 @@ describe('SystemContainer', () => {
                 key: eventBusKey,
                 factory: () => {
                     creationOrder.push('EventBus');
-                    return { name: 'EventBus' };
+                    return {name: 'EventBus'};
                 }
             });
 
@@ -118,7 +121,7 @@ describe('SystemContainer', () => {
                 factory: (c) => {
                     creationOrder.push('StateManager');
                     const eventBus = c.get(eventBusKey);
-                    return { name: 'StateManager', eventBus };
+                    return {name: 'StateManager', eventBus};
                 }
             });
 
@@ -150,13 +153,13 @@ describe('SystemContainer', () => {
             container.register({
                 key: keyA,
                 dependencies: [keyB],
-                factory: (c) => ({ b: c.get(keyB) })
+                factory: (c) => ({b: c.get(keyB)})
             });
 
             container.register({
                 key: keyB,
                 dependencies: [keyA],
-                factory: (c) => ({ a: c.get(keyA) })
+                factory: (c) => ({a: c.get(keyA)})
             });
 
             expect(() => container.get(keyA)).toThrow(
@@ -167,8 +170,8 @@ describe('SystemContainer', () => {
 
     describe('Lazy Loading', () => {
         it('should not create lazy systems during initializeAll', async () => {
-            const lazyFactory = vi.fn(() => ({ name: 'lazy' }));
-            const eagerFactory = vi.fn(() => ({ name: 'eager' }));
+            const lazyFactory = vi.fn(() => ({name: 'lazy'}));
+            const eagerFactory = vi.fn(() => ({name: 'eager'}));
 
             container.register({
                 key: Symbol('Lazy'),
@@ -189,7 +192,7 @@ describe('SystemContainer', () => {
         });
 
         it('should create lazy system on first access', () => {
-            const factory = vi.fn(() => ({ name: 'lazy' }));
+            const factory = vi.fn(() => ({name: 'lazy'}));
             const key = Symbol('Lazy');
 
             container.register({
@@ -203,7 +206,7 @@ describe('SystemContainer', () => {
             const instance = container.get(key);
 
             expect(factory).toHaveBeenCalledOnce();
-            expect(instance).toEqual({ name: 'lazy' });
+            expect(instance).toEqual({name: 'lazy'});
         });
     });
 
@@ -214,7 +217,7 @@ describe('SystemContainer', () => {
 
             container.register({
                 key,
-                factory: () => ({ name: 'test' }),
+                factory: () => ({name: 'test'}),
                 initialize
             });
 
@@ -231,7 +234,7 @@ describe('SystemContainer', () => {
 
             container.register({
                 key,
-                factory: () => ({ name: 'test' }),
+                factory: () => ({name: 'test'}),
                 initialize
             });
 
@@ -247,7 +250,7 @@ describe('SystemContainer', () => {
 
             container.register({
                 key,
-                factory: () => ({ name: 'test' }),
+                factory: () => ({name: 'test'}),
                 dispose
             });
 
@@ -262,7 +265,7 @@ describe('SystemContainer', () => {
 
             container.register({
                 key,
-                factory: () => ({ name: 'test' })
+                factory: () => ({name: 'test'})
             });
 
             expect(container.getLifecycleState(key)).toBe(SystemLifecycle.REGISTERED);
@@ -280,13 +283,13 @@ describe('SystemContainer', () => {
 
             container.register({
                 key: key1,
-                factory: () => ({ name: 'test1' }),
+                factory: () => ({name: 'test1'}),
                 dispose: dispose1
             });
 
             container.register({
                 key: key2,
-                factory: () => ({ name: 'test2' }),
+                factory: () => ({name: 'test2'}),
                 dispose: dispose2
             });
 
@@ -318,8 +321,8 @@ describe('SystemContainer', () => {
             const key1 = Symbol('Test1');
             const key2 = Symbol('Test2');
 
-            container.register({ key: key1, factory: () => ({}) });
-            container.register({ key: key2, factory: () => ({}) });
+            container.register({key: key1, factory: () => ({})});
+            container.register({key: key2, factory: () => ({})});
 
             const keys = container.getRegisteredKeys();
 

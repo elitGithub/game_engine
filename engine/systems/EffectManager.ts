@@ -1,6 +1,7 @@
 import type { GameContext, EffectStep } from '@engine/types';
 import type { IEffectTarget, IDynamicEffect } from '@engine/types/EffectTypes';
 import type { ITimerProvider } from '@engine/interfaces';
+import {ILogger} from "@engine/interfaces/ILogger";
 
 type ActiveDynamicEffect = {
     name: string;
@@ -10,6 +11,7 @@ type ActiveDynamicEffect = {
 
 export class EffectManager {
     private timer: ITimerProvider;
+    private logger: ILogger;
 
     // Registries
     private staticEffects: Map<string, string | string[]>; // DOM-only
@@ -20,8 +22,9 @@ export class EffectManager {
     private activeDynamicEffects: Map<string, ActiveDynamicEffect[]>;
     private timedEffects: Map<string, unknown[]>; // Keyed by target.id
 
-    constructor(timerProvider: ITimerProvider) {
+    constructor(timerProvider: ITimerProvider, logger: ILogger) {
         this.timer = timerProvider;
+        this.logger = logger;
 
         this.staticEffects = new Map();
         this.dynamicEffects = new Map();
@@ -33,7 +36,7 @@ export class EffectManager {
     update(deltaTime: number, context: GameContext): void {
         this.activeDynamicEffects.forEach((effects) => {
             effects.forEach(effect => {
-                effect.logic.onUpdate(effect.target, context, deltaTime);
+                effect.logic.onUpdate(effect.target, context, deltaTime, this.logger);
             });
         });
     }
@@ -71,7 +74,7 @@ export class EffectManager {
                 return Promise.resolve(); // Effect already active
             }
 
-            logic.onStart(target, context);
+            logic.onStart(target, context, this.logger);
             existing.push({ name: effectName, logic, target });
 
         } else if (this.staticEffects.has(effectName)) {
@@ -80,11 +83,11 @@ export class EffectManager {
                 const classes = Array.isArray(cssClass) ? cssClass : [cssClass];
                 classes.forEach(c => target.addClass!(c));
             } else {
-                console.warn(`[EffectManager] Static effect '${effectName}' not supported by target '${target.id}'.`);
+                this.logger.warn(`[EffectManager] Static effect '${effectName}' not supported by target '${target.id}'.`);
             }
 
         } else {
-            console.warn(`[EffectManager] Effect '${effectName}' not registered.`);
+            this.logger.warn(`[EffectManager] Effect '${effectName}' not registered.`);
             return Promise.resolve();
         }
 
@@ -121,7 +124,7 @@ export class EffectManager {
                 const effectIndex = active.findIndex(e => e.name === effectName);
                 if (effectIndex > -1) {
                     const [removedEffect] = active.splice(effectIndex, 1);
-                    removedEffect.logic.onStop(target, context);
+                    removedEffect.logic.onStop(target, context, this.logger);
                 }
                 if (active.length === 0) {
                     this.activeDynamicEffects.delete(targetId);
@@ -150,7 +153,7 @@ export class EffectManager {
     stopAllEffects(context: GameContext): void {
         this.activeDynamicEffects.forEach((effects) => {
             effects.forEach(effect => {
-                effect.logic.onStop(effect.target, context);
+                effect.logic.onStop(effect.target, context, this.logger);
             });
         });
         this.activeDynamicEffects.clear();

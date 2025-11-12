@@ -16,9 +16,11 @@ import {PluginManager} from './core/PluginManager';
 import {SystemContainer} from './core/SystemContainer';
 import {createCoreSystemDefinitions, CORE_SYSTEMS} from './core/CoreSystemDefs';
 import {createPlatformSystemDefinitions, PLATFORM_SYSTEMS, type PlatformSystemConfig} from './core/PlatformSystemDefs';
-import type {IPlatformAdapter} from '@engine/interfaces';
+import type {IPlatformAdapter,} from '@engine/interfaces';
 import {BrowserPlatformAdapter} from '@engine/platform/BrowserPlatformAdapter';
 import {Scene} from "@engine/systems/Scene";
+import { ConsoleLogger } from '@engine/platform/ConsoleLogger';
+import {ILogger} from "@engine/interfaces/ILogger";
 
 /**
  * System configuration (kept for backward compatibility)
@@ -76,8 +78,8 @@ export interface EngineConfig {
  * Usage:
  * ```ts
  * const engine = await Engine.create({
- *     systems: { audio: true, assets: true, save: true },
- *     gameState: myGameState
+ * systems: { audio: true, assets: true, save: true },
+ * gameState: myGameState
  * });
  *
  * // In game layer, cast to typed context:
@@ -91,6 +93,7 @@ export class Engine implements ISerializationRegistry {
     public readonly container: SystemContainer;
     private readonly platform: IPlatformAdapter;
     private readonly userConfig: EngineConfig;
+    private readonly logger: ILogger;
 
     public serializableSystems: Map<string, ISerializable>;
     public migrationFunctions: Map<string, MigrationFunction>;
@@ -102,7 +105,7 @@ export class Engine implements ISerializationRegistry {
     private frameCount: number;
     private gameLoopHandle: unknown = null;
 
-    private constructor(userConfig: EngineConfig) {
+    public constructor(userConfig: EngineConfig) {
         this.userConfig = userConfig;
 
         this.config = {
@@ -114,8 +117,18 @@ export class Engine implements ISerializationRegistry {
         // Get or create platform adapter
         this.platform = this.resolvePlatform(userConfig);
 
+        // --- BOOTSTRAP LOGGER ---
+        // Get logger *directly* from platform to bootstrap the container
+        // Provide a fallback ConsoleLogger if platform provides none
+        this.logger = this.platform.getLogger?.() ?? new ConsoleLogger();
+        // --- END BOOTSTRAP ---
+
         // Create SystemContainer (the ONLY DI container)
-        this.container = new SystemContainer();
+        this.container = new SystemContainer(this.logger);
+
+        // Manually register the bootstrapped logger as a system
+        // so other systems can depend on it.
+        this.container.registerInstance(PLATFORM_SYSTEMS.Logger, this.logger);
 
         // Initialize context with game state
         this.context = {
@@ -205,7 +218,7 @@ export class Engine implements ISerializationRegistry {
             if (this.container.has(CORE_SYSTEMS.SceneManager)) {
                 this.loadGameData(this.userConfig.gameData);
             } else {
-                console.warn('[Engine] Cannot load game data: SceneManager not registered');
+                this.logger.warn('[Engine] Cannot load game data: SceneManager not registered');
             }
         }
     }
@@ -460,7 +473,7 @@ export class Engine implements ISerializationRegistry {
 
     log(...args: any[]): void {
         if (this.config.debug) {
-            console.log('[Engine]', ...args);
+            this.logger.log('[Engine]', ...args);
         }
     }
 
@@ -482,7 +495,7 @@ export class Engine implements ISerializationRegistry {
 
     registerSerializableSystem(key: string, system: ISerializable): void {
         if (this.serializableSystems.has(key)) {
-            console.warn(`[Engine] Serializable system key '${key}' already registered. Overwriting.`);
+            this.logger.warn(`[Engine] Serializable system key '${key}' already registered. Overwriting.`);
         }
         this.serializableSystems.set(key, system);
     }
@@ -494,7 +507,7 @@ export class Engine implements ISerializationRegistry {
     registerMigration(fromVersion: string, toVersion: string, migration: MigrationFunction): void {
         const key = `${fromVersion}_to_${toVersion}`;
         if (this.migrationFunctions.has(key)) {
-            console.warn(`[Engine] Migration function '${key}' already registered. Overwriting.`);
+            this.logger.warn(`[Engine] Migration function '${key}' already registered. Overwriting.`);
         }
         this.migrationFunctions.set(key, migration);
     }

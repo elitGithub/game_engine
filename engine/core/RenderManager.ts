@@ -1,6 +1,6 @@
 import type {RenderCommand, IRenderer} from '../types/RenderingTypes';
 import {EventBus} from '../core/EventBus';
-import type { IRenderContainer } from '@engine/interfaces';
+import type { ILogger, IRenderContainer } from '@engine/interfaces';
 
 /**
  * RenderManager - Rendering facade
@@ -17,14 +17,17 @@ export class RenderManager {
     private renderer: IRenderer;
     private sceneQueue: RenderCommand[] = [];
     private uiQueue: RenderCommand[] = [];
+    private logger: ILogger;
 
     constructor(
         config: { type: string },
         eventBus: EventBus,
         container: IRenderContainer,
-        renderer: IRenderer
+        renderer: IRenderer,
+        logger: ILogger
     ) {
         this.renderer = renderer;
+        this.logger = logger;
         this.renderer.init(container);
     }
 

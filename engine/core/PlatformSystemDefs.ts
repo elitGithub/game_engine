@@ -26,12 +26,14 @@ import {CORE_SYSTEMS} from "@engine/core/CoreSystemDefs";
 import {ImageLoader} from "@engine/platform/browser/asset_loaders/ImageLoader";
 import {JsonLoader} from "@engine/platform/browser/asset_loaders/JsonLoader";
 import {AudioLoader} from "@engine/platform/browser/asset_loaders/AudioLoader";
+import {ILogger} from "@engine/interfaces/ILogger";
 
 
 /**
  * System keys for platform-aware systems
  */
 export const PLATFORM_SYSTEMS = {
+    Logger: Symbol('Logger'),
     AssetManager: Symbol('AssetManager'),
     AudioManager: Symbol('AudioManager'),
     EffectManager: Symbol('EffectManager'),
@@ -74,6 +76,13 @@ export function createPlatformSystemDefinitions(
     config: PlatformSystemConfig
 ): SystemDefinition[] {
     const definitions: SystemDefinition[] = [];
+
+    // ====================================================================
+    // LOGGER (Platform-provided, but used by other systems)
+    // ====================================================================
+    // Note: The Logger is bootstrapped and registered *by the Engine*
+    // because SystemContainer itself needs it before any other system.
+    // We only define its KEY here for dependency tracking.
 
     // ====================================================================
     // ASSET MANAGER (Platform-agnostic, but needs audio platform for AudioLoader)
@@ -148,15 +157,15 @@ export function createPlatformSystemDefinitions(
                 const audioManager = new AudioManager(eventBus, assetManager, audioContext, timer, {sfxPoolSize});
 
                 // Apply audio config
-                    if (audioConfig.volume !== undefined) { // <-- Use audioConfig
-                        audioManager.setMasterVolume(audioConfig.volume);
-                    }
-                    if (audioConfig.musicVolume !== undefined) { // <-- Use audioConfig
-                        audioManager.setMusicVolume(audioConfig.musicVolume);
-                    }
-                    if (audioConfig.sfxVolume !== undefined) { // <-- Use audioConfig
-                        audioManager.setSFXVolume(audioConfig.sfxVolume);
-                    }
+                if (audioConfig.volume !== undefined) {
+                    audioManager.setMasterVolume(audioConfig.volume);
+                }
+                if (audioConfig.musicVolume !== undefined) {
+                    audioManager.setMusicVolume(audioConfig.musicVolume);
+                }
+                if (audioConfig.sfxVolume !== undefined) {
+                    audioManager.setSFXVolume(audioConfig.sfxVolume);
+                }
 
                 return audioManager;
             },
@@ -171,7 +180,11 @@ export function createPlatformSystemDefinitions(
     if (config.effects !== false) {
         definitions.push({
             key: PLATFORM_SYSTEMS.EffectManager,
-            factory: () => new EffectManager(platform.getTimerProvider()),
+            dependencies: [PLATFORM_SYSTEMS.Logger], // <-- ADD DEPENDENCY
+            factory: (c) => new EffectManager(
+                platform.getTimerProvider(),
+                c.get<ILogger>(PLATFORM_SYSTEMS.Logger) // <-- INJECT LOGGER
+            ),
             lazy: false
         });
     }
@@ -225,7 +238,12 @@ export function createPlatformSystemDefinitions(
 
         definitions.push({
             key: PLATFORM_SYSTEMS.RenderManager,
-            dependencies: [CORE_SYSTEMS.EventBus, PLATFORM_SYSTEMS.RendererDOM, PLATFORM_SYSTEMS.RendererCanvas],
+            dependencies: [
+                CORE_SYSTEMS.EventBus,
+                PLATFORM_SYSTEMS.RendererDOM,
+                PLATFORM_SYSTEMS.RendererCanvas,
+                PLATFORM_SYSTEMS.Logger
+            ],
             factory: (c) => {
                 const eventBus = c.get<EventBus>(CORE_SYSTEMS.EventBus);
                 const renderer = c.get<IRenderer>(rendererKey);
@@ -234,7 +252,8 @@ export function createPlatformSystemDefinitions(
                     config.renderer!,
                     eventBus,
                     renderContainer,
-                    renderer
+                    renderer,
+                    c.get<ILogger>(PLATFORM_SYSTEMS.Logger)
                 );
             },
             lazy: false
@@ -248,18 +267,21 @@ export function createPlatformSystemDefinitions(
     if (config.input !== false) {
         definitions.push({
             key: PLATFORM_SYSTEMS.InputManager,
-            dependencies: [CORE_SYSTEMS.StateManager, CORE_SYSTEMS.EventBus],
+            dependencies: [CORE_SYSTEMS.StateManager, CORE_SYSTEMS.EventBus, PLATFORM_SYSTEMS.Logger],
             factory: (c) => {
                 const stateManager = c.get<GameStateManager>(CORE_SYSTEMS.StateManager);
                 const eventBus = c.get<EventBus>(CORE_SYSTEMS.EventBus);
                 const timer = platform.getTimerProvider();
-                return new InputManager(stateManager, eventBus, timer);
+                const logger = c.get<ILogger>(PLATFORM_SYSTEMS.Logger);
+                return new InputManager(stateManager, eventBus, timer, logger);
             },
-            initialize: (inputManager) => {
+            initialize: (inputManager, c) => {
+                const logger = c.get<ILogger>(PLATFORM_SYSTEMS.Logger);
+
                 // Get input adapter from platform (NOT from window/document)
                 const inputAdapter = platform.getInputAdapter?.();
                 if (!inputAdapter) {
-                    console.warn('[PlatformSystemDefs] Platform does not provide input adapter. Input will not work.');
+                    logger.warn('[PlatformSystemDefs] Platform does not provide input adapter. Input will not work.');
                     return;
                 }
 
@@ -270,7 +292,7 @@ export function createPlatformSystemDefinitions(
                 const renderContainer = platform.getRenderContainer?.();
                 const attached = inputAdapter.attach(renderContainer, {tabindex: '0'});
                 if (!attached) {
-                    console.warn('[PlatformSystemDefs] Could not attach input adapter.');
+                    logger.warn('[PlatformSystemDefs] Could not attach input adapter.');
                 }
             },
             lazy: false

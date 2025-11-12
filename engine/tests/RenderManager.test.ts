@@ -5,6 +5,7 @@ import {RenderManager} from '@engine/core/RenderManager';
 import {EventBus} from '@engine/core/EventBus';
 import type {IRenderer, RenderCommand} from '@engine/types/RenderingTypes';
 import type { IDomRenderContainer } from '@engine/interfaces/IRenderContainer';
+import {ILogger} from "@engine/interfaces";
 
 // Mock dependencies
 vi.mock('@engine/core/EventBus');
@@ -15,6 +16,12 @@ const mockRenderer: IRenderer = {
     flush: vi.fn(),
     resize: vi.fn(),
     dispose: vi.fn(),
+};
+
+const mockLogger: ILogger = {
+    log: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
 };
 
 describe('RenderManager', () => {
@@ -46,7 +53,8 @@ describe('RenderManager', () => {
             {type: 'dom'},
             mockEventBus,
             renderContainer,
-            mockRenderer
+            mockRenderer,
+            mockLogger
         );
     });
 

@@ -7,6 +7,7 @@
  * - Extensible system registration
  * - Lifecycle management (initialize, dispose)
  */
+import {ILogger} from "@engine/interfaces/ILogger";
 
 export type SystemKey = symbol | string;
 
@@ -97,13 +98,18 @@ interface SystemEntry<T = any> {
 export class SystemContainer implements ISystemFactoryContext {
     private systems: Map<SystemKey, SystemEntry> = new Map();
     private initializing: Set<SystemKey> = new Set();
+    private logger: ILogger;
+
+    constructor(logger: ILogger) {
+        this.logger = logger;
+    }
 
     /**
      * Register a system definition
      */
     register<T>(definition: SystemDefinition<T>): void {
         if (this.systems.has(definition.key)) {
-            console.warn(`[SystemContainer] System '${String(definition.key)}' already registered. Overwriting.`);
+            this.logger.warn(`[SystemContainer] System '${String(definition.key)}' already registered. Overwriting.`);
         }
 
         this.systems.set(definition.key, {
@@ -149,8 +155,7 @@ export class SystemContainer implements ISystemFactoryContext {
         }
 
         // Create and initialize the system
-        const instance = this.createSystem<T>(entry);
-        return instance;
+        return this.createSystem<T>(entry);
     }
 
     /**

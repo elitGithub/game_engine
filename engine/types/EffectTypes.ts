@@ -1,5 +1,6 @@
 // engine/types/EffectTypes.ts
 import type { TypedGameContext } from './index';
+import {ILogger} from "@engine/interfaces/ILogger";
 
 /**
  * A generic, renderer-agnostic wrapper for any object
@@ -54,7 +55,7 @@ export interface IEffectTarget {
  * It now operates on an abstract IEffectTarget, not a concrete HTMLElement.
  */
 export interface IDynamicEffect<TGame = Record<string, unknown>> {
-    onStart(target: IEffectTarget, context: TypedGameContext<TGame>): void;
-    onUpdate(target: IEffectTarget, context: TypedGameContext<TGame>, deltaTime: number): void;
-    onStop(target: IEffectTarget, context: TypedGameContext<TGame>): void;
+    onStart(target: IEffectTarget, context: TypedGameContext<TGame>, logger: ILogger): void;
+    onUpdate(target: IEffectTarget, context: TypedGameContext<TGame>, deltaTime: number, logger: ILogger): void;
+    onStop(target: IEffectTarget, context: TypedGameContext<TGame>, logger: ILogger): void;
 }

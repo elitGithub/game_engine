@@ -6,6 +6,7 @@ import type { GameContext } from '@engine/types';
 import type { IDynamicEffect, IEffectTarget } from '@engine/types/EffectTypes';
 import type { ITimerProvider } from '@engine/interfaces/ITimerProvider';
 import { DomEffectTarget } from '@engine/rendering/DomEffectTarget';
+import {ILogger} from "@engine/interfaces";
 
 // Mock dependencies
 const mockDynamicEffect: IDynamicEffect = {
@@ -19,6 +20,12 @@ const mockTarget: IEffectTarget = {
     getProperty: vi.fn(),
     setProperty: vi.fn(),
     getRaw: vi.fn(() => document.createElement('div')),
+};
+
+const mockLogger: ILogger = {
+    log: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
 };
 
 describe('EffectManager', () => {
@@ -41,7 +48,7 @@ describe('EffectManager', () => {
             now: () => Date.now()
         };
 
-        effectManager = new EffectManager(mockTimerProvider);
+        effectManager = new EffectManager(mockTimerProvider, mockLogger);
 
         effectManager.registerDynamicEffect('test_dynamic', mockDynamicEffect);
         effectManager.registerStaticEffect('test_static', 'fade-in');
@@ -59,19 +66,19 @@ describe('EffectManager', () => {
     describe('Dynamic Effects', () => {
         it('should register and apply a dynamic effect', () => {
             effectManager.apply(mockTarget, 'test_dynamic', mockContext);
-            expect(mockDynamicEffect.onStart).toHaveBeenCalledWith(mockTarget, mockContext);
+            expect(mockDynamicEffect.onStart).toHaveBeenCalledWith(mockTarget, mockContext, mockLogger);
         });
 
         it('should call onUpdate for active dynamic effects', () => {
             effectManager.apply(mockTarget, 'test_dynamic', mockContext);
             effectManager.update(0.16, mockContext);
-            expect(mockDynamicEffect.onUpdate).toHaveBeenCalledWith(mockTarget, mockContext, 0.16);
+            expect(mockDynamicEffect.onUpdate).toHaveBeenCalledWith(mockTarget, mockContext, 0.16, mockLogger);
         });
 
         it('should remove a dynamic effect', () => {
             effectManager.apply(mockTarget, 'test_dynamic', mockContext);
             effectManager.remove(mockTarget, 'test_dynamic', mockContext);
-            expect(mockDynamicEffect.onStop).toHaveBeenCalledWith(mockTarget, mockContext);
+            expect(mockDynamicEffect.onStop).toHaveBeenCalledWith(mockTarget, mockContext, mockLogger);
 
             effectManager.update(0.16, mockContext);
             expect(mockDynamicEffect.onUpdate).not.toHaveBeenCalled();

@@ -1,5 +1,3 @@
-
-
 export type {
     IPlatformAdapter,
     PlatformType,
@@ -65,4 +63,4 @@ export interface AudioManagerOptions {
 
 
 export type { ITimerProvider } from '@engine/interfaces/ITimerProvider';
-
+export type { ILogger } from '@engine/interfaces/ILogger';

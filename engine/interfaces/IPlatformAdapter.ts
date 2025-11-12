@@ -17,6 +17,7 @@ import type {IAudioPlatform} from '@engine/interfaces/IAudioPlatform';
 import type {StorageAdapter} from '@engine/core/StorageAdapter';
 import type {IInputAdapter} from '@engine/interfaces/IInputAdapter';
 import type {ITimerProvider} from '@engine/interfaces/ITimerProvider';
+import type {ILogger} from '@engine/interfaces/ILogger';
 
 /**
  * Platform type identifier
@@ -100,19 +101,19 @@ export interface IImageLoader {
  * ```typescript
  * // Browser platform
  * const platform = new BrowserPlatformAdapter({
- *   containerElement: document.getElementById('game')
+ * containerElement: document.getElementById('game')
  * });
  *
  * // Headless platform
  * const platform = new HeadlessPlatformAdapter({
- *   width: 800,
- *   height: 600
+ * width: 800,
+ * height: 600
  * });
  *
  * // Engine receives platform via DI
  * const engine = new Engine({
- *   platform,
- *   systems: { ... }
+ * platform,
+ * systems: { ... }
  * });
  * ```
  */
@@ -131,6 +132,19 @@ export interface IPlatformAdapter {
      * Platform version (optional)
      */
     readonly version?: string;
+
+    // ========================================================================
+    // LOGGER (SINGLETON, OPTIONAL)
+    // ========================================================================
+
+    /**
+     * Get logger (singleton, optional)
+     *
+     * Returns the same logger instance on multiple calls.
+     * Returns undefined if platform provides no logger.
+     * Engine will fall back to a default (e.g., ConsoleLogger).
+     */
+    getLogger?(): ILogger | undefined;
 
     // ========================================================================
     // RENDERING (SINGLETON)
