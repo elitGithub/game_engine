@@ -2,7 +2,7 @@
  * Headless Container Implementation
  */
 
-import type { IHeadlessRenderContainer } from './IRenderContainer';
+import type { IHeadlessRenderContainer } from '@engine/interfaces/IRenderContainer';
 
 export class HeadlessRenderContainer implements IHeadlessRenderContainer {
     constructor(

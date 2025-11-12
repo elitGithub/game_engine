@@ -1,7 +1,7 @@
 // engine/rendering/helpers/SceneRenderer.ts
 
-import type { RenderCommand } from '../../types/RenderingTypes';
-import type { Scene } from '../../systems/Scene';
+import type {RenderCommand, TextStyleData} from '@engine/types/RenderingTypes';
+import type { Scene } from '@engine/systems/Scene';
 
 interface SceneLayer {
     type: 'sprite' | 'rect' | 'text';
@@ -30,7 +30,7 @@ export class SceneRenderer {
 
         // If the scene has explicit layers, render them
         const layers = scene.sceneData.layers as SceneLayer[] | undefined;
-        if (layers && Array.isArray(layers)) {
+if (layers && Array.isArray(layers)) {
             layers.forEach((layer, index) => {
                 if (layer.type === 'sprite' && layer.assetId) {
                     commands.push({
@@ -44,7 +44,41 @@ export class SceneRenderer {
                         zIndex: layer.zIndex || index
                     });
                 }
-                // Add more layer types as needed
+                // --- ADD THIS BLOCK ---
+                else if (layer.type === 'rect') {
+                    if (typeof layer.width !== 'number' || typeof layer.height !== 'number') {
+                        console.warn(`[SceneRenderer] 'rect' layer at index ${index} is missing 'width' or 'height'`);
+                    } else {
+                        commands.push({
+                            type: 'rect',
+                            id: `scene_layer_${index}`,
+                            x: layer.x || 0,
+                            y: layer.y || 0,
+                            width: layer.width,
+                            height: layer.height,
+                            fill: layer.fill as string,
+                            stroke: layer.stroke as string,
+                            zIndex: layer.zIndex || index
+                        });
+                    }
+                }
+                // --- AND ADD THIS BLOCK ---
+                else if (layer.type === 'text') {
+                    if (typeof layer.text !== 'string' || typeof layer.style !== 'object') {
+                        console.warn(`[SceneRenderer] 'text' layer at index ${index} is missing 'text' or 'style'`);
+                    } else {
+                        commands.push({
+                            type: 'text',
+                            id: `scene_layer_${index}`,
+                            text: layer.text,
+                            x: layer.x || 0,
+                            y: layer.y || 0,
+                            style: layer.style as TextStyleData, // Make sure to import TextStyleData
+                            zIndex: layer.zIndex || index
+                        });
+                    }
+                }
+                // --- END OF ADDED BLOCKS ---
             });
         }
         // Fallback: simple background if no layers

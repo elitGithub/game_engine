@@ -8,8 +8,8 @@
  * into engine-agnostic EngineInputEvent objects.
  */
 
-import type { EngineInputEvent } from '../core/InputEvents';
-import type { IRenderContainer } from './IRenderContainer';
+import type { EngineInputEvent } from '@engine/core/InputEvents';
+import type { IRenderContainer } from '@engine/interfaces/IRenderContainer';
 
 /**
  * Input adapter type

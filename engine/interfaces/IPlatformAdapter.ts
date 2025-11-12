@@ -12,11 +12,11 @@
  * - Custom: User-defined platform
  */
 
-import type {IRenderContainer} from './IRenderContainer';
-import type {IAudioPlatform} from './IAudioPlatform';
+import type {IRenderContainer} from '@engine/interfaces/IRenderContainer';
+import type {IAudioPlatform} from '@engine/interfaces/IAudioPlatform';
 import type {StorageAdapter} from '@engine/core/StorageAdapter';
-import type {IInputAdapter} from './IInputAdapter';
-import type {ITimerProvider} from './ITimerProvider';
+import type {IInputAdapter} from '@engine/interfaces/IInputAdapter';
+import type {ITimerProvider} from '@engine/interfaces/ITimerProvider';
 
 /**
  * Platform type identifier

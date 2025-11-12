@@ -1,6 +1,6 @@
 // engine/types/RenderingTypes.ts
 
-import type { IRenderContainer } from '../interfaces/IRenderContainer';
+import type { IRenderContainer } from '@engine/interfaces';
 
 export interface IRenderer {
     init(container: IRenderContainer): void;
