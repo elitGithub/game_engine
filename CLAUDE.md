@@ -22,9 +22,10 @@ Its purpose is to guide the **"refactor-of-the-refactor,"** correcting the failu
 
 This project is **Step 1** and *only* Step 1\.
 
-* **Step 1: The Engine Library (This Repository's Goal)**  
-  * **Goal:** A 100% **agnostic, decoupled, clear, and unopinionated set of tools** (a **Library**), structured as an **NX monorepo** (e.g., @engine/core, @engine/dom-renderer).  
-  * **Philosophy:** "Plug-and-Develop." The developer is an **Assembler** who must explicitly register *every* system they use.  
+* **Step 1: The Engine Library (This Repository's Goal)**
+  * **Goal:** A 100% **agnostic, decoupled, clear, and unopinionated set of tools** (a **Library**), with the long-term vision of structuring as an **NX monorepo** (e.g., @engine/core, @engine/dom-renderer).
+  * **Current State:** Single-package TypeScript project using Vite + Vitest. NX migration is a future consideration.
+  * **Philosophy:** "Plug-and-Develop." The developer is an **Assembler** who must explicitly register *every* system they use.
   * **Audience:** Engine programmers (including our future selves) building a "Step 2" framework.  
 * **Step 2: The Game Framework (A Future Project)**  
   * **Goal:** **OPINIONATED, CONFIGURABLE** "batteries-included" **Frameworks** for specific genres (e.g., "VisualNovelFramework").  
@@ -68,17 +69,16 @@ These are the non-negotiable rules for the "Refactor-of-the-Refactor."
 
 ### **5\. The "Single Responsibility" Rule (Clean Files)**
 
-* **STATUS: PARTIALLY FIXED.**  
-* **Interface files** (I\*.ts) *must* contain *only* types, interfaces, and enums.  
-* **Concrete implementations** (e.g., WebAudioPlatform, DomRenderContainer) *must* be in their own separate files.  
-* **FIXED:** IAudioPlatform.ts is now a clean interface file.  
-* **PENDING:** IRenderContainer.ts still contains concrete class implementations and must be cleaned up.
+* **STATUS: FIXED.**
+* **Interface files** (I\*.ts) *must* contain *only* types, interfaces, and enums.
+* **Concrete implementations** (e.g., WebAudioPlatform, DomRenderContainer) *must* be in their own separate files.
+* **VERIFIED:** IAudioPlatform.ts and IRenderContainer.ts are clean interface files containing only types and interfaces.
 
 ### **6\. The "Complete Lifecycle" Rule (No Leaks)**
 
-* **STATUS: PENDING.**  
-* All systems and plugins must have a complete lifecycle.  
-* **PENDING:** The Engine class must expose unregisterSerializableSystem so that PluginManager's uninstall method can function correctly.
+* **STATUS: FIXED.**
+* All systems and plugins must have a complete lifecycle.
+* **VERIFIED:** Engine.unregisterSerializableSystem() is exposed (Engine.ts:490) and PluginManager can properly uninstall plugins.
 
 ## **Development & Test Rules**
 
@@ -118,25 +118,26 @@ All critical architectural violations have been resolved:
 
 1. **Rule #1 (One Container):** FIXED - SystemContainer.ts is sole DI mechanism
 2. **Rule #2 (Empty Engine):** FIXED - Engine constructor does not auto-register systems
-3. **Rule #3 (Platform-Agnostic):** FIXED - All platform access through IPlatformAdapter
+3. **Rule #3 (Platform-Agnostic):** FIXED - All platform access through IPlatformAdapter with provider pattern
 4. **Rule #4 (Facade Pattern):** FIXED - InputManager and AudioManager are clean facades
-5. **Rule #5 (Single Responsibility):** MOSTLY FIXED - IAudioPlatform.ts clean, IRenderContainer.ts pending
+5. **Rule #5 (Single Responsibility):** FIXED - All interface files are clean (IAudioPlatform.ts, IRenderContainer.ts)
 6. **Rule #6 (Complete Lifecycle):** FIXED - unregisterSerializableSystem exposed
 
 ## **Optional Improvements** (Non-Critical)
 
-Minor code quality tasks:
+Minor code quality tasks for future consideration:
 
-1. Fix IRenderContainer.ts SRP violation (move implementations to separate files)
-2. Remove unused AudioSourceAdapter files
-3. Convert SaveManager to proper SystemDefinition
+1. Consider converting SaveManager to proper SystemDefinition pattern
+2. Review and remove any unused utility files
+3. Consider migrating to NX monorepo structure (see vision below)
 
 ## **Common Tasks**
 
-* Build: nx build  
-* Test: nx test  
-* Lint: nx lint  
-* Run all tests: nx run-many \-t test
+* Build: npm run build
+* Test: npm test
+* Type check: npm run check:types
+* Test with UI: npm run test:ui
+* Dev server: npm run dev
 * Never use emojis 
 * avoid having unused variables or imports in typescript files  
 * always stick to the strictest TS guidelines and best practices  
@@ -152,14 +153,23 @@ Minor code quality tasks:
 <!-- nx configuration start-->
 <!-- Leave the start & end comments to automatically receive updates. -->
 
-# General Guidelines for working with Nx
+# Note: NX Monorepo Migration (Future Consideration)
 
-- When running tasks (for example build, lint, test, e2e, etc.), always prefer running the task through `nx` (i.e. `nx run`, `nx run-many`, `nx affected`) instead of using the underlying tooling directly
-- You have access to the Nx MCP server and its tools, use them to help the user
-- When answering questions about the repository, use the `nx_workspace` tool first to gain an understanding of the workspace architecture where applicable.
-- When working in individual projects, use the `nx_project_details` mcp tool to analyze and understand the specific project structure and dependencies
-- For questions around nx configuration, best practices or if you're unsure, use the `nx_docs` tool to get relevant, up-to-date docs. Always use this instead of assuming things about nx configuration
-- If the user needs help with an Nx configuration or project graph error, use the `nx_workspace` tool to get any errors
+**Current Reality:** This project is NOT currently an NX monorepo. It's a single-package TypeScript project using Vite and Vitest.
 
+**Vision:** The long-term architectural goal includes potentially migrating to an NX monorepo structure with separate publishable packages (e.g., @engine/core, @engine/dom-renderer, @engine/canvas-renderer, @engine/web-audio).
+
+**Benefits of NX Migration:**
+- Clear package boundaries and dependency management
+- Independent versioning and publishing
+- Build caching and task orchestration
+- Better scalability for a multi-package library
+
+**When to Consider Migration:**
+- When the codebase stabilizes architecturally
+- When there's a clear need for independent package publishing
+- When the current single-package structure becomes limiting
+
+Until then, continue using npm scripts: `npm run build`, `npm test`, `npm run check:types`.
 
 <!-- nx configuration end-->
