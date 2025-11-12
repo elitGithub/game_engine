@@ -1,0 +1,37 @@
+REMAINING HIGH PRIORITY
+
+  H2: Missing TSDoc on Public APIs
+  - AssetManager - registerLoader, get, has, remove
+  - AudioManager - setMasterVolume, setMusicVolume, etc.
+  - SceneManager - registerSceneFactory, loadScenes, goToScene
+  - SaveManager - saveGame, loadGame, deleteSave
+  - SystemContainer - register, get, dispose
+  - EventBus - on, off, emit
+  - Engine - preload, start, stop, pause
+
+  H4: Missing Explicit Return Types
+  - LocalizationManager - loadLanguage, setLanguage
+  - EffectManager - update, registerStaticEffect, registerDynamicEffect
+  - EventBus - emit
+
+  H5: Unsafe Non-Null Assertions
+  - GameStateManager.ts:67 - popState()!
+  - SceneManager.ts:52 - scenes.get(sceneId)!
+
+  REMAINING MEDIUM PRIORITY
+
+  M1: Missing readonly Modifiers
+  - Action.ts, Scene.ts, GameState.ts, Engine.ts
+
+  M4: Magic Numbers
+  - GamepadInputAdapter.ts - poll rate, axis deadzone
+  - MusicPlayer.ts - milliseconds conversion
+
+  M5: Long Functions
+  - Engine.constructor() - 57 lines
+
+  REMAINING LOW PRIORITY
+
+  L1: Naming Inconsistency
+  - SFXPoolItem vs SfxPool
+  - setSFXVolume vs setMusicVolume

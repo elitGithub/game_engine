@@ -5,6 +5,7 @@ import {DomRenderer} from '@engine/rendering/DomRenderer';
 import {AssetManager} from '@engine/systems/AssetManager';
 import type {RenderCommand} from '@engine/types/RenderingTypes';
 import {DomRenderContainer} from '@engine/platform/browser/DomRenderContainer';
+import type {ILogger} from "@engine/interfaces";
 
 // Mock dependencies
 vi.mock('@engine/systems/AssetManager');
@@ -12,7 +13,11 @@ vi.mock('@engine/systems/AssetManager');
 // Mock browser Image
 const mockImage = {src: 'mock-src.png', width: 100, height: 100};
 vi.stubGlobal('Image', vi.fn(() => mockImage));
-
+const mockLogger: ILogger = {
+    log: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+};
 describe('DomRenderer', () => {
     let renderer: DomRenderer;
     let mockAssets: AssetManager;
@@ -21,7 +26,7 @@ describe('DomRenderer', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
-        mockAssets = new (vi.mocked(AssetManager))(vi.fn() as any);
+        mockAssets = new (vi.mocked(AssetManager))(vi.fn() as any, mockLogger);
         container = document.createElement('div');
 
         // Create real DomRenderContainer (animation provider can be null for tests)

@@ -65,9 +65,9 @@ describe('AudioManager (Facade)', () => {
         };
 
         // Create mock instances of the helpers
-        mockMusicPlayer = new (vi.mocked(MusicPlayer))(vi.fn() as any, vi.fn() as any, vi.fn() as any, vi.fn() as any, vi.fn() as any);
-        mockSfxPool = new (vi.mocked(SfxPool))(vi.fn() as any, vi.fn() as any, vi.fn() as any, 10);
-        mockVoicePlayer = new (vi.mocked(VoicePlayer))(vi.fn() as any, vi.fn() as any, vi.fn() as any, vi.fn() as any);
+        mockMusicPlayer = new (vi.mocked(MusicPlayer))(vi.fn() as any, vi.fn() as any, vi.fn() as any, vi.fn() as any, vi.fn() as any, mockLogger);
+        mockSfxPool = new (vi.mocked(SfxPool))(vi.fn() as any, vi.fn() as any, vi.fn() as any, 10, mockLogger);
+        mockVoicePlayer = new (vi.mocked(VoicePlayer))(vi.fn() as any, vi.fn() as any, vi.fn() as any, vi.fn() as any, mockLogger);
 
         // Re-mock the implementations to return our new instances
         vi.mocked(MusicPlayer).mockImplementation(() => mockMusicPlayer);
@@ -78,10 +78,11 @@ describe('AudioManager (Facade)', () => {
 
         audioManager = new AudioManager(
             new (vi.mocked(EventBus))(mockLogger),
-            new (vi.mocked(AssetManager))(vi.fn() as any),
+            new (vi.mocked(AssetManager))(vi.fn() as any, mockLogger),
             mockAudioContext,
             mockTimerProvider,
-            { sfxPoolSize: 10 }
+            { sfxPoolSize: 10 },
+            mockLogger
         );
 
         // Spy on the helper methods we want to test delegation to

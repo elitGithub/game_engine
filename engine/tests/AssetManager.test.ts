@@ -35,7 +35,7 @@ describe('AssetManager', () => {
         mockEventBus = new EventBus(mockLogger);
         vi.spyOn(mockEventBus, 'emit');
 
-        assetManager = new AssetManager(mockEventBus);
+        assetManager = new AssetManager(mockEventBus, mockLogger);
         assetManager.registerLoader(mockImageLoader);
         assetManager.registerLoader(mockAudioLoader);
     });

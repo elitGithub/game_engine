@@ -1,7 +1,7 @@
 // engine/audio/MusicPlayer.ts
 import type { EventBus } from '@engine/core/EventBus';
 import type { AssetManager } from '@engine/systems/AssetManager';
-import type { ITimerProvider } from '@engine/interfaces';
+import type {ILogger, ITimerProvider} from '@engine/interfaces';
 
 export type MusicState = 'playing' | 'paused' | 'stopped';
 
@@ -27,7 +27,8 @@ export class MusicPlayer {
         private assetManager: AssetManager,
         private eventBus: EventBus,
         private outputNode: GainNode, // Connects to the main 'musicGain'
-        private timer: ITimerProvider
+        private timer: ITimerProvider,
+        private logger: ILogger,
     ) {}
 
     async playMusic(trackId: string, loop: boolean = true, fadeInDuration: number = 0): Promise<void> {
@@ -70,7 +71,7 @@ export class MusicPlayer {
             this.musicState = 'playing';
             this.eventBus.emit('music.started', { trackId });
         } catch (error) {
-            console.error(`[MusicPlayer] Failed to play music '${trackId}':`, error);
+            this.logger.error(`[MusicPlayer] Failed to play music '${trackId}':`, error);
         }
     }
 

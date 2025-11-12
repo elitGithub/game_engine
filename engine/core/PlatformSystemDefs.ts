@@ -91,10 +91,11 @@ export function createPlatformSystemDefinitions(
     if (config.assets !== false) {
         definitions.push({
             key: PLATFORM_SYSTEMS.AssetManager,
-            dependencies: [CORE_SYSTEMS.EventBus],
+            dependencies: [CORE_SYSTEMS.EventBus, PLATFORM_SYSTEMS.Logger],
             factory: (c) => {
                 const eventBus = c.get<EventBus>(CORE_SYSTEMS.EventBus);
-                const assetManager = new AssetManager(eventBus);
+                const logger = c.get<ILogger>(PLATFORM_SYSTEMS.Logger);
+                const assetManager = new AssetManager(eventBus, logger);
 
                 // Get platform-specific loader functions from providers
                 const networkProvider = platform.getNetworkProvider?.();
@@ -105,7 +106,7 @@ export function createPlatformSystemDefinitions(
                     assetManager.registerLoader(new ImageLoader(imageLoader));
                 }
                 if (networkProvider) {
-                    assetManager.registerLoader(new JsonLoader(networkProvider));
+                    assetManager.registerLoader(new JsonLoader(networkProvider, logger));
                 }
 
                 // Get AudioContext from platform (NOT from window)
@@ -114,7 +115,7 @@ export function createPlatformSystemDefinitions(
                     const audioContext = audioPlatform.getNativeContext?.();
                     if (audioContext) {
                         // Inject both AudioContext and the platform's fetch
-                        assetManager.registerLoader(new AudioLoader(audioContext, networkProvider));
+                        assetManager.registerLoader(new AudioLoader(audioContext, networkProvider, logger));
                     }
                 }
 
@@ -154,7 +155,8 @@ export function createPlatformSystemDefinitions(
                 const timer = platform.getTimerProvider();
                 const audioConfig = (typeof config.audio === 'object' ? config.audio : {}) ?? {};
                 const sfxPoolSize = audioConfig.sfxPoolSize ?? 10;
-                const audioManager = new AudioManager(eventBus, assetManager, audioContext, timer, {sfxPoolSize});
+                const logger = c.get<ILogger>(PLATFORM_SYSTEMS.Logger);
+                const audioManager = new AudioManager(eventBus, assetManager, audioContext, timer, {sfxPoolSize}, logger);
 
                 // Apply audio config
                 if (audioConfig.volume !== undefined) {

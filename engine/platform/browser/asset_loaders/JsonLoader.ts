@@ -1,11 +1,11 @@
 // engine/systems/asset_loaders/JsonLoader.ts
 import type {AssetType, IAssetLoader} from '@engine/core/IAssetLoader';
-import {INetworkProvider} from "@engine/interfaces";
+import {ILogger, INetworkProvider} from "@engine/interfaces";
 
 export class JsonLoader implements IAssetLoader {
     public readonly type: AssetType = 'json';
 
-    constructor(private networkProvider: INetworkProvider) {
+    constructor(private networkProvider: INetworkProvider, private logger: ILogger) {
         if (!networkProvider) {
             throw new Error("[JsonLoader] A platform-specific fetch implementation is required.");
         }
@@ -19,7 +19,7 @@ export class JsonLoader implements IAssetLoader {
             }
             return await response.json();
         } catch (error) {
-            console.error(`[JsonLoader] Failed to load '${url}':`, error);
+            this.logger.error(`[JsonLoader] Failed to load '${url}':`, error);
             throw error;
         }
     }

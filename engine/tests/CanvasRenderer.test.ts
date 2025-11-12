@@ -3,6 +3,7 @@ import { CanvasRenderer } from '@engine/rendering/CanvasRenderer';
 import { AssetManager } from '@engine/systems/AssetManager';
 import type { RenderCommand } from '@engine/types/RenderingTypes';
 import type { ICanvasRenderContainer } from '@engine/interfaces/IRenderContainer';
+import type {ILogger} from "@engine/interfaces";
 
 // Mock AssetManager
 vi.mock('@engine/systems/AssetManager');
@@ -30,9 +31,11 @@ const mockContext = {
     },
 };
 
-// --- REMOVE SPY DEFINITIONS FROM HERE ---
-// const fillStyleSpy = vi.spyOn(mockContext, 'fillStyle', 'set');
-// ... (and the other 3 spies) ...
+const mockLogger: ILogger = {
+    log: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+};
 
 describe('CanvasRenderer', () => {
     let renderer: CanvasRenderer;
@@ -68,7 +71,7 @@ describe('CanvasRenderer', () => {
 
         // No need to .mockClear() spies we just created
 
-        mockAssets = new (vi.mocked(AssetManager))(null as any);
+        mockAssets = new (vi.mocked(AssetManager))(null as any, mockLogger);
         vi.mocked(mockAssets.get).mockReturnValue(mockImage as any);
 
         container = document.createElement('div');

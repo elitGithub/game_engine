@@ -2,11 +2,17 @@
 
 import {beforeEach, describe, expect, it, vi} from 'vitest';
 import {JsonLoader} from "@engine/platform/browser/asset_loaders/JsonLoader";
+import {ILogger} from "@engine/interfaces";
 
 
 // Mock global fetch
 const mockFetch = vi.fn();
 vi.stubGlobal('fetch', mockFetch);
+const mockLogger: ILogger = {
+    log: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+};
 
 describe('JsonLoader', () => {
     let loader: JsonLoader;
@@ -14,7 +20,7 @@ describe('JsonLoader', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         const mockNetworkProvider = {fetch: mockFetch};
-        loader = new JsonLoader(mockNetworkProvider as any);
+        loader = new JsonLoader(mockNetworkProvider as any, mockLogger);
     });
 
     it('should successfully load and parse JSON', async () => {

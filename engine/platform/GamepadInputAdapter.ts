@@ -12,7 +12,7 @@
 
 import { BaseInputAdapter, type InputAdapterType, type InputCapabilities, type InputAttachOptions } from '@engine/interfaces/IInputAdapter';
 import type { GamepadButtonEvent, GamepadAxisEvent } from '@engine/core/InputEvents';
-import type { IRenderContainer } from '@engine/interfaces';
+import type {ILogger, IRenderContainer} from '@engine/interfaces';
 import type { ITimerProvider } from '@engine/interfaces';
 
 /**
@@ -59,8 +59,9 @@ export class GamepadInputAdapter extends BaseInputAdapter {
     /**
      * @param timer Timer provider for platform-agnostic polling
      * @param pollRate Polling rate in milliseconds (default: 16ms = ~60Hz)
+     * @param logger ILogger
      */
-    constructor(timer: ITimerProvider, pollRate: number = 16) {
+    constructor(timer: ITimerProvider, pollRate: number = 16, private logger: ILogger) {
         super();
         this.timer = timer;
         this.pollRate = pollRate;
@@ -78,7 +79,7 @@ export class GamepadInputAdapter extends BaseInputAdapter {
     attach(container?: IRenderContainer, options?: InputAttachOptions): boolean {
         // Check if browser supports Gamepad API
         if (typeof navigator === 'undefined' || !navigator.getGamepads) {
-            console.warn('[GamepadInputAdapter] Gamepad API not supported in this environment.');
+            this.logger.warn('[GamepadInputAdapter] Gamepad API not supported in this environment.');
             return false;
         }
 

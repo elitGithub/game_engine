@@ -1,6 +1,7 @@
 // engine/audio/VoicePlayer.ts
 import type { EventBus } from '@engine/core/EventBus';
 import type { AssetManager } from '@engine/systems/AssetManager';
+import {ILogger} from "@engine/interfaces";
 
 /**
  * VoicePlayer - Handles simple, non-pooled playback for voice lines.
@@ -12,7 +13,8 @@ export class VoicePlayer {
         private audioContext: AudioContext,
         private assetManager: AssetManager,
         private eventBus: EventBus,
-        private outputNode: GainNode // Connects to the main 'voiceGain'
+        private outputNode: GainNode,
+        private logger: ILogger
     ) {}
 
     async playVoice(voiceId: string, volume: number = 1.0): Promise<void> {
@@ -41,7 +43,7 @@ export class VoicePlayer {
 
             this.eventBus.emit('voice.started', { voiceId });
         } catch (error) {
-            console.error(`[VoicePlayer] Failed to play voice '${voiceId}':`, error);
+            this.logger.error(`[VoicePlayer] Failed to play voice '${voiceId}':`, error);
         }
     }
 

@@ -28,7 +28,7 @@ export interface PlatformContainer {
      * Get native view for mobile platforms
      * Returns undefined if not a native platform
      */
-    getNativeView?(): any;
+    getNativeView?(): unknown;
 
     /**
      * Get generic container dimensions (platform-agnostic)

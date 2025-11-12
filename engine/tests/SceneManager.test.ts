@@ -38,7 +38,7 @@ describe('SceneManager', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         mockEventBus = new (vi.mocked(EventBus))(mockLogger);
-        sceneManager = new SceneManager(mockEventBus);
+        sceneManager = new SceneManager(mockEventBus, mockLogger);
         mockContext = {
             game: {},
             flags: new Set(),

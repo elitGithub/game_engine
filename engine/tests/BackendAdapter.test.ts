@@ -2,11 +2,16 @@
 
 import {beforeEach, describe, expect, it, vi} from 'vitest';
 import {BackendAdapter} from "@engine/platform/browser/BackendAdapter";
+import {ILogger} from "@engine/interfaces";
 
 // Mock global fetch
 const mockFetch = vi.fn();
 vi.stubGlobal('fetch', mockFetch);
-
+const mockLogger: ILogger = {
+    log: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+};
 describe('BackendAdapter', () => {
     let adapter: BackendAdapter;
 
@@ -18,7 +23,7 @@ describe('BackendAdapter', () => {
             baseUrl: 'https://api.mygame.com',
             authToken: 'test_token',
             userId: 'user_123'
-        }, mockNetworkProvider);
+        }, mockNetworkProvider, mockLogger);
     });
 
     it('should save data via POST', async () => {

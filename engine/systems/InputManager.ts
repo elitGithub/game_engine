@@ -20,28 +20,31 @@ import type { ITimerProvider, ILogger } from '@engine/interfaces';
  * It coordinates helper classes for action mapping and combo detection.
  */
 export class InputManager {
-    private stateManager: GameStateManager;
-    private eventBus: EventBus;
-    private logger: ILogger;
+    private static readonly DEFAULT_COMBO_BUFFER_SIZE = 10;
+    private static readonly DEFAULT_COMBO_TIME_WINDOW_MS = 1000;
+    private static readonly DEFAULT_GAMEPAD_INDEX = 0;
 
-    private state: InputState;
+    private readonly stateManager: GameStateManager;
+    private readonly eventBus: EventBus;
+
+    private readonly state: InputState;
     private enabled: boolean;
     private currentMode: InputMode;
 
-    // --- DELEGATED RESPONSIBILITIES ---
-    private actionMapper: InputActionMapper;
-    private comboTracker: InputComboTracker;
-    // ----------------------------------
+    // ============================================================================
+    // DELEGATED RESPONSIBILITIES
+    // ============================================================================
+    private readonly actionMapper: InputActionMapper;
+    private readonly comboTracker: InputComboTracker;
 
     constructor(
         stateManager: GameStateManager,
         eventBus: EventBus,
         timer: ITimerProvider,
-        logger: ILogger
+        private readonly logger: ILogger
     ) {
         this.stateManager = stateManager;
         this.eventBus = eventBus;
-        this.logger = logger;
 
         this.state = {
             keysDown: new Set(),
@@ -54,25 +57,30 @@ export class InputManager {
         this.enabled = true;
         this.currentMode = 'gameplay';
 
-        // --- Instantiate helper classes ---
+        // Instantiate helper classes
         this.actionMapper = new InputActionMapper(eventBus);
-        this.comboTracker = new InputComboTracker(eventBus, timer, 10); // 10 is default buffer size
-        // ----------------------------------
+        this.comboTracker = new InputComboTracker(eventBus, timer, InputManager.DEFAULT_COMBO_BUFFER_SIZE);
     }
 
     // ============================================================================
     // EVENT PROCESSING (Core adapter interface)
     // ============================================================================
 
+    /**
+     * Processes a platform-agnostic input event and updates internal state.
+     * Delegates to action mapper and combo tracker for high-level input handling.
+     *
+     * @param event - The engine input event to process
+     */
     public processEvent(event: EngineInputEvent): void {
         if (!this.enabled) return;
 
         switch (event.type) {
             case 'keydown':
                 this.state.keysDown.add(event.key);
-                this.comboTracker.addToBuffer(event.key, event.timestamp); // DELEGATE
-                this.dispatchEvent(event, true); // true = check combos
-                this.actionMapper.checkActionTriggers('key', event.key, { // DELEGATE
+                this.comboTracker.addToBuffer(event.key, event.timestamp);
+                this.dispatchEvent(event, true);
+                this.actionMapper.checkActionTriggers('key', event.key, {
                     shift: event.shift,
                     ctrl: event.ctrl,
                     alt: event.alt,
@@ -87,9 +95,9 @@ export class InputManager {
 
             case 'mousedown':
                 this.state.mouseButtonsDown.add(event.button);
-                this.comboTracker.addToBuffer(`mouse${event.button}`, event.timestamp); // DELEGATE
-                this.dispatchEvent(event, true); // true = check combos
-                this.actionMapper.checkActionTriggers('mouse', event.button, { // DELEGATE
+                this.comboTracker.addToBuffer(`mouse${event.button}`, event.timestamp);
+                this.dispatchEvent(event, true);
+                this.actionMapper.checkActionTriggers('mouse', event.button, {
                     shift: event.shift,
                     ctrl: event.ctrl,
                     alt: event.alt,
@@ -111,18 +119,11 @@ export class InputManager {
                 this.dispatchEvent(event, false);
                 break;
             case 'click':
-                const target = event.target as HTMLElement | null;
-                // THIS LOGIC SHOULD BE MOVED TO DOMINPUTADAPTER
-                if (target?.dataset && Object.keys(target.dataset).length > 0) {
-                    const data: Record<string, string> = {};
-                    for (const [key, value] of Object.entries(target.dataset)) {
-                        if (value !== undefined) {
-                            data[key] = value;
-                        }
-                    }
+                // Use pre-extracted data from platform adapter (DomInputAdapter already populated event.data)
+                if (event.data && Object.keys(event.data).length > 0) {
                     this.eventBus.emit('input.hotspot', {
-                        element: target,
-                        data
+                        element: event.target,
+                        data: event.data
                     });
                 }
                 this.dispatchEvent(event, false);
@@ -132,8 +133,8 @@ export class InputManager {
                 event.touches.forEach(touch => {
                     this.state.touchPoints.set(touch.id, { x: touch.x, y: touch.y });
                 });
-                this.comboTracker.addToBuffer(`touch${event.touches.length}`, event.timestamp); // DELEGATE
-                this.dispatchEvent(event, true); // true = check combos
+                this.comboTracker.addToBuffer(`touch${event.touches.length}`, event.timestamp);
+                this.dispatchEvent(event, true);
                 break;
 
             case 'touchmove':
@@ -152,7 +153,7 @@ export class InputManager {
 
             case 'gamepadbutton':
                 // Update gamepad state for button changes
-                const gamepadButtonState = this.state.gamepadStates.get(event.gamepadIndex) || {
+                const gamepadButtonState = this.state.gamepadStates.get(event.gamepadIndex) ?? {
                     buttons: new Map(),
                     axes: new Map()
                 };
@@ -163,15 +164,15 @@ export class InputManager {
                 this.state.gamepadStates.set(event.gamepadIndex, gamepadButtonState);
 
                 if (event.pressed) {
-                    this.comboTracker.addToBuffer(`gamepad${event.gamepadIndex}_button${event.button}`, event.timestamp); // DELEGATE
-                    this.actionMapper.checkActionTriggers('gamepad', event.button); // DELEGATE
+                    this.comboTracker.addToBuffer(`gamepad${event.gamepadIndex}_button${event.button}`, event.timestamp);
+                    this.actionMapper.checkActionTriggers('gamepad', event.button);
                 }
-                this.dispatchEvent(event, event.pressed); // true = check combos if pressed
+                this.dispatchEvent(event, event.pressed);
                 break;
 
             case 'gamepadaxis':
                 // Update gamepad state for axis changes
-                const gamepadState = this.state.gamepadStates.get(event.gamepadIndex) || {
+                const gamepadState = this.state.gamepadStates.get(event.gamepadIndex) ?? {
                     buttons: new Map(),
                     axes: new Map()
                 };
@@ -189,7 +190,7 @@ export class InputManager {
     private dispatchEvent(event: EngineInputEvent, checkCombos: boolean): void {
         this.stateManager.handleEvent(event);
         if (checkCombos) {
-            this.comboTracker.checkCombos(); // DELEGATE
+            this.comboTracker.checkCombos();
         }
         this.eventBus.emit(`input.${event.type}`, event);
     }
@@ -198,19 +199,41 @@ export class InputManager {
     // INPUT STATE QUERIES (Remains unchanged)
     // ============================================================================
 
-    isKeyDown(key: string): boolean {
+    /**
+     * Checks if a keyboard key is currently pressed.
+     *
+     * @param key - The key code to check (e.g., 'Enter', 'Escape', 'a')
+     * @returns True if the key is currently down
+     */
+    public isKeyDown(key: string): boolean {
         return this.state.keysDown.has(key);
     }
 
-    isMouseButtonDown(button: number): boolean {
+    /**
+     * Checks if a mouse button is currently pressed.
+     *
+     * @param button - The mouse button number (0 = left, 1 = middle, 2 = right)
+     * @returns True if the button is currently down
+     */
+    public isMouseButtonDown(button: number): boolean {
         return this.state.mouseButtonsDown.has(button);
     }
 
-    getMousePosition(): { x: number; y: number } {
+    /**
+     * Gets the current mouse position in viewport coordinates.
+     *
+     * @returns A copy of the current mouse position {x, y}
+     */
+    public getMousePosition(): { x: number; y: number } {
         return { ...this.state.mousePosition };
     }
 
-    getTouchPoints(): Array<{ id: number; x: number; y: number }> {
+    /**
+     * Gets all currently active touch points.
+     *
+     * @returns Array of touch points with id and position {id, x, y}
+     */
+    public getTouchPoints(): Array<{ id: number; x: number; y: number }> {
         return Array.from(this.state.touchPoints.entries()).map(
             ([id, pos]: [number, { x: number; y: number }]) => ({
                 id,
@@ -219,27 +242,75 @@ export class InputManager {
         );
     }
 
-    isGamepadButtonPressed(gamepadIndex: number, button: number): boolean {
-        return this.state.gamepadStates.get(gamepadIndex)?.buttons.get(button)?.pressed || false;
+    /**
+     * Checks if a gamepad button is currently pressed.
+     *
+     * @param gamepadIndex - The gamepad index (0-based)
+     * @param button - The button number
+     * @returns True if the button is currently pressed
+     */
+    public isGamepadButtonPressed(gamepadIndex: number, button: number): boolean {
+        return this.state.gamepadStates.get(gamepadIndex)?.buttons.get(button)?.pressed ?? false;
     }
 
-    getGamepadAxis(gamepadIndex: number, axis: number): number {
-        return this.state.gamepadStates.get(gamepadIndex)?.axes.get(axis) || 0;
+    /**
+     * Gets the current value of a gamepad axis.
+     *
+     * @param gamepadIndex - The gamepad index (0-based)
+     * @param axis - The axis number
+     * @returns The axis value (-1.0 to 1.0), or 0 if not available
+     */
+    public getGamepadAxis(gamepadIndex: number, axis: number): number {
+        return this.state.gamepadStates.get(gamepadIndex)?.axes.get(axis) ?? 0;
     }
 
     // ============================================================================
     // INPUT ACTIONS (Now delegates)
     // ============================================================================
 
+    /**
+     * Registers a named input action with one or more input bindings.
+     * Actions can be triggered by keyboard keys, mouse buttons, or gamepad buttons,
+     * with optional modifier key requirements.
+     *
+     * @param name - The action name (e.g., 'jump', 'attack')
+     * @param bindings - Array of input bindings that trigger this action
+     */
     public registerAction(name: string, bindings: InputBinding[]): void {
-        this.actionMapper.registerAction(name, bindings); // DELEGATE
+        this.actionMapper.registerAction(name, bindings);
     }
 
+    /**
+     * Checks if the current modifier key state matches the required modifiers.
+     * Each modifier must match exactly (present if required, absent if not required).
+     *
+     * @param requiredModifiers - The modifiers required by the binding
+     * @returns True if all modifier states match exactly
+     */
+    private checkModifiers(requiredModifiers: { shift: boolean; ctrl: boolean; alt: boolean; meta: boolean }): boolean {
+        const modifierKeys = [
+            { name: 'Shift' as const, required: requiredModifiers.shift },
+            { name: 'Control' as const, required: requiredModifiers.ctrl },
+            { name: 'Alt' as const, required: requiredModifiers.alt },
+            { name: 'Meta' as const, required: requiredModifiers.meta }
+        ];
+
+        return modifierKeys.every(({ name, required }) =>
+            this.isKeyDown(name) === required
+        );
+    }
+
+    /**
+     * Checks if a registered action is currently triggered based on current input state.
+     * Evaluates all bindings for the action, including modifier key requirements.
+     *
+     * @param actionName - The name of the action to check
+     * @returns True if any binding for the action is currently satisfied
+     */
     public isActionTriggered(actionName: string): boolean {
-        const action = this.actionMapper.getActions().get(actionName); // DELEGATE
+        const action = this.actionMapper.getActions().get(actionName);
         if (!action) return false;
 
-        // <-- FIX: Explicitly type 'binding' to fix TS7006
         return action.bindings.some((binding: InputBinding) => {
             if (binding.type === 'key') {
                 const keyDown = this.isKeyDown(binding.input as string);
@@ -252,24 +323,12 @@ export class InputManager {
                     meta: binding.modifiers?.meta ?? false,
                 };
 
-                // Check this manager's state against the mapper's config
-                if (bindingMods.shift && !this.isKeyDown('Shift')) return false;
-                if (!bindingMods.shift && this.isKeyDown('Shift')) return false;
-
-                if (bindingMods.ctrl && !this.isKeyDown('Control')) return false;
-                if (!bindingMods.ctrl && this.isKeyDown('Control')) return false;
-
-                if (bindingMods.alt && !this.isKeyDown('Alt')) return false;
-                if (!bindingMods.alt && this.isKeyDown('Alt')) return false;
-
-                if (bindingMods.meta && !this.isKeyDown('Meta')) return false;
-                return !(!bindingMods.meta && this.isKeyDown('Meta'));
-
+                return this.checkModifiers(bindingMods);
 
             } else if (binding.type === 'mouse') {
                 return this.isMouseButtonDown(binding.input as number);
             } else if (binding.type === 'gamepad') {
-                return this.isGamepadButtonPressed(0, binding.input as number);
+                return this.isGamepadButtonPressed(InputManager.DEFAULT_GAMEPAD_INDEX, binding.input as number);
             }
 
             return false;
@@ -280,39 +339,79 @@ export class InputManager {
     // INPUT BUFFERING AND COMBOS (Now delegates)
     // ============================================================================
 
-    public registerCombo(name: string, inputs: string[], timeWindow: number = 1000): void {
-        this.comboTracker.registerCombo(name, inputs, timeWindow); // DELEGATE
+    /**
+     * Registers a named input combo (sequence of inputs within a time window).
+     * When the combo is detected, an 'input.combo' event is emitted.
+     *
+     * @param name - The combo name (e.g., 'hadouken', 'konami-code')
+     * @param inputs - Array of input strings in sequence (e.g., ['ArrowDown', 'ArrowRight', 'a'])
+     * @param timeWindow - Maximum time in milliseconds for the full sequence (default: 1000ms)
+     */
+    public registerCombo(name: string, inputs: string[], timeWindow: number = InputManager.DEFAULT_COMBO_TIME_WINDOW_MS): void {
+        this.comboTracker.registerCombo(name, inputs, timeWindow);
     }
 
+    /**
+     * Gets the current input buffer (recent inputs for combo detection).
+     *
+     * @returns Array of recent input strings in chronological order
+     */
     public getInputBuffer(): string[] {
-        return this.comboTracker.getInputBuffer(); // DELEGATE
+        return this.comboTracker.getInputBuffer();
     }
 
+    /**
+     * Clears the input buffer, resetting combo detection.
+     */
     public clearBuffer(): void {
-        this.comboTracker.clearBuffer(); // DELEGATE
+        this.comboTracker.clearBuffer();
     }
 
     // ============================================================================
     // INPUT CONTROL (Remains unchanged)
     // ============================================================================
 
+    /**
+     * Enables or disables input processing.
+     * When disabled, all input events are ignored and input state is cleared.
+     *
+     * @param enabled - True to enable input processing, false to disable
+     */
     public setEnabled(enabled: boolean): void {
         this.enabled = enabled;
         if (!enabled) {
             this.state.keysDown.clear();
             this.state.mouseButtonsDown.clear();
+            this.state.touchPoints.clear();
+            this.state.gamepadStates.clear();
         }
     }
 
+    /**
+     * Checks if input processing is currently enabled.
+     *
+     * @returns True if input processing is enabled
+     */
     public isEnabled(): boolean {
         return this.enabled;
     }
 
+    /**
+     * Sets the current input mode and emits an 'input.modeChanged' event.
+     * Input modes can be used to context-switch input handling (e.g., 'gameplay' vs 'menu').
+     *
+     * @param mode - The input mode to activate
+     */
     public setInputMode(mode: InputMode): void {
         this.currentMode = mode;
         this.eventBus.emit('input.modeChanged', { mode });
     }
 
+    /**
+     * Gets the current input mode.
+     *
+     * @returns The currently active input mode
+     */
     public getInputMode(): InputMode {
         return this.currentMode;
     }

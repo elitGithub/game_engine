@@ -61,7 +61,7 @@ describe('MusicPlayer', () => {
         vi.useFakeTimers();
 
         mockEventBus = new EventBus(mockLogger);
-        mockAssetManager = new AssetManager(mockEventBus);
+        mockAssetManager = new AssetManager(mockEventBus, mockLogger);
         mockAudioContext = new MockAudioContext();
         mockOutputGain = mockAudioContext.createGain(); // This is the 'musicGain'
 
@@ -85,7 +85,7 @@ describe('MusicPlayer', () => {
         // Setup mock asset
         vi.mocked(mockAssetManager.get).mockReturnValue(mockAudioBuffer);
 
-        musicPlayer = new MusicPlayer(mockAudioContext, mockAssetManager, mockEventBus, mockOutputGain, mockTimerProvider);
+        musicPlayer = new MusicPlayer(mockAudioContext, mockAssetManager, mockEventBus, mockOutputGain, mockTimerProvider, mockLogger);
     });
 
     afterEach(() => {

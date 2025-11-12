@@ -18,7 +18,7 @@ import type {
     TouchMoveEvent,
     TouchEndEvent
 } from './InputEvents';
-import {IRenderContainer, isDomRenderContainer} from "@engine/interfaces";
+import {ILogger, IRenderContainer, IDomRenderContainer, isDomRenderContainer} from "@engine/interfaces";
 
 /**
  * DomInputAdapter - Translates DOM events to engine-agnostic input events
@@ -38,7 +38,7 @@ export class DomInputAdapter extends BaseInputAdapter {
     private targetElement: HTMLElement | null;
     private boundListeners: Map<string, (evt: any) => void>;
 
-    constructor() {
+    constructor(private logger: ILogger) {
         super();
         this.targetElement = null;
         this.boundListeners = new Map();
@@ -63,7 +63,7 @@ export class DomInputAdapter extends BaseInputAdapter {
         if (container) {
             // Check if it's an IRenderContainer
             if (isDomRenderContainer(container as IRenderContainer)) {
-                element = (container as any).getElement();
+                element = (container as IDomRenderContainer).getElement();
             }
             // Check if it's a legacy PlatformContainer
             else if ((container as PlatformContainer).getDomElement) {
@@ -72,7 +72,7 @@ export class DomInputAdapter extends BaseInputAdapter {
         }
 
         if (!element) {
-            console.warn('[DomInputAdapter] Container does not provide DOM element. Skipping.');
+            this.logger.warn('[DomInputAdapter] Container does not provide DOM element. Skipping.');
             return false;
         }
 
@@ -128,7 +128,7 @@ export class DomInputAdapter extends BaseInputAdapter {
     attachToContainer(container: PlatformContainer, options?: { focus?: boolean; tabindex?: string }): boolean {
         const element = container.getDomElement?.();
         if (!element) {
-            console.warn('[DomInputAdapter] Container does not provide DOM element. Skipping.');
+            this.logger.warn('[DomInputAdapter] Container does not provide DOM element. Skipping.');
             return false;
         }
 

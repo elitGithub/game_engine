@@ -29,6 +29,13 @@ import { ConsoleLogger } from './ConsoleLogger';
 import {ILogger} from "@engine/interfaces/ILogger";
 
 /**
+ * Extended Window interface for webkit vendor prefix support
+ */
+interface WindowWithWebkit extends Window {
+    webkitAudioContext?: typeof AudioContext;
+}
+
+/**
  * Browser platform configuration
  */
 export interface BrowserPlatformConfig {
@@ -169,7 +176,7 @@ export class BrowserPlatformAdapter implements IPlatformAdapter {
         }
 
         if (!this.audioPlatform) {
-            this.audioPlatform = new WebAudioPlatform();
+            this.audioPlatform = new WebAudioPlatform(this.getLogger());
         }
 
         return this.audioPlatform;
@@ -181,7 +188,7 @@ export class BrowserPlatformAdapter implements IPlatformAdapter {
 
     getStorageAdapter(): StorageAdapter {
         if (!this.storageAdapter) {
-            this.storageAdapter = new LocalStorageAdapter(this.config.storagePrefix);
+            this.storageAdapter = new LocalStorageAdapter(this.config.storagePrefix, this.getLogger());
         }
         return this.storageAdapter;
     }
@@ -197,8 +204,8 @@ export class BrowserPlatformAdapter implements IPlatformAdapter {
 
         if (!this.inputAdapter) {
             // Combine DOM input (keyboard/mouse) and gamepad input
-            const domAdapter = new DomInputAdapter();
-            const gamepadAdapter = new GamepadInputAdapter(this.getTimerProvider());
+            const domAdapter = new DomInputAdapter(this.getLogger());
+            const gamepadAdapter = new GamepadInputAdapter(this.getTimerProvider(), 16, this.getLogger());
             this.inputAdapter = new CompositeInputAdapter(domAdapter, gamepadAdapter);
         }
 
@@ -326,7 +333,7 @@ export class BrowserPlatformAdapter implements IPlatformAdapter {
     private isAudioSupported(): boolean {
         return typeof window !== 'undefined' &&
             (typeof window.AudioContext !== 'undefined' ||
-                typeof (window as any).webkitAudioContext !== 'undefined');
+                typeof (window as WindowWithWebkit).webkitAudioContext !== 'undefined');
     }
 
     private isLocalStorageSupported(): boolean {

@@ -4,12 +4,12 @@
  * Platform-specific storage adapter for browsers using localStorage API.
  */
 import type { StorageAdapter, SaveSlotMetadata } from '@engine/core/StorageAdapter';
+import {ILogger} from "@engine/interfaces";
 
 export class LocalStorageAdapter implements StorageAdapter {
-    private keyPrefix: string;
 
-    constructor(keyPrefix: string = 'game_save_') {
-        this.keyPrefix = keyPrefix;
+    constructor(private keyPrefix: string = 'game_save_', private logger: ILogger) {
+
     }
 
     async save(slotId: string, data: string): Promise<boolean> {
@@ -18,7 +18,7 @@ export class LocalStorageAdapter implements StorageAdapter {
             localStorage.setItem(key, data);
             return true;
         } catch (error) {
-            console.error('[LocalStorage] Save failed:', error);
+            this.logger.error('[LocalStorage] Save failed:', error);
             return false;
         }
     }
@@ -28,7 +28,7 @@ export class LocalStorageAdapter implements StorageAdapter {
             const key = this.getKey(slotId);
             return localStorage.getItem(key);
         } catch (error) {
-            console.error('[LocalStorage] Load failed:', error);
+            this.logger.error('[LocalStorage] Load failed:', error);
             return null;
         }
     }
@@ -39,7 +39,7 @@ export class LocalStorageAdapter implements StorageAdapter {
             localStorage.removeItem(key);
             return true;
         } catch (error) {
-            console.error('[LocalStorage] Delete failed:', error);
+            this.logger.error('[LocalStorage] Delete failed:', error);
             return false;
         }
     }
@@ -71,7 +71,7 @@ export class LocalStorageAdapter implements StorageAdapter {
 
             return saves.sort((a, b) => b.timestamp - a.timestamp);
         } catch (error) {
-            console.error('[LocalStorage] List failed:', error);
+            this.logger.error('[LocalStorage] List failed:', error);
             return [];
         }
     }

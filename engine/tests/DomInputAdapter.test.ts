@@ -2,7 +2,7 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { DomInputAdapter } from '@engine/core/DomInputAdapter';
-import type { EngineInputEvent } from '@engine/core/InputEvents';
+import type {ILogger} from "@engine/interfaces";
 
 // Mock a DOM element and its event methods
 const mockElement = {
@@ -18,6 +18,13 @@ const mockContainer = {
     getDomElement: vi.fn(() => mockElement as any),
 };
 
+const mockLogger: ILogger = {
+    log: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+};
+
+
 describe('DomInputAdapter', () => {
     let adapter: DomInputAdapter;
     let mockEventHandler: ReturnType<typeof vi.fn>;
@@ -25,7 +32,7 @@ describe('DomInputAdapter', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
-        adapter = new DomInputAdapter();
+        adapter = new DomInputAdapter(mockLogger);
 
         // Mock event handler
         mockEventHandler = vi.fn();

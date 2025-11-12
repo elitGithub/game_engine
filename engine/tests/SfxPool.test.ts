@@ -67,14 +67,14 @@ describe('SfxPool', () => {
         vi.clearAllMocks();
 
         const mockEventBus = new EventBus(mockLogger);
-        mockAssetManager = new AssetManager(mockEventBus);
+        mockAssetManager = new AssetManager(mockEventBus, mockLogger);
         mockAudioContext = new MockAudioContext();
         mockOutputGain = mockAudioContext.createGain(); // This is the 'sfxGain'
 
         // Setup mock asset
         vi.mocked(mockAssetManager.get).mockReturnValue(mockAudioBuffer);
 
-        sfxPool = new SfxPool(mockAudioContext, mockAssetManager, mockOutputGain, 10); // <-- FIX: Provide default size
+        sfxPool = new SfxPool(mockAudioContext, mockAssetManager, mockOutputGain, 10, mockLogger); // <-- FIX: Provide default size
     });
 
     it('should play a sound', async () => {
@@ -119,7 +119,7 @@ describe('SfxPool', () => {
         // --- THIS IS THE FIX ---
         // Create a *new* pool just for this test, using the public constructor API.
         // No (as any), no private property access.
-        const smallPool = new SfxPool(mockAudioContext, mockAssetManager, mockOutputGain, 1);
+        const smallPool = new SfxPool(mockAudioContext, mockAssetManager, mockOutputGain, 1, mockLogger);
 
         // Play sound 1, it's created
         await smallPool.play('sfx_laser'); // <-- Use smallPool

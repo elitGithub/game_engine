@@ -66,7 +66,7 @@ describe('VoicePlayer', () => {
         vi.clearAllMocks();
 
         mockEventBus = new EventBus(mockLogger);
-        mockAssetManager = new AssetManager(mockEventBus);
+        mockAssetManager = new AssetManager(mockEventBus, mockLogger);
         mockAudioContext = new MockAudioContext();
         mockOutputGain = mockAudioContext.createGain(); // This is the 'voiceGain'
 
@@ -76,7 +76,7 @@ describe('VoicePlayer', () => {
         // Setup mock asset
         vi.mocked(mockAssetManager.get).mockReturnValue(mockAudioBuffer);
 
-        voicePlayer = new VoicePlayer(mockAudioContext, mockAssetManager, mockEventBus, mockOutputGain);
+        voicePlayer = new VoicePlayer(mockAudioContext, mockAssetManager, mockEventBus, mockOutputGain, mockLogger);
     });
 
     it('should play a voice line', async () => {

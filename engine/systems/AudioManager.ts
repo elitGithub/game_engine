@@ -1,7 +1,7 @@
 // engine/systems/AudioManager.ts
 import type { EventBus } from '../core/EventBus';
 import type { AssetManager } from './AssetManager';
-import type {AudioManagerOptions, ITimerProvider} from '@engine/interfaces';
+import type {AudioManagerOptions, ILogger, ITimerProvider} from '@engine/interfaces';
 import { MusicPlayer, type MusicState } from '@engine/audio/MusicPlayer';
 import { SfxPool } from '@engine/audio/SfxPool';
 import { VoicePlayer } from '@engine/audio/VoicePlayer';
@@ -15,10 +15,6 @@ import { VoicePlayer } from '@engine/audio/VoicePlayer';
  * - VoicePlayer: Handles non-pooled voice-over playback.
  */
 export class AudioManager {
-    private audioContext: AudioContext;
-    private assetManager: AssetManager;
-    private eventBus: EventBus;
-
     // Gain nodes for volume control
     private masterGain: GainNode;
     private musicGain: GainNode;
@@ -34,14 +30,13 @@ export class AudioManager {
     private isUnlocked: boolean;
 
     constructor(
-        eventBus: EventBus,
-        assetManager: AssetManager,
-        audioContext: AudioContext,
+        private eventBus: EventBus,
+        private assetManager: AssetManager,
+        private readonly audioContext: AudioContext,
         timer: ITimerProvider,
-        options: AudioManagerOptions
+        options: AudioManagerOptions,
+        private logger: ILogger
     ) {
-        this.eventBus = eventBus;
-        this.assetManager = assetManager;
         this.audioContext = audioContext;
 
         // Create gain nodes
@@ -57,9 +52,9 @@ export class AudioManager {
         this.masterGain.connect(this.audioContext.destination);
 
         // Instantiate helpers
-        this.musicPlayer = new MusicPlayer(audioContext, assetManager, eventBus, this.musicGain, timer);
-        this.sfxPool = new SfxPool(audioContext, assetManager, this.sfxGain, options.sfxPoolSize);
-        this.voicePlayer = new VoicePlayer(audioContext, assetManager, eventBus, this.voiceGain);
+        this.musicPlayer = new MusicPlayer(audioContext, this.assetManager, eventBus, this.musicGain, timer, this.logger);
+        this.sfxPool = new SfxPool(audioContext, this.assetManager, this.sfxGain, options.sfxPoolSize, this.logger);
+        this.voicePlayer = new VoicePlayer(audioContext, this.assetManager, eventBus, this.voiceGain, this.logger);
 
         // Initialize state
         this.isUnlocked = false;
@@ -71,6 +66,14 @@ export class AudioManager {
         this.setVoiceVolume(1.0);
     }
 
+    /**
+     * Unlock audio playback by resuming the audio context.
+     * Required on most browsers before any audio can play due to autoplay policies.
+     * Call this in response to a user interaction (click, touch, etc.).
+     * Emits 'audio.unlocked' event on success.
+     *
+     * @returns Promise that resolves when audio is unlocked
+     */
     async unlockAudio(): Promise<void> {
         if (this.isUnlocked) return;
 
@@ -86,7 +89,7 @@ export class AudioManager {
             this.isUnlocked = true;
             this.eventBus.emit('audio.unlocked', {});
         } catch (error) {
-            console.error('[AudioManager] Failed to unlock audio:', error);
+            this.logger.error('[AudioManager] Failed to unlock audio:', error);
         }
     }
 
@@ -94,34 +97,78 @@ export class AudioManager {
     // VOLUME CONTROLS
     // ============================================================================
 
+    /**
+     * Set the master volume level for all audio.
+     * Affects music, sound effects, and voice simultaneously.
+     *
+     * @param level - Volume level between 0.0 (silent) and 1.0 (full volume)
+     */
     setMasterVolume(level: number): void {
         this.masterGain.gain.value = Math.max(0, Math.min(1, level));
     }
 
+    /**
+     * Set the music volume level.
+     * Only affects background music playback.
+     *
+     * @param level - Volume level between 0.0 (silent) and 1.0 (full volume)
+     */
     setMusicVolume(level: number): void {
         this.musicGain.gain.value = Math.max(0, Math.min(1, level));
     }
 
+    /**
+     * Set the sound effects volume level.
+     * Only affects SFX playback.
+     *
+     * @param level - Volume level between 0.0 (silent) and 1.0 (full volume)
+     */
     setSFXVolume(level: number): void {
         this.sfxGain.gain.value = Math.max(0, Math.min(1, level));
     }
 
+    /**
+     * Set the voice volume level.
+     * Only affects voice-over playback.
+     *
+     * @param level - Volume level between 0.0 (silent) and 1.0 (full volume)
+     */
     setVoiceVolume(level: number): void {
         this.voiceGain.gain.value = Math.max(0, Math.min(1, level));
     }
 
+    /**
+     * Get the current master volume level.
+     *
+     * @returns Current master volume between 0.0 and 1.0
+     */
     getMasterVolume(): number {
         return this.masterGain.gain.value;
     }
 
+    /**
+     * Get the current music volume level.
+     *
+     * @returns Current music volume between 0.0 and 1.0
+     */
     getMusicVolume(): number {
         return this.musicGain.gain.value;
     }
 
+    /**
+     * Get the current sound effects volume level.
+     *
+     * @returns Current SFX volume between 0.0 and 1.0
+     */
     getSFXVolume(): number {
         return this.sfxGain.gain.value;
     }
 
+    /**
+     * Get the current voice volume level.
+     *
+     * @returns Current voice volume between 0.0 and 1.0
+     */
     getVoiceVolume(): number {
         return this.voiceGain.gain.value;
     }
@@ -130,34 +177,85 @@ export class AudioManager {
     // MUSIC CONTROLS (DELEGATED)
     // ============================================================================
 
+    /**
+     * Play a music track from the asset cache.
+     * Emits 'music.started' event when playback begins.
+     *
+     * @param trackId - Asset ID of the music track to play
+     * @param loop - Whether to loop the track continuously (default: true)
+     * @param fadeInDuration - Duration in seconds to fade in the music (default: 0)
+     * @returns Promise that resolves when playback starts
+     */
     async playMusic(trackId: string, loop: boolean = true, fadeInDuration: number = 0): Promise<void> {
         return this.musicPlayer.playMusic(trackId, loop, fadeInDuration);
     }
 
+    /**
+     * Pause the currently playing music track.
+     * Use resumeMusic() to continue playback from the same position.
+     * Emits 'music.paused' event.
+     */
     pauseMusic(): void {
         this.musicPlayer.pauseMusic();
     }
 
+    /**
+     * Resume the currently paused music track.
+     * Continues playback from where it was paused.
+     * Emits 'music.resumed' event.
+     */
     resumeMusic(): void {
         this.musicPlayer.resumeMusic();
     }
 
+    /**
+     * Stop the currently playing music track.
+     * Emits 'music.stopped' event when stopped.
+     *
+     * @param fadeOutDuration - Duration in seconds to fade out before stopping (default: 0)
+     * @returns Promise that resolves when music has stopped
+     */
     async stopMusic(fadeOutDuration: number = 0): Promise<void> {
         return this.musicPlayer.stopMusic(fadeOutDuration);
     }
 
+    /**
+     * Smoothly transition from current music to a new track.
+     * Fades out current track while fading in the new track.
+     * Emits 'music.crossfade' event when transition completes.
+     *
+     * @param newTrackId - Asset ID of the new music track to play
+     * @param duration - Duration in seconds for the crossfade transition (default: 2)
+     * @returns Promise that resolves when crossfade completes
+     */
     async crossfadeMusic(newTrackId: string, duration: number = 2): Promise<void> {
         return this.musicPlayer.crossfadeMusic(newTrackId, duration);
     }
 
+    /**
+     * Get the current state of the music player.
+     *
+     * @returns Current music state (stopped, playing, or paused)
+     */
     getMusicState(): MusicState {
         return this.musicPlayer.getMusicState();
     }
 
+    /**
+     * Get the current playback position of the music track.
+     *
+     * @returns Current position in seconds
+     */
     getMusicPosition(): number {
         return this.musicPlayer.getMusicPosition();
     }
 
+    /**
+     * Set the playback position of the current music track.
+     * Use this to seek to a specific time in the track.
+     *
+     * @param seconds - Position in seconds to seek to
+     */
     setMusicPosition(seconds: number): void {
         this.musicPlayer.setMusicPosition(seconds);
     }
@@ -166,10 +264,27 @@ export class AudioManager {
     // SFX & VOICE CONTROLS (DELEGATED)
     // ============================================================================
 
+    /**
+     * Play a sound effect from the asset cache.
+     * Sound effects are pooled and fire-and-forget. Multiple sounds can play simultaneously.
+     *
+     * @param soundId - Asset ID of the sound effect to play
+     * @param volume - Volume level for this specific sound (default: 1.0)
+     * @returns Promise that resolves when sound starts playing
+     */
     async playSound(soundId: string, volume: number = 1.0): Promise<void> {
         return this.sfxPool.play(soundId, volume);
     }
 
+    /**
+     * Play a voice-over clip from the asset cache.
+     * Voice clips are non-pooled and can be controlled individually.
+     * Emits 'voice.started' and 'voice.ended' events.
+     *
+     * @param voiceId - Asset ID of the voice clip to play
+     * @param volume - Volume level for this specific voice clip (default: 1.0)
+     * @returns Promise that resolves when voice starts playing
+     */
     async playVoice(voiceId: string, volume: number = 1.0): Promise<void> {
         return this.voicePlayer.playVoice(voiceId, volume);
     }
@@ -178,10 +293,21 @@ export class AudioManager {
     // HELPERS
     // ============================================================================
 
+    /**
+     * Get the underlying Web Audio API context.
+     * Use this for advanced audio operations not covered by AudioManager.
+     *
+     * @returns The AudioContext instance
+     */
     public getAudioContext(): AudioContext {
         return this.audioContext;
     }
 
+    /**
+     * Stop all currently playing audio immediately.
+     * Stops music, sound effects, and voice clips.
+     * Emits 'audio.allStopped' event.
+     */
     stopAll(): void {
         this.musicPlayer.stopMusic(0);
         this.sfxPool.stopAll();
@@ -190,6 +316,11 @@ export class AudioManager {
         this.eventBus.emit('audio.allStopped', {});
     }
 
+    /**
+     * Clean up and release all audio resources.
+     * Stops all audio, disposes all players, and closes the audio context.
+     * Call this when shutting down the audio system.
+     */
     dispose(): void {
         this.stopAll();
         this.musicPlayer.dispose();

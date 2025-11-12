@@ -2,6 +2,7 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { LocalStorageAdapter } from '@engine/platform/browser/LocalStorageAdapter';
+import {ILogger} from "@engine/interfaces";
 
 // Mock global localStorage
 const localStorageMock = (() => {
@@ -24,6 +25,12 @@ const localStorageMock = (() => {
     };
 })();
 
+const mockLogger: ILogger = {
+    log: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+};
+
 vi.stubGlobal('localStorage', localStorageMock);
 
 describe('LocalStorageAdapter', () => {
@@ -32,7 +39,7 @@ describe('LocalStorageAdapter', () => {
     beforeEach(() => {
         localStorageMock.clear();
         vi.clearAllMocks(); // Clears spy history
-        adapter = new LocalStorageAdapter('test_prefix_');
+        adapter = new LocalStorageAdapter('test_prefix_', mockLogger);
     });
 
     it('should save data with the correct prefix', async () => {

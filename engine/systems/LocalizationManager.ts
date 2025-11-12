@@ -2,6 +2,16 @@
 import type { ISerializable } from '@engine/types';
 import {ILogger} from "@engine/interfaces";
 
+/**
+ * Represents the structure of localization data.
+ * Keys map to either string values or nested LocalizationData objects.
+ * This recursive structure allows for nested translation keys like:
+ * { "ui": { "buttons": { "ok": "OK", "cancel": "Cancel" } } }
+ */
+interface LocalizationData {
+    [key: string]: string | LocalizationData;
+}
+
 export class LocalizationManager implements ISerializable {
     private strings: Map<string, string> = new Map();
 
@@ -11,7 +21,7 @@ export class LocalizationManager implements ISerializable {
     /**
      * Loads a language data object and flattens it into the string map.
      */
-    public loadLanguage(lang: string, data: Record<string, any>): void {
+    public loadLanguage(lang: string, data: LocalizationData): void {
         this.currentLanguage = lang;
         this.strings.clear();
         this.flattenStrings(data);
@@ -56,16 +66,17 @@ export class LocalizationManager implements ISerializable {
      * Helper to flatten a nested JSON object into dot-notation keys.
      * e.g., { "ui": { "title": "Hello" } } => "ui.title": "Hello"
      */
-    private flattenStrings(data: Record<string, any>, prefix = ''): void {
+    private flattenStrings(data: LocalizationData, prefix = ''): void {
         for (const key in data) {
             if (Object.prototype.hasOwnProperty.call(data, key)) {
                 const newKey = prefix ? `${prefix}.${key}` : key;
                 const value = data[key];
 
-                if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
-                    this.flattenStrings(value, newKey);
-                } else if (typeof value === 'string') {
+                if (typeof value === 'string') {
                     this.strings.set(newKey, value);
+                } else if (typeof value === 'object' && value !== null) {
+                    // TypeScript knows value is LocalizationData here
+                    this.flattenStrings(value, newKey);
                 }
             }
         }

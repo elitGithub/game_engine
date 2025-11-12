@@ -6,17 +6,19 @@ import type { PlatformContainer } from './PlatformContainer';
  * NativeContainer - Mobile/native implementation example
  */
 export class NativeContainer implements PlatformContainer {
-    constructor(private view: any) {}
+    constructor(private view: unknown) {}
 
-    getNativeView(): any {
+    getNativeView(): unknown {
         return this.view;
     }
 
     getDimensions(): { width: number; height: number } {
         // Platform-specific dimension retrieval
+        // Type assertion required since view is platform-specific
+        const view = this.view as { width?: number; height?: number };
         return {
-            width: this.view.width || 0,
-            height: this.view.height || 0
+            width: view.width || 0,
+            height: view.height || 0
         };
     }
 }

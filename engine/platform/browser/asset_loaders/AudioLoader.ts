@@ -1,12 +1,14 @@
 // engine/systems/asset_loaders/AudioLoader.ts
 import type {AssetType, IAssetLoader} from '@engine/core/IAssetLoader';
-import {INetworkProvider} from "@engine/interfaces";
+import {ILogger, INetworkProvider} from "@engine/interfaces";
+
 
 export class AudioLoader implements IAssetLoader {
     public readonly type: AssetType = 'audio';
 
     constructor(private audioContext: AudioContext,
-                private networkProvider: INetworkProvider) {
+                private networkProvider: INetworkProvider,
+                private logger: ILogger) {
         if (!audioContext) {
             throw new Error("[AudioLoader] AudioContext is required.");
         }
@@ -24,7 +26,7 @@ export class AudioLoader implements IAssetLoader {
             const arrayBuffer = await response.arrayBuffer();
             return await this.audioContext.decodeAudioData(arrayBuffer);
         } catch (error) {
-            console.error(`[AudioLoader] Failed to load '${url}':`, error);
+            this.logger.error(`[AudioLoader] Failed to load '${url}':`, error);
             throw error;
         }
     }

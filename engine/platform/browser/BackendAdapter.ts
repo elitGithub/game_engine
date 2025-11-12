@@ -5,7 +5,7 @@
  * Copy and modify this for your own backend implementation.
  */
 import type { StorageAdapter, SaveSlotMetadata } from '@engine/core/StorageAdapter';
-import {INetworkProvider} from "@engine/interfaces";
+import {ILogger, INetworkProvider} from "@engine/interfaces";
 
 export interface BackendConfig {
     baseUrl: string;
@@ -15,7 +15,7 @@ export interface BackendConfig {
 
 export class BackendAdapter implements StorageAdapter {
 
-    constructor(private config: BackendConfig, private networkProvider: INetworkProvider) {
+    constructor(private config: BackendConfig, private networkProvider: INetworkProvider, private logger: ILogger) {
 
     }
 
@@ -36,7 +36,7 @@ export class BackendAdapter implements StorageAdapter {
 
             return response.ok;
         } catch (error) {
-            console.error('[BackendAdapter] Save failed:', error);
+            this.logger.error('[BackendAdapter] Save failed:', error);
             return false;
         }
     }
@@ -54,7 +54,7 @@ export class BackendAdapter implements StorageAdapter {
             const result = await response.json();
             return result.data || null;
         } catch (error) {
-            console.error('[BackendAdapter] Load failed:', error);
+            this.logger.error('[BackendAdapter] Load failed:', error);
             return null;
         }
     }
@@ -70,7 +70,7 @@ export class BackendAdapter implements StorageAdapter {
 
             return response.ok;
         } catch (error) {
-            console.error('[BackendAdapter] Delete failed:', error);
+            this.logger.error('[BackendAdapter] Delete failed:', error);
             return false;
         }
     }
@@ -88,7 +88,7 @@ export class BackendAdapter implements StorageAdapter {
             const result = await response.json();
             return result.saves || [];
         } catch (error) {
-            console.error('[BackendAdapter] List failed:', error);
+            this.logger.error('[BackendAdapter] List failed:', error);
             return [];
         }
     }

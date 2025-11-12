@@ -1,5 +1,6 @@
 // engine/audio/SfxPool.ts
 import type { AssetManager } from '@engine/systems/AssetManager';
+import {ILogger} from "@engine/interfaces";
 
 interface SFXPoolItem {
     buffer: AudioBuffer;
@@ -18,7 +19,8 @@ export class SfxPool {
         private audioContext: AudioContext,
         private assetManager: AssetManager,
         private outputNode: GainNode,
-        private defaultMaxSize: number
+        private defaultMaxSize: number,
+        private logger: ILogger
     ) {}
 
     async play(soundId: string, volume: number = 1.0): Promise<void> {
@@ -45,7 +47,7 @@ export class SfxPool {
             source.start(0);
 
         } catch (error) {
-            console.error(`[SfxPool] Failed to play sound '${soundId}':`, error);
+            this.logger.error(`[SfxPool] Failed to play sound '${soundId}':`, error);
         }
     }
 

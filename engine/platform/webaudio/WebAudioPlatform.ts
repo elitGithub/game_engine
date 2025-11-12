@@ -13,6 +13,14 @@ import type {
     AudioFormat
 } from '@engine/interfaces/IAudioPlatform';
 import { WebAudioContext } from './WebAudioContext';
+import {ILogger} from "@engine/interfaces";
+
+/**
+ * Extended Window interface for webkit vendor prefix support
+ */
+interface WindowWithWebkit extends Window {
+    webkitAudioContext?: typeof AudioContext;
+}
 
 // ============================================================================
 // WEB AUDIO PLATFORM IMPLEMENTATION
@@ -26,6 +34,9 @@ import { WebAudioContext } from './WebAudioContext';
 export class WebAudioPlatform implements IAudioPlatform {
     private context: WebAudioContext | null = null;
 
+    constructor(private logger: ILogger) {
+    }
+    
     getType(): AudioPlatformType {
         return 'webaudio';
     }
@@ -33,7 +44,7 @@ export class WebAudioPlatform implements IAudioPlatform {
     isSupported(): boolean {
         return typeof window !== 'undefined' &&
                (typeof window.AudioContext !== 'undefined' ||
-                typeof (window as any).webkitAudioContext !== 'undefined');
+                typeof (window as WindowWithWebkit).webkitAudioContext !== 'undefined');
     }
 
     getContext(): IAudioContext | null {
@@ -44,11 +55,11 @@ export class WebAudioPlatform implements IAudioPlatform {
         // Singleton: create once, return same instance
         if (!this.context) {
             try {
-                const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+                const AudioContextClass = window.AudioContext || (window as WindowWithWebkit).webkitAudioContext;
                 const nativeContext = new AudioContextClass();
                 this.context = new WebAudioContext(nativeContext);
             } catch (error) {
-                console.error('[WebAudioPlatform] Failed to create AudioContext:', error);
+                this.logger.error('[WebAudioPlatform] Failed to create AudioContext:', error);
                 return null;
             }
         }
