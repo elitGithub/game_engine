@@ -40,7 +40,6 @@ export class InventoryManagerPlugin implements IEnginePlugin {
     }
 
     uninstall(engine: IEngineHost): void {
-        delete engine.context.inventory;
         engine.unregisterSerializableSystem(INVENTORY_SERIALIZATION_KEY);
     }
 

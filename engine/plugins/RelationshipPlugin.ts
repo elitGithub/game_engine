@@ -33,7 +33,6 @@ export class RelationshipPlugin implements IEnginePlugin {
     }
 
     install(engine: IEngineHost): void {
-        engine.context.relationships = this;
         engine.registerSerializableSystem(RELATIONSHIP_SERIALIZATION_KEY, this.tracker);
     }
 

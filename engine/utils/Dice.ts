@@ -40,7 +40,7 @@ export class Dice {
     /**
      * Roll a d100 (percentile)
      */
-    static d100(rng: RngFunction = Math.random): number {
+    static d100(rng: RngFunction): number {
         return this.roll(100, rng);
     }
 

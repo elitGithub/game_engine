@@ -40,7 +40,6 @@ export class GameClockPlugin implements IEnginePlugin, ISerializable {
     }
 
     uninstall(engine: IEngineHost): void {
-        delete engine.context.clock;
         engine.unregisterSerializableSystem(CLOCK_SERIALIZATION_KEY);
     }
 
