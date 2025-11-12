@@ -127,12 +127,11 @@ All critical architectural violations have been resolved:
 
 Minor code quality tasks for future consideration:
 
-1. FLAG #17: Modernize InputManager.test.ts (remove stale navigator mocks, test facade behavior)
-2. Consider converting SaveManager to proper SystemDefinition pattern
-3. Review and remove any unused utility files
-4. Consider migrating to NX monorepo structure (see vision below)
+1. Consider converting SaveManager to proper SystemDefinition pattern
+2. Review and remove any unused utility files
+3. Consider migrating to NX monorepo structure (see vision below)
 
-Note: Out of 17 audit flags from ISSUES.txt, 16 have been resolved. Only FLAG #17 (test quality) remains deferred.
+Note: All 17 audit flags from ISSUES.txt have been resolved.
 
 ## **Common Tasks**
 

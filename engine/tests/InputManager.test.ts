@@ -12,26 +12,6 @@ import type { ITimerProvider } from '@engine/interfaces/ITimerProvider';
 vi.mock('@engine/core/EventBus');
 vi.mock('@engine/core/GameStateManager');
 
-// --- NEW: Define a mock gamepad state ---
-const mockGamepad = {
-    index: 0,
-    connected: true,
-    buttons: [
-        { pressed: false, value: 0 }, // Button 0
-        { pressed: false, value: 0 }, // Button 1
-    ],
-    axes: [0, 0, 0, 0], // Axes 0, 1, 2, 3
-    mapping: 'standard',
-    timestamp: Date.now(),
-    id: 'Mock Gamepad',
-    vibrationActuator: null
-};
-
-// --- NEW: Mock navigator.getGamepads ---
-vi.stubGlobal('navigator', {
-    getGamepads: vi.fn(() => [mockGamepad]),
-});
-
 describe('InputManager', () => {
     let inputManager: InputManager;
     let mockStateManager: GameStateManager;
@@ -63,11 +43,6 @@ describe('InputManager', () => {
         };
 
         inputManager = new InputManager(mockStateManager, mockEventBus, mockTimerProvider);
-
-        // --- NEW: Reset mock gamepad state ---
-        mockGamepad.buttons[0].pressed = false;
-        mockGamepad.axes[0] = 0;
-        vi.mocked(navigator.getGamepads).mockClear();
     });
 
     afterEach(() => {
