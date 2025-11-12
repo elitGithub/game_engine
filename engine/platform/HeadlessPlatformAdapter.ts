@@ -15,12 +15,12 @@ import type {
     ITimerProvider
 } from '@engine/interfaces';
 import {
-    HeadlessRenderContainer,
     MockAudioPlatform,
     MockInputAdapter
 } from '@engine/interfaces';
 import type { StorageAdapter } from '@engine/core/StorageAdapter';
 import { InMemoryStorageAdapter } from '@engine/systems/InMemoryStorageAdapter';
+import {HeadlessRenderContainer} from "@engine/interfaces/HeadlessRenderContainer";
 
 /**
  * Headless platform configuration

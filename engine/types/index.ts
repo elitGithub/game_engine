@@ -114,6 +114,11 @@ export interface TextStyleConfig {
     customCSS?: Record<string, string>;
 }
 
+export { DomRenderContainer } from '@engine/platform/browser/DomRenderContainer';
+export { CanvasRenderContainer } from '@engine/platform/browser/CanvasRenderContainer';
+export { HeadlessRenderContainer } from '@engine/interfaces/HeadlessRenderContainer';
+
+
 export interface TypewriterConfig {
     charsPerSecond?: number;
     punctuationDelay?: number;

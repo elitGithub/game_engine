@@ -15,8 +15,8 @@ describe('Dice', () => {
     });
 
     it('should roll a single d6', () => {
-        vi.mocked(Math.random).mockReturnValue(0.5); // 0.5 * 6 = 3, floor = 3, + 1 = 4
-        const result = Dice.roll(6);
+        const mockRng = vi.fn().mockReturnValue(0);
+        const result = Dice.roll(6, mockRng);
         expect(result).toBe(4);
     });
 
@@ -82,7 +82,7 @@ describe('Dice', () => {
     });
 
     it('should roll with disadvantage (take lower)', () => {
-       const mockRng = vi.fn()
+        const mockRng = vi.fn()
             .mockReturnValueOnce(0.1) // 3 (d20)
             .mockReturnValueOnce(0.8); // 17 (d20)
 

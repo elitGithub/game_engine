@@ -17,12 +17,14 @@ import type {
     INetworkProvider,
     IImageLoader
 } from '@engine/interfaces';
-import {CanvasRenderContainer, DomRenderContainer, WebAudioPlatform} from '@engine/interfaces';
+import {WebAudioPlatform} from '@engine/interfaces';
 import {LocalStorageAdapter} from '@engine/platform/browser/LocalStorageAdapter';
 import type {StorageAdapter} from '@engine/core/StorageAdapter';
 import {DomInputAdapter} from '@engine/core/DomInputAdapter';
 import {GamepadInputAdapter} from '@engine/platform/GamepadInputAdapter';
 import {CompositeInputAdapter} from '@engine/interfaces';
+import {CanvasRenderContainer} from "@engine/platform/browser/CanvasRenderContainer";
+import {DomRenderContainer} from "@engine/platform/browser/DomRenderContainer";
 
 /**
  * Browser platform configuration
@@ -121,6 +123,7 @@ export class BrowserPlatformAdapter implements IPlatformAdapter {
     }
 
     private createRenderContainer(): IRenderContainer {
+        this.getAnimationProvider();
         const element = this.config.containerElement;
 
         // Determine render type
@@ -136,7 +139,7 @@ export class BrowserPlatformAdapter implements IPlatformAdapter {
                     '[BrowserPlatform] Canvas rendering requires HTMLCanvasElement'
                 );
             }
-            return new CanvasRenderContainer(element);
+            return new CanvasRenderContainer(element, this.animationProvider);
         } else {
             return new DomRenderContainer(element, this.animationProvider);
         }

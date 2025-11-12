@@ -2,8 +2,8 @@
  * Canvas Container Implementation
  */
 
-import type { ICanvasRenderContainer } from '@engine/interfaces/IRenderContainer';
-import {IAnimationProvider} from "@engine/interfaces";
+
+import {IAnimationProvider, ICanvasRenderContainer} from "@engine/interfaces";
 
 export class CanvasRenderContainer implements ICanvasRenderContainer {
     private context: CanvasRenderingContext2D;

@@ -17,7 +17,7 @@ export class TypewriterEffect implements IDynamicEffect {
     constructor(config: { charsPerSecond?: number, punctuationDelay?: number } = {}) {
         this.charsPerSecond = config.charsPerSecond || 0;
         this.punctuationDelay = config.punctuationDelay || 0;
-        this.timePerChar = 1.0 / this.charsPerSecond; // Time in seconds per char
+        this.timePerChar = (config.charsPerSecond && config.charsPerSecond > 0) ? 1.0 / config.charsPerSecond : 0;
     }
 
 

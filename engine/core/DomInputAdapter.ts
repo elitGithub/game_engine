@@ -5,8 +5,6 @@ import {
     type InputAttachOptions,
     type InputCapabilities
 } from '../interfaces/IInputAdapter';
-import type { IRenderContainer } from '../interfaces/IRenderContainer';
-import { isDomRenderContainer } from '../interfaces/IRenderContainer';
 import type { PlatformContainer } from './PlatformContainer';
 import type {
     KeyDownEvent,
@@ -20,6 +18,7 @@ import type {
     TouchMoveEvent,
     TouchEndEvent
 } from './InputEvents';
+import {IRenderContainer, isDomRenderContainer} from "@engine/interfaces";
 
 /**
  * DomInputAdapter - Translates DOM events to engine-agnostic input events
@@ -202,7 +201,7 @@ export class DomInputAdapter extends BaseInputAdapter {
     private onKeyDown(e: KeyboardEvent): void {
         const event: KeyDownEvent = {
             type: 'keydown',
-            timestamp: Date.now(),
+            timestamp: e.timeStamp,
             key: e.key,
             code: e.code,
             repeat: e.repeat,
@@ -218,7 +217,7 @@ export class DomInputAdapter extends BaseInputAdapter {
     private onKeyUp(e: KeyboardEvent): void {
         const event: KeyUpEvent = {
             type: 'keyup',
-            timestamp: Date.now(),
+            timestamp: e.timeStamp,
             key: e.key,
             code: e.code,
             shift: e.shiftKey,
@@ -237,7 +236,7 @@ export class DomInputAdapter extends BaseInputAdapter {
     private onMouseDown(e: MouseEvent): void {
         const event: MouseDownEvent = {
             type: 'mousedown',
-            timestamp: Date.now(),
+            timestamp: e.timeStamp,
             button: e.button,
             x: e.clientX,
             y: e.clientY,
@@ -253,7 +252,7 @@ export class DomInputAdapter extends BaseInputAdapter {
     private onMouseUp(e: MouseEvent): void {
         const event: MouseUpEvent = {
             type: 'mouseup',
-            timestamp: Date.now(),
+            timestamp: e.timeStamp,
             button: e.button,
             x: e.clientX,
             y: e.clientY,
@@ -269,7 +268,7 @@ export class DomInputAdapter extends BaseInputAdapter {
     private onMouseMove(e: MouseEvent): void {
         const event: MouseMoveEvent = {
             type: 'mousemove',
-            timestamp: Date.now(),
+            timestamp: e.timeStamp,
             x: e.clientX,
             y: e.clientY,
             deltaX: e.movementX,
@@ -283,7 +282,7 @@ export class DomInputAdapter extends BaseInputAdapter {
     private onWheel(e: WheelEvent): void {
         const event: MouseWheelEvent = {
             type: 'wheel',
-            timestamp: Date.now(),
+            timestamp: e.timeStamp,
             deltaX: e.deltaX,
             deltaY: e.deltaY,
             deltaZ: e.deltaZ,
@@ -297,7 +296,7 @@ export class DomInputAdapter extends BaseInputAdapter {
     private onClick(e: MouseEvent): void {
         const event: ClickEvent = {
             type: 'click',
-            timestamp: Date.now(),
+            timestamp: e.timeStamp,
             button: e.button,
             x: e.clientX,
             y: e.clientY,
@@ -321,7 +320,7 @@ export class DomInputAdapter extends BaseInputAdapter {
 
         const event: TouchStartEvent = {
             type: 'touchstart',
-            timestamp: Date.now(),
+            timestamp: e.timeStamp,
             touches
         };
 
@@ -338,7 +337,7 @@ export class DomInputAdapter extends BaseInputAdapter {
 
         const event: TouchMoveEvent = {
             type: 'touchmove',
-            timestamp: Date.now(),
+            timestamp: e.timeStamp,
             touches
         };
 
@@ -355,7 +354,7 @@ export class DomInputAdapter extends BaseInputAdapter {
 
         const event: TouchEndEvent = {
             type: 'touchend',
-            timestamp: Date.now(),
+            timestamp: e.timeStamp,
             touches
         };
 

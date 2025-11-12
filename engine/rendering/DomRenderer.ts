@@ -1,9 +1,9 @@
 // engine/rendering/DomRenderer.ts
 
-import type { IRenderer, RenderCommand, TextStyleData } from '../types/RenderingTypes';
+import type { IRenderer, RenderCommand, TextStyleData } from '@engine/types/RenderingTypes';
 import type { AssetManager } from '@engine/systems/AssetManager.ts';
-import type { IRenderContainer } from '@engine/interfaces';
 import { isDomRenderContainer } from '@engine/interfaces';
+import {DomRenderContainer} from "@engine/platform/browser/DomRenderContainer";
 
 /**
  * DomRenderer - DOM-based renderer implementation
@@ -17,7 +17,7 @@ export class DomRenderer implements IRenderer {
 
     constructor(private assets: AssetManager) {}
 
-    init(container: IRenderContainer): void {
+    init(container: DomRenderContainer): void {
         if (!isDomRenderContainer(container)) {
             throw new Error('[DomRenderer] Requires IDomRenderContainer (DOM platform)');
         }
