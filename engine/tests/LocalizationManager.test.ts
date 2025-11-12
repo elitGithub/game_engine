@@ -32,7 +32,6 @@ describe('LocalizationManager', () => {
     let loc: LocalizationManager;
 
     beforeEach(() => {
-        vi.spyOn(console, 'warn').mockImplementation(() => {});
         loc = new LocalizationManager('en', mockLogger);
         loc.loadLanguage('en', en);
     });
@@ -51,7 +50,7 @@ describe('LocalizationManager', () => {
 
     it('should return the key and warn for a missing string', () => {
         expect(loc.getString('ui.missing')).toBe('ui.missing');
-        expect(console.warn).toHaveBeenCalledWith('[LocalizationManager] Missing key: ui.missing');
+        expect(mockLogger.warn).toHaveBeenCalledWith('[LocalizationManager] Missing key: ui.missing');
     });
 
     it('should load a new language and switch', () => {

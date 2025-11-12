@@ -43,7 +43,7 @@ export function createCoreSystemDefinitions(): SystemDefinition[] {
             key: CORE_SYSTEMS.EventBus,
             factory: (c) => {
                 const logger = c.get<ILogger>(PLATFORM_SYSTEMS.Logger);
-                new EventBus(logger)
+                return new EventBus(logger)
             },
             lazy: false
         },
@@ -53,7 +53,7 @@ export function createCoreSystemDefinitions(): SystemDefinition[] {
             dependencies: [PLATFORM_SYSTEMS.Logger],
             factory: (c) => {
                 const logger = c.get<ILogger>(PLATFORM_SYSTEMS.Logger);
-                new GameStateManager(logger)
+                return new GameStateManager(logger)
             },
             lazy: false
         },
@@ -74,7 +74,7 @@ export function createCoreSystemDefinitions(): SystemDefinition[] {
 
             factory: (c) => {
                 const logger = c.get<ILogger>(PLATFORM_SYSTEMS.Logger); // <-- 2. GET the dependency
-                new ActionRegistry(logger)
+                return new ActionRegistry(logger)
             },
             lazy: false
         },

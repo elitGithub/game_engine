@@ -1,10 +1,11 @@
 // engine/tests/ActionRegistry.test.ts
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { ActionRegistry } from '@engine/systems/ActionRegistry';
-import { Action } from '@engine/systems/Action';
-import type { ActionContext } from '@engine/types';
+import {beforeEach, describe, expect, it, vi} from 'vitest';
+import {ActionRegistry} from '@engine/systems/ActionRegistry';
+import {Action} from '@engine/systems/Action';
+import type {ActionContext} from '@engine/types';
 import type {ILogger} from "@engine/interfaces";
+
 const mockLogger: ILogger = {
     log: vi.fn(),
     warn: vi.fn(),
@@ -19,6 +20,7 @@ class MockAction extends Action {
     canExecute(context: ActionContext): boolean {
         return this.canExecuteResult;
     }
+
     execute(context: ActionContext): any {
         return this.executeResult;
     }
@@ -31,10 +33,6 @@ describe('ActionRegistry', () => {
     let actionB: MockAction;
 
     beforeEach(() => {
-        vi.spyOn(console, 'log').mockImplementation(() => {});
-        vi.spyOn(console, 'warn').mockImplementation(() => {});
-        vi.spyOn(console, 'error').mockImplementation(() => {});
-
         registry = new ActionRegistry(mockLogger);
         mockContext = {} as ActionContext;
 
@@ -78,7 +76,7 @@ describe('ActionRegistry', () => {
 
         expect(result).toBe(null);
         expect(actionA.execute).not.toHaveBeenCalled();
-        expect(console.warn).toHaveBeenCalledWith(
+        expect(mockLogger.warn).toHaveBeenCalledWith( // <-- FIX: use mockLogger
             expect.stringContaining('cannot be executed'),
             expect.any(String)
         );
@@ -86,7 +84,7 @@ describe('ActionRegistry', () => {
 
     it('should log an error if action is not found', () => {
         registry.execute('unknown', mockContext);
-        expect(console.error).toHaveBeenCalledWith("[ActionRegistry] Action 'unknown' not found");
+        expect(mockLogger.error).toHaveBeenCalledWith("[ActionRegistry] Action 'unknown' not found"); // <-- FIX: use mockLogger
     });
 
     it('should get available actions for a context', () => {

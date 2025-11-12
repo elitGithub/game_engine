@@ -21,8 +21,6 @@ describe('MigrationManager', () => {
         mockMigrationFunctions = new Map<string, MigrationFunction>();
         migrationManager = new MigrationManager(mockMigrationFunctions, mockLogger);
 
-        // Spy on console warnings for one test
-        vi.spyOn(console, 'warn').mockImplementation(() => {});
     });
 
     afterEach(() => {
@@ -130,7 +128,7 @@ describe('MigrationManager', () => {
 
         // It should NOT run the migration it has
         expect(migrationV1_1toV1_2).not.toHaveBeenCalled();
-        expect(console.warn).toHaveBeenCalledWith(
+        expect(mockLogger.warn).toHaveBeenCalledWith(
             expect.stringContaining('[MigrationManager] No migration found for 1.0.0_to_1.1.0')
         );
 
