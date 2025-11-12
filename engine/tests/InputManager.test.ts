@@ -26,8 +26,8 @@ describe('InputManager', () => {
 
     beforeEach(() => {
         // Create new mocks for each test
-        mockEventBus = new EventBus();
-        mockStateManager = new GameStateManager();
+        mockEventBus = new EventBus(mockLogger);
+        mockStateManager = new GameStateManager(mockLogger);
         mockState = {
             handleEvent: vi.fn(),
         } as unknown as GameState;

@@ -3,6 +3,7 @@ import {describe, it, expect, beforeEach, vi} from 'vitest';
 import {SfxPool} from '@engine/audio/SfxPool';
 import {AssetManager} from '@engine/systems/AssetManager';
 import {EventBus} from '@engine/core/EventBus';
+import {ILogger} from "@engine/interfaces";
 
 // Mock dependencies
 vi.mock('@engine/core/EventBus');
@@ -19,6 +20,13 @@ const createMockBufferSource = () => ({
     buffer: null as AudioBuffer | null,
     loop: false,
 });
+
+
+const mockLogger: ILogger = {
+    log: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+};
 
 let lastCreatedMockBufferSource = createMockBufferSource();
 
@@ -58,7 +66,7 @@ describe('SfxPool', () => {
     beforeEach(() => {
         vi.clearAllMocks();
 
-        const mockEventBus = new EventBus();
+        const mockEventBus = new EventBus(mockLogger);
         mockAssetManager = new AssetManager(mockEventBus);
         mockAudioContext = new MockAudioContext();
         mockOutputGain = mockAudioContext.createGain(); // This is the 'sfxGain'

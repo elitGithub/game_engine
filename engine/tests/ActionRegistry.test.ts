@@ -4,6 +4,12 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ActionRegistry } from '@engine/systems/ActionRegistry';
 import { Action } from '@engine/systems/Action';
 import type { ActionContext } from '@engine/types';
+import type {ILogger} from "@engine/interfaces";
+const mockLogger: ILogger = {
+    log: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+};
 
 // Create mock actions
 class MockAction extends Action {
@@ -29,7 +35,7 @@ describe('ActionRegistry', () => {
         vi.spyOn(console, 'warn').mockImplementation(() => {});
         vi.spyOn(console, 'error').mockImplementation(() => {});
 
-        registry = new ActionRegistry();
+        registry = new ActionRegistry(mockLogger);
         mockContext = {} as ActionContext;
 
         actionA = new MockAction('actionA', 'Action A');

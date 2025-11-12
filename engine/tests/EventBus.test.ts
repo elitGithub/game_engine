@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { EventBus } from '@engine/core/EventBus';
 import type { EventMap } from '@engine/types';
+import { ILogger } from "@engine/interfaces";
 
 // Extend the EventMap for testing purposes
 declare module '@engine/types' {
@@ -10,11 +11,18 @@ declare module '@engine/types' {
     }
 }
 
+const mockLogger: ILogger = {
+    log: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+};
+
+
 describe('EventBus', () => {
     let eventBus: EventBus;
 
     beforeEach(() => {
-        eventBus = new EventBus();
+        eventBus = new EventBus(mockLogger);
     });
 
     it('should subscribe to an event and receive data', () => {

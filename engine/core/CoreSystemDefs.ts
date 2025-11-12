@@ -8,12 +8,14 @@
  * These are pure, reusable, decoupled building blocks.
  */
 
-import { SystemDefinition } from './SystemContainer';
-import { EventBus } from './EventBus';
-import { GameStateManager } from './GameStateManager';
-import { SceneManager } from '../systems/SceneManager';
-import { ActionRegistry } from '../systems/ActionRegistry';
-import { PluginManager } from './PluginManager';
+import { SystemDefinition } from '@engine/core/SystemContainer';
+import { EventBus } from '@engine/core/EventBus';
+import { GameStateManager } from '@engine/core/GameStateManager';
+import { SceneManager } from '@engine/systems/SceneManager';
+import { ActionRegistry } from '@engine/systems/ActionRegistry';
+import { PluginManager } from '@engine/core/PluginManager';
+import type { ILogger } from '@engine/interfaces';
+import { PLATFORM_SYSTEMS } from "@engine/core/PlatformSystemDefs";
 
 /**
  * System keys (symbols for type-safe DI)
@@ -39,14 +41,20 @@ export function createCoreSystemDefinitions(): SystemDefinition[] {
         // EventBus - no dependencies
         {
             key: CORE_SYSTEMS.EventBus,
-            factory: () => new EventBus(),
+            factory: (c) => {
+                const logger = c.get<ILogger>(PLATFORM_SYSTEMS.Logger);
+                new EventBus(logger)
+            },
             lazy: false
         },
 
-        // StateManager - no dependencies
         {
             key: CORE_SYSTEMS.StateManager,
-            factory: () => new GameStateManager(),
+            dependencies: [PLATFORM_SYSTEMS.Logger],
+            factory: (c) => {
+                const logger = c.get<ILogger>(PLATFORM_SYSTEMS.Logger);
+                new GameStateManager(logger)
+            },
             lazy: false
         },
 
@@ -60,18 +68,24 @@ export function createCoreSystemDefinitions(): SystemDefinition[] {
             },
             lazy: false
         },
-
-        // ActionRegistry - no dependencies
         {
             key: CORE_SYSTEMS.ActionRegistry,
-            factory: () => new ActionRegistry(),
+            dependencies: [PLATFORM_SYSTEMS.Logger],
+
+            factory: (c) => {
+                const logger = c.get<ILogger>(PLATFORM_SYSTEMS.Logger); // <-- 2. GET the dependency
+                new ActionRegistry(logger)
+            },
             lazy: false
         },
 
-        // PluginManager - no dependencies
         {
             key: CORE_SYSTEMS.PluginManager,
-            factory: () => new PluginManager(),
+            dependencies: [PLATFORM_SYSTEMS.Logger],
+            factory: (c) => {
+                const logger = c.get<ILogger>(PLATFORM_SYSTEMS.Logger); // <-- 2. GET the dependency
+                return new PluginManager(logger); // <-- 3. INJECT the dependency
+            },
             lazy: false
         },
     ];

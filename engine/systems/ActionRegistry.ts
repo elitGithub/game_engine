@@ -2,13 +2,14 @@
  * ActionRegistry - Central registry for all game actions
  */
 import type {ActionContext} from '@engine/types';
-import {Action} from './Action';
+import {Action} from '@engine/systems/Action';
+import {ILogger} from "@engine/interfaces";
 
 export class ActionRegistry<TGame = Record<string, unknown>> {
     private actions: Map<string, Action<TGame>>;
     private actionsByType: Map<string, Action<TGame>[]>;
 
-    constructor() {
+    constructor(private logger: ILogger) {
         this.actions = new Map();
         this.actionsByType = new Map();
     }
@@ -25,7 +26,7 @@ export class ActionRegistry<TGame = Record<string, unknown>> {
         }
         this.actionsByType.get(type)!.push(action);
 
-        console.log(`[ActionRegistry] Registered action: ${action.id} (type: ${type})`);
+        this.logger.log(`[ActionRegistry] Registered action: ${action.id} (type: ${type})`);
     }
 
     /**
@@ -56,12 +57,12 @@ export class ActionRegistry<TGame = Record<string, unknown>> {
     execute(actionId: string, context: ActionContext<TGame>): unknown {
         const action = this.get(actionId);
         if (!action) {
-            console.error(`[ActionRegistry] Action '${actionId}' not found`);
+            this.logger.error(`[ActionRegistry] Action '${actionId}' not found`);
             return null;
         }
 
         if (!action.canExecute(context)) {
-            console.warn(`[ActionRegistry] Action '${actionId}' cannot be executed:`,
+            this.logger.warn(`[ActionRegistry] Action '${actionId}' cannot be executed:`,
                 action.getUnavailableReason(context));
             return null;
         }

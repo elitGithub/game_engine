@@ -6,7 +6,7 @@ import { AssetManager } from '@engine/systems/AssetManager';
 import { MusicPlayer } from '@engine/audio/MusicPlayer';
 import { SfxPool } from '@engine/audio/SfxPool';
 import { VoicePlayer } from '@engine/audio/VoicePlayer';
-import type { ITimerProvider } from '@engine/interfaces';
+import type {ILogger, ITimerProvider} from '@engine/interfaces';
 
 // Mock the new helper classes
 vi.mock('@engine/audio/MusicPlayer');
@@ -26,6 +26,13 @@ const mockGainNode = {
         linearRampToValueAtTime: vi.fn(),
     },
 };
+
+const mockLogger: ILogger = {
+    log: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+};
+
 
 const MockAudioContext = vi.fn(() => ({
     createGain: vi.fn(() => mockGainNode),
@@ -70,7 +77,7 @@ describe('AudioManager (Facade)', () => {
         mockAudioContext = new MockAudioContext();
 
         audioManager = new AudioManager(
-            new (vi.mocked(EventBus))(),
+            new (vi.mocked(EventBus))(mockLogger),
             new (vi.mocked(AssetManager))(vi.fn() as any),
             mockAudioContext,
             mockTimerProvider,

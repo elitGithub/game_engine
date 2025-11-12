@@ -3,15 +3,20 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { InputActionMapper } from '@engine/input/InputActionMapper';
 import { EventBus } from '@engine/core/EventBus';
+import {ILogger} from "@engine/interfaces";
 
 vi.mock('@engine/core/EventBus');
-
+const mockLogger: ILogger = {
+    log: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+};
 describe('InputActionMapper', () => {
     let mapper: InputActionMapper;
     let mockEventBus: EventBus;
 
     beforeEach(() => {
-        mockEventBus = new EventBus();
+        mockEventBus = new EventBus(mockLogger);
         vi.spyOn(mockEventBus, 'emit');
         mapper = new InputActionMapper(mockEventBus);
     });

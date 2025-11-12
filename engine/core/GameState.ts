@@ -14,15 +14,14 @@
  * ```
  */
 import type { StateData, TypedGameContext } from '@engine/types';
-import type { EngineInputEvent } from './InputEvents';
+import type { EngineInputEvent } from '@engine/core/InputEvents';
+import {ILogger} from "@engine/interfaces";
 
 export abstract class GameState<TGame = Record<string, unknown>> {
-    public name: string;
     public isActive: boolean;
     protected context!: TypedGameContext<TGame>;
 
-    constructor(name: string) {
-        this.name = name;
+    constructor(public name: string, private logger: ILogger) {
         this.isActive = false;
     }
 
@@ -42,7 +41,7 @@ export abstract class GameState<TGame = Record<string, unknown>> {
      */
     enter(data: StateData = {}): void {
         this.isActive = true;
-        console.log(`[State] Entering: ${this.name}`);
+        this.logger.log(`[State] Entering: ${this.name}`);
     }
 
     /**
@@ -51,7 +50,7 @@ export abstract class GameState<TGame = Record<string, unknown>> {
      */
     exit(): void {
         this.isActive = false;
-        console.log(`[State] Exiting: ${this.name}`);
+        this.logger.log(`[State] Exiting: ${this.name}`);
     }
 
     /**
@@ -60,7 +59,7 @@ export abstract class GameState<TGame = Record<string, unknown>> {
      * for pausing music, stopping animations, or showing a "Paused" overlay.
      */
     pause(): void {
-        console.log(`[State] Pausing: ${this.name}`);
+        this.logger.log(`[State] Pausing: ${this.name}`);
     }
 
     /**
@@ -69,7 +68,7 @@ export abstract class GameState<TGame = Record<string, unknown>> {
      * for resuming music, restarting animations, or hiding a "Paused" overlay.
      */
     resume(): void {
-        console.log(`[State] Resuming: ${this.name}`);
+        this.logger.log(`[State] Resuming: ${this.name}`);
     }
 
     /**

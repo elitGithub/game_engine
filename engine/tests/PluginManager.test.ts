@@ -3,8 +3,15 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { PluginManager } from '@engine/core/PluginManager';
 import type { IEngineHost, IEnginePlugin, GameContext } from '@engine/types';
-
+import type { ILogger } from '@engine/interfaces'; // <-- ADD THIS LINE
 // Create mock plugins
+
+const mockLogger: ILogger = {
+    log: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+};
+
 const mockPluginA: IEnginePlugin = {
     name: 'pluginA',
     install: vi.fn(),
@@ -38,7 +45,7 @@ describe('PluginManager', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
-        pluginManager = new PluginManager();
+        pluginManager = new PluginManager(mockLogger);
     });
 
     it('should register a plugin', () => {

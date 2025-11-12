@@ -6,11 +6,18 @@ import type {SaveData} from '@engine/systems/SaveManager';
 import {EventBus} from '@engine/core/EventBus';
 import type {ISerializationRegistry, ISerializable, MigrationFunction} from '@engine/types';
 import type {StorageAdapter} from '@engine/core/StorageAdapter';
-
+import type { ILogger } from '@engine/interfaces';
 // Mock dependencies
 vi.mock('@engine/core/EventBus');
 vi.mock('@engine/systems/LocalStorageAdapter'); // Mock the default adapter
 
+// Create mock plugins
+
+const mockLogger: ILogger = {
+    log: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+};
 // Mock a sample serializable system (like a Player class)
 const mockPlayer: ISerializable = {
     serialize: vi.fn(() => ({health: 100})),
@@ -35,7 +42,7 @@ describe('SaveManager', () => {
         vi.clearAllMocks();
         vi.useFakeTimers(); // <-- ADD THIS: Take control of timers
 
-        mockEventBus = new EventBus();
+        mockEventBus = new EventBus(mockLogger);
 
         // Create a fully-functional mock for the ISerializationRegistry
         mockRegistry = {
@@ -58,7 +65,7 @@ describe('SaveManager', () => {
         vi.spyOn(mockEventBus, 'emit');
 
         // Instantiate the SaveManager, injecting the mock adapter
-        saveManager = new SaveManager(mockEventBus, mockRegistry, mockStorageAdapter, mockTimerProvider);
+        saveManager = new SaveManager(mockEventBus, mockRegistry, mockStorageAdapter, mockTimerProvider, mockLogger);
     });
 
     afterEach(() => { // <-- ADD THIS ENTIRE BLOCK
@@ -174,7 +181,7 @@ describe('SaveManager', () => {
             };
 
             // Re-create saveManager to pick up the new migration function
-            saveManager = new SaveManager(mockEventBus, mockRegistry, mockStorageAdapter, mockTimerProvider);
+            saveManager = new SaveManager(mockEventBus, mockRegistry, mockStorageAdapter, mockTimerProvider, mockLogger);
 
             await saveManager.loadGame('slot1');
 

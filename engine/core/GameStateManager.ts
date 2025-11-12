@@ -6,13 +6,14 @@
 import type {StateData, TypedGameContext} from '@engine/types';
 import {GameState} from './GameState';
 import type {EngineInputEvent} from './InputEvents';
+import {ILogger} from "@engine/interfaces";
 
 export class GameStateManager<TGame = Record<string, unknown>> {
     public states: Map<string, GameState<TGame>>;
     private stateStack: GameState<TGame>[];
     private context!: TypedGameContext<TGame>;
 
-    constructor() {
+    constructor(private logger: ILogger) {
         this.states = new Map();
         this.stateStack = [];
     }
@@ -34,12 +35,12 @@ export class GameStateManager<TGame = Record<string, unknown>> {
             state.setContext(this.context);
         }
 
-        console.log(`[StateManager] Registered state: ${name}`);
+        this.logger.log(`[StateManager] Registered state: ${name}`);
     }
 
     pushState(stateName: string, data: StateData = {}): void {
         if (!this.states.has(stateName)) {
-            console.error(`[StateManager] State '${stateName}' not found!`);
+            this.logger.error(`[StateManager] State '${stateName}' not found!`);
             return;
         }
 

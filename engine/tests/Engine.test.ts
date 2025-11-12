@@ -6,12 +6,20 @@ import type { ISerializable } from '@engine/types';
 import { BrowserContainer } from '@engine/core/PlatformContainer';
 import { GameState } from '@engine/core/GameState';
 import { Scene } from '@engine/systems/Scene';
+import type {ILogger} from "@engine/interfaces";
 
 // Mock a sample serializable system
 const mockPlayer: ISerializable = {
     serialize: vi.fn(() => ({ health: 100 })),
     deserialize: vi.fn(),
 };
+
+const mockLogger: ILogger = {
+    log: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+};
+
 
 // Test state for testing
 class TestState extends GameState {
@@ -20,8 +28,8 @@ class TestState extends GameState {
     public exitFn = vi.fn();
     public handleEventFn = vi.fn();
 
-    constructor(name: string) {
-        super(name);
+    constructor(name: string, logger: ILogger) {
+        super(name, logger);
     }
 
     enter(data: any): void {
@@ -164,7 +172,7 @@ describe('Engine', () => {
         const engine = await Engine.create(config);
 
         // Register a state
-        const testState = new TestState('initialState');
+        const testState = new TestState('initialState', mockLogger);
         engine.stateManager.register('initialState', testState);
 
         // Spy on state manager and plugin manager
@@ -188,7 +196,7 @@ describe('Engine', () => {
         const engine = await Engine.create(config);
 
         // Register a state
-        const testState = new TestState('initialState');
+        const testState = new TestState('initialState', mockLogger);
         engine.stateManager.register('initialState', testState);
 
         // Spy on event bus
@@ -205,7 +213,7 @@ describe('Engine', () => {
         const engine = await Engine.create(config);
 
         // Register a state
-        const testState = new TestState('initialState');
+        const testState = new TestState('initialState', mockLogger);
         engine.stateManager.register('initialState', testState);
 
         // Spy on event bus

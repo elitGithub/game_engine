@@ -4,9 +4,14 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { InputComboTracker } from '@engine/input/InputComboTracker';
 import { EventBus } from '@engine/core/EventBus';
 import type { ITimerProvider } from '@engine/interfaces/ITimerProvider';
+import {ILogger} from "@engine/interfaces";
 
 vi.mock('@engine/core/EventBus');
-
+const mockLogger: ILogger = {
+    log: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+};
 describe('InputComboTracker', () => {
     let tracker: InputComboTracker;
     let mockEventBus: EventBus;
@@ -14,7 +19,7 @@ describe('InputComboTracker', () => {
 
     beforeEach(() => {
         vi.useFakeTimers();
-        mockEventBus = new EventBus();
+        mockEventBus = new EventBus(mockLogger);
         vi.spyOn(mockEventBus, 'emit');
 
         // Mock timer provider using vitest fake timers

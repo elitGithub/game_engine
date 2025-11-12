@@ -2,7 +2,12 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { LocalizationManager } from '@engine/systems/LocalizationManager';
-
+import {ILogger} from "@engine/interfaces";
+const mockLogger: ILogger = {
+    log: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+};
 const en = {
     ui: {
         title: 'Hello',
@@ -28,7 +33,7 @@ describe('LocalizationManager', () => {
 
     beforeEach(() => {
         vi.spyOn(console, 'warn').mockImplementation(() => {});
-        loc = new LocalizationManager('en');
+        loc = new LocalizationManager('en', mockLogger);
         loc.loadLanguage('en', en);
     });
 

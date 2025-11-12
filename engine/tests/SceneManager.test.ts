@@ -6,6 +6,7 @@ import { Scene } from '@engine/systems/Scene';
 import { EventBus } from '@engine/core/EventBus';
 import type { GameContext } from '@engine/types';
 import type { ScenesDataMap, SceneChoice } from '@engine/types/EngineEventMap';
+import {ILogger} from "@engine/interfaces";
 
 // Mock dependencies
 vi.mock('@engine/core/EventBus');
@@ -17,6 +18,12 @@ class MockScene extends Scene {
     getChoices = vi.fn((): SceneChoice[] => []);
 }
 
+
+const mockLogger: ILogger = {
+    log: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+};
 describe('SceneManager', () => {
     let sceneManager: SceneManager;
     let mockEventBus: EventBus;
@@ -30,7 +37,7 @@ describe('SceneManager', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
-        mockEventBus = new (vi.mocked(EventBus))();
+        mockEventBus = new (vi.mocked(EventBus))(mockLogger);
         sceneManager = new SceneManager(mockEventBus);
         mockContext = {
             game: {},

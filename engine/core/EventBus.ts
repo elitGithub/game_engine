@@ -1,10 +1,11 @@
 // engine/core/EventBus.ts
 import type {EventMap, ListenerMap} from '@engine/types';
+import {ILogger} from "@engine/interfaces";
 
 export class EventBus {
     private listeners: ListenerMap;
 
-    constructor() {
+    constructor(private logger: ILogger) {
         this.listeners = {};
     }
 
@@ -54,7 +55,7 @@ export class EventBus {
             try {
                 callback(data);
             } catch (error) {
-                console.error(`Error in event handler for '${event}':`, error);
+               this.logger.error(`Error in event handler for '${event}':`, error);
             }
         });
     }

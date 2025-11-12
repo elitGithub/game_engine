@@ -4,6 +4,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { AssetManager, type AssetManifestEntry } from '@engine/systems/AssetManager';
 import { EventBus } from '@engine/core/EventBus';
 import type { IAssetLoader } from '@engine/core/IAssetLoader';
+import type {ILogger} from "@engine/interfaces";
 
 // Mock dependencies
 vi.mock('@engine/core/EventBus');
@@ -12,6 +13,12 @@ vi.mock('@engine/core/EventBus');
 const mockImageLoader: IAssetLoader = {
     type: 'image',
     load: vi.fn(async (url) => `loaded:${url}`),
+};
+
+const mockLogger: ILogger = {
+    log: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
 };
 
 const mockAudioLoader: IAssetLoader = {
@@ -25,7 +32,7 @@ describe('AssetManager', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
-        mockEventBus = new EventBus();
+        mockEventBus = new EventBus(mockLogger);
         vi.spyOn(mockEventBus, 'emit');
 
         assetManager = new AssetManager(mockEventBus);

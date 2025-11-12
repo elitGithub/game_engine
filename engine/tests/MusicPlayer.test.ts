@@ -3,12 +3,16 @@ import {describe, it, expect, beforeEach, vi, afterEach} from 'vitest';
 import {MusicPlayer} from '@engine/audio/MusicPlayer';
 import {EventBus} from '@engine/core/EventBus';
 import {AssetManager} from '@engine/systems/AssetManager';
-import type {ITimerProvider} from '@engine/interfaces';
+import {ILogger, ITimerProvider} from '@engine/interfaces';
 
 // Mock dependencies
 vi.mock('@engine/core/EventBus');
 vi.mock('@engine/systems/AssetManager');
-
+const mockLogger: ILogger = {
+    log: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+};
 // Mock browser Audio API components
 const mockBufferSource = {
     start: vi.fn(),
@@ -56,7 +60,7 @@ describe('MusicPlayer', () => {
         vi.clearAllMocks();
         vi.useFakeTimers();
 
-        mockEventBus = new EventBus();
+        mockEventBus = new EventBus(mockLogger);
         mockAssetManager = new AssetManager(mockEventBus);
         mockAudioContext = new MockAudioContext();
         mockOutputGain = mockAudioContext.createGain(); // This is the 'musicGain'

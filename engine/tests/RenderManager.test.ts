@@ -33,7 +33,7 @@ describe('RenderManager', () => {
     beforeEach(() => {
         vi.clearAllMocks();
 
-        mockEventBus = new EventBus();
+        mockEventBus = new EventBus(mockLogger);
         mockContainer = document.createElement('div');
 
         // Create mock IDomRenderContainer

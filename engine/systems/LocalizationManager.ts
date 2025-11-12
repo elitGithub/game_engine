@@ -1,12 +1,11 @@
 // engine/systems/LocalizationManager.ts
 import type { ISerializable } from '@engine/types';
+import {ILogger} from "@engine/interfaces";
 
 export class LocalizationManager implements ISerializable {
-    private currentLanguage: string = 'en';
     private strings: Map<string, string> = new Map();
 
-    constructor(initialLanguage: string = 'en') {
-        this.currentLanguage = initialLanguage;
+    constructor(private currentLanguage: string = 'en', private logger: ILogger) {
     }
 
     /**
@@ -16,7 +15,7 @@ export class LocalizationManager implements ISerializable {
         this.currentLanguage = lang;
         this.strings.clear();
         this.flattenStrings(data);
-        console.log(`[LocalizationManager] Loaded ${this.strings.size} strings for ${lang}`);
+        this.logger.log(`[LocalizationManager] Loaded ${this.strings.size} strings for ${lang}`);
     }
 
     /**
@@ -38,7 +37,7 @@ export class LocalizationManager implements ISerializable {
         let str = this.strings.get(key);
 
         if (str === undefined) {
-            console.warn(`[LocalizationManager] Missing key: ${key}`);
+            this.logger.warn(`[LocalizationManager] Missing key: ${key}`);
             return key; // Fallback to the key itself
         }
 

@@ -2,7 +2,12 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { GameStateManager } from '@engine/core/GameStateManager';
 import { GameState } from '@engine/core/GameState';
 import type { GameContext } from '@engine/types';
-
+import {ILogger} from "@engine/interfaces";
+const mockLogger: ILogger = {
+    log: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+};
 // Create a mock GameState class
 // We will spy on its methods AFTER instantiation
 class MockState extends GameState {
@@ -16,9 +21,9 @@ describe('GameStateManager', () => {
     let mockContext: GameContext;
 
     beforeEach(() => {
-        gsm = new GameStateManager();
-        stateA = new MockState('stateA');
-        stateB = new MockState('stateB');
+        gsm = new GameStateManager(mockLogger);
+        stateA = new MockState('stateA', mockLogger);
+        stateB = new MockState('stateB', mockLogger);
 
         // Mock the context that will be injected
         mockContext = {

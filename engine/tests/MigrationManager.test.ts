@@ -3,7 +3,12 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { MigrationManager } from '@engine/systems/MigrationManager';
 import type { SaveData } from '@engine/systems/SaveManager';
 import type { MigrationFunction } from '@engine/types';
-
+import {ILogger} from "@engine/interfaces";
+const mockLogger: ILogger = {
+    log: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+};
 /**
  * This test file now owns all migration-related logic,
  * moved from SaveManager.test.ts
@@ -14,7 +19,7 @@ describe('MigrationManager', () => {
 
     beforeEach(() => {
         mockMigrationFunctions = new Map<string, MigrationFunction>();
-        migrationManager = new MigrationManager(mockMigrationFunctions);
+        migrationManager = new MigrationManager(mockMigrationFunctions, mockLogger);
 
         // Spy on console warnings for one test
         vi.spyOn(console, 'warn').mockImplementation(() => {});
