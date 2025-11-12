@@ -27,6 +27,15 @@ export class SaveManager {
         this.migrationManager = new MigrationManager(this.registry.migrationFunctions, this.logger);
     }
 
+    /**
+     * Save the current game state to a storage slot.
+     * Serializes all registered systems, applies migrations if needed.
+     * Emits 'save.completed' on success or 'save.failed' on error.
+     *
+     * @param slotId - Unique identifier for the save slot
+     * @param metadata - Optional additional data to store with the save
+     * @returns Promise that resolves to true if save succeeded, false otherwise
+     */
     async saveGame(slotId: string, metadata?: Record<string, unknown>): Promise<boolean> {
         try {
             const saveData = this.serializeGameState(metadata);
@@ -48,6 +57,14 @@ export class SaveManager {
         }
     }
 
+    /**
+     * Load a saved game from a storage slot.
+     * Deserializes all registered systems, applies migrations if needed.
+     * Emits 'save.loaded' on success or 'save.loadFailed' on error.
+     *
+     * @param slotId - Unique identifier of the save slot to load
+     * @returns Promise that resolves to true if load succeeded, false otherwise
+     */
     async loadGame(slotId: string): Promise<boolean> {
         try {
             const json = await this.adapter.load(slotId);
