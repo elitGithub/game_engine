@@ -1,8 +1,8 @@
 // engine/audio/SfxPool.test.ts
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { SfxPool } from '@engine/audio/SfxPool';
-import { AssetManager } from '@engine/systems/AssetManager';
-import { EventBus } from '@engine/core/EventBus';
+import {describe, it, expect, beforeEach, vi} from 'vitest';
+import {SfxPool} from '@engine/audio/SfxPool';
+import {AssetManager} from '@engine/systems/AssetManager';
+import {EventBus} from '@engine/core/EventBus';
 
 // Mock dependencies
 vi.mock('@engine/core/EventBus');
@@ -66,7 +66,7 @@ describe('SfxPool', () => {
         // Setup mock asset
         vi.mocked(mockAssetManager.get).mockReturnValue(mockAudioBuffer);
 
-        sfxPool = new SfxPool(mockAudioContext, mockAssetManager, mockOutputGain);
+        sfxPool = new SfxPool(mockAudioContext, mockAssetManager, mockOutputGain, 10); // <-- FIX: Provide default size
     });
 
     it('should play a sound', async () => {
@@ -106,22 +106,20 @@ describe('SfxPool', () => {
         // The fact that createBufferSource wasn't called again is the main test.
     });
 
-    // --- NEW TEST ---
+// --- NEW TEST ---
     it('should respect maxSize pool limit', async () => {
-        // Set maxSize to 1 for this test
-        (sfxPool as any).pools.set('sfx_laser', {
-            buffer: mockAudioBuffer,
-            available: [],
-            maxSize: 1
-        });
+        // --- THIS IS THE FIX ---
+        // Create a *new* pool just for this test, using the public constructor API.
+        // No (as any), no private property access.
+        const smallPool = new SfxPool(mockAudioContext, mockAssetManager, mockOutputGain, 1);
 
         // Play sound 1, it's created
-        await sfxPool.play('sfx_laser');
+        await smallPool.play('sfx_laser'); // <-- Use smallPool
         const source1 = lastCreatedMockBufferSource;
         expect(mockAudioContext.createBufferSource).toHaveBeenCalledTimes(1);
 
         // Play sound 2, it's created
-        await sfxPool.play('sfx_laser');
+        await smallPool.play('sfx_laser'); // <-- Use smallPool
         const source2 = lastCreatedMockBufferSource;
         expect(mockAudioContext.createBufferSource).toHaveBeenCalledTimes(2);
 
@@ -132,11 +130,10 @@ describe('SfxPool', () => {
         if (source2.onended) source2.onended();
 
         // Play sound 3, it should reuse source 1
-        await sfxPool.play('sfx_laser');
+        await smallPool.play('sfx_laser'); // <-- Use smallPool
         expect(mockAudioContext.createBufferSource).toHaveBeenCalledTimes(2); // No new source
 
         // The last source *started* should be source1 (reused from pool).
-        // `lastCreatedMockBufferSource` still points to source2, which is wrong.
         expect(source1.start).toHaveBeenCalledTimes(2); // source1 was started twice
         expect(source2.start).toHaveBeenCalledTimes(1); // source2 was started once
     });
@@ -161,7 +158,7 @@ describe('SfxPool', () => {
     it('should dispose and clear pools', async () => {
         await sfxPool.play('sfx_laser');
         const source1 = lastCreatedMockBufferSource;
-        if(source1.onended) source1.onended(); // Return to pool
+        if (source1.onended) source1.onended(); // Return to pool
 
         sfxPool.dispose();
 

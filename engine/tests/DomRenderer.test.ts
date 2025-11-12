@@ -1,16 +1,16 @@
 // engine/tests/DomRenderer.test.ts
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { DomRenderer } from '@engine/rendering/DomRenderer';
-import { AssetManager } from '@engine/systems/AssetManager';
-import type { RenderCommand } from '@engine/types/RenderingTypes';
-import { DomRenderContainer } from '@engine/platform/browser/DomRenderContainer';
+import {describe, it, expect, beforeEach, vi} from 'vitest';
+import {DomRenderer} from '@engine/rendering/DomRenderer';
+import {AssetManager} from '@engine/systems/AssetManager';
+import type {RenderCommand} from '@engine/types/RenderingTypes';
+import {DomRenderContainer} from '@engine/platform/browser/DomRenderContainer';
 
 // Mock dependencies
 vi.mock('@engine/systems/AssetManager');
 
 // Mock browser Image
-const mockImage = { src: 'mock-src.png', width: 100, height: 100 };
+const mockImage = {src: 'mock-src.png', width: 100, height: 100};
 vi.stubGlobal('Image', vi.fn(() => mockImage));
 
 describe('DomRenderer', () => {
@@ -39,16 +39,22 @@ describe('DomRenderer', () => {
         expect(container.style.overflow).toBe('hidden');
     });
 
+// engine/tests/DomRenderer.test.ts
     it('should clear all child elements', () => {
-        const el = document.createElement('div');
-        el.id = 'test_el';
-        container.appendChild(el);
-        (renderer as any).elements.set('test_el', el);
+        // 1. Setup: Use the public .flush() method to add an element
+        const cmd: RenderCommand = {
+            type: 'rect', id: 'test_el', x: 0, y: 0, width: 10, height: 10
+        };
+        renderer.flush([cmd]);
 
+        // 2. Pre-condition: Check that the element was added to the container
         expect(container.children).toHaveLength(1);
+
+        // 3. Action: Call the public .clear() method
         renderer.clear();
+
+        // 4. Result: Check that the element was removed from the container
         expect(container.children).toHaveLength(0);
-        expect((renderer as any).elements.size).toBe(0);
     });
 
     it('should render an image command', () => {
@@ -82,7 +88,7 @@ describe('DomRenderer', () => {
             text: 'Hello',
             x: 10,
             y: 20,
-            style: { color: 'red', font: '16px Arial' }
+            style: {color: 'red', font: '16px Arial'}
         };
 
         renderer.flush([cmd]);
@@ -128,7 +134,7 @@ describe('DomRenderer', () => {
             y: 20,
             width: 100,
             height: 50,
-          data: { 'action': 'go-north', 'targetId': 123 }
+            data: {'action': 'go-north', 'targetId': 123}
         };
 
         renderer.flush([cmd]);
@@ -141,8 +147,8 @@ describe('DomRenderer', () => {
     });
 
     it('should render commands in zIndex order', () => {
-        const cmd1: RenderCommand = { type: 'rect', id: 'r1', x: 0, y: 0, width: 10, height: 10, zIndex: 10 };
-        const cmd2: RenderCommand = { type: 'rect', id: 'r2', x: 0, y: 0, width: 10, height: 10, zIndex: 5 };
+        const cmd1: RenderCommand = {type: 'rect', id: 'r1', x: 0, y: 0, width: 10, height: 10, zIndex: 10};
+        const cmd2: RenderCommand = {type: 'rect', id: 'r2', x: 0, y: 0, width: 10, height: 10, zIndex: 5};
 
         renderer.flush([cmd1, cmd2]);
 

@@ -59,7 +59,7 @@ describe('AudioManager (Facade)', () => {
 
         // Create mock instances of the helpers
         mockMusicPlayer = new (vi.mocked(MusicPlayer))(vi.fn() as any, vi.fn() as any, vi.fn() as any, vi.fn() as any, vi.fn() as any);
-        mockSfxPool = new (vi.mocked(SfxPool))(vi.fn() as any, vi.fn() as any, vi.fn() as any);
+        mockSfxPool = new (vi.mocked(SfxPool))(vi.fn() as any, vi.fn() as any, vi.fn() as any, 10);
         mockVoicePlayer = new (vi.mocked(VoicePlayer))(vi.fn() as any, vi.fn() as any, vi.fn() as any, vi.fn() as any);
 
         // Re-mock the implementations to return our new instances
@@ -73,7 +73,8 @@ describe('AudioManager (Facade)', () => {
             new (vi.mocked(EventBus))(),
             new (vi.mocked(AssetManager))(vi.fn() as any),
             mockAudioContext,
-            mockTimerProvider
+            mockTimerProvider,
+            { sfxPoolSize: 10 }
         );
 
         // Spy on the helper methods we want to test delegation to

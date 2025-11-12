@@ -1,9 +1,9 @@
 // engine/audio/MusicPlayer.test.ts
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { MusicPlayer } from '@engine/audio/MusicPlayer';
-import { EventBus } from '@engine/core/EventBus';
-import { AssetManager } from '@engine/systems/AssetManager';
-import type { ITimerProvider } from '@engine/interfaces';
+import {describe, it, expect, beforeEach, vi, afterEach} from 'vitest';
+import {MusicPlayer} from '@engine/audio/MusicPlayer';
+import {EventBus} from '@engine/core/EventBus';
+import {AssetManager} from '@engine/systems/AssetManager';
+import type {ITimerProvider} from '@engine/interfaces';
 
 // Mock dependencies
 vi.mock('@engine/core/EventBus');
@@ -95,7 +95,7 @@ describe('MusicPlayer', () => {
         expect(mockBufferSource.buffer).toBe(mockAudioBuffer);
         expect(mockBufferSource.loop).toBe(true);
         expect(mockBufferSource.start).toHaveBeenCalledWith(0);
-        expect(mockEventBus.emit).toHaveBeenCalledWith('music.started', { trackId: 'track1' });
+        expect(mockEventBus.emit).toHaveBeenCalledWith('music.started', {trackId: 'track1'});
     });
 
     it('should stop existing music when playing a new track', async () => {
@@ -106,7 +106,7 @@ describe('MusicPlayer', () => {
 
         expect(firstSourceStop).toHaveBeenCalledOnce();
         expect(mockBufferSource.start).toHaveBeenCalledWith(0);
-        expect(mockEventBus.emit).toHaveBeenCalledWith('music.started', { trackId: 'track2' });
+        expect(mockEventBus.emit).toHaveBeenCalledWith('music.started', {trackId: 'track2'});
     });
 
     it('should pause and resume music', async () => {
@@ -143,7 +143,7 @@ describe('MusicPlayer', () => {
     // --- NEW TEST ---
     it('should crossfade music', async () => {
         // Mock a different buffer for the new track
-        const mockAudioBuffer2 = { duration: 10.0 } as AudioBuffer;
+        const mockAudioBuffer2 = {duration: 10.0} as AudioBuffer;
         vi.mocked(mockAssetManager.get).mockReturnValueOnce(mockAudioBuffer).mockReturnValueOnce(mockAudioBuffer2);
 
         await musicPlayer.playMusic('track1');
@@ -157,26 +157,31 @@ describe('MusicPlayer', () => {
 
         expect(stopSpy).toHaveBeenCalledWith(1.5);
         expect(playSpy).toHaveBeenCalledWith('track2', true, 1.5);
-        expect(mockEventBus.emit).toHaveBeenCalledWith('music.crossfaded', { newTrackId: 'track2', duration: 1.5 });
+        expect(mockEventBus.emit).toHaveBeenCalledWith('music.crossfaded', {newTrackId: 'track2', duration: 1.5});
     });
 
-    // --- NEW TEST ---
+// engine/tests/MusicPlayer.test.ts
     it('should get music position', async () => {
+        // 1. Set base time and play music
+        mockAudioContext.currentTime = 10.0;
         await musicPlayer.playMusic('track1');
 
-        // State: playing
-        mockAudioContext.currentTime = 5.0;
-        // Manually set internal state for test
-        (musicPlayer as any).currentMusic.startTime = 0.0;
+        // 2. State: playing
+        // Advance time by 5 seconds
+        mockAudioContext.currentTime = 15.0;
 
+        // The public API getMusicPosition() should now return ~5s
         expect(musicPlayer.getMusicPosition()).toBeCloseTo(5.0);
 
-        // State: paused
-        musicPlayer.pauseMusic(); // This sets pausedAt
-        mockAudioContext.currentTime = 8.0; // Time moves on, but position should be stored
+        // 3. State: paused
+        musicPlayer.pauseMusic(); // This will internally store the 5.0s position
+
+        // 4. Advance time again (while paused)
+        mockAudioContext.currentTime = 18.0;
 
         expect(musicPlayer.getMusicState()).toBe('paused');
-        expect(musicPlayer.getMusicPosition()).toBeCloseTo(5.0); // Stays at paused position
+        // Position should remain what it was at pause time
+        expect(musicPlayer.getMusicPosition()).toBeCloseTo(5.0);
     });
 
     // --- NEW TEST ---

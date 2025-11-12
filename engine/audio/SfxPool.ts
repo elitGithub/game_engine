@@ -17,7 +17,8 @@ export class SfxPool {
     constructor(
         private audioContext: AudioContext,
         private assetManager: AssetManager,
-        private outputNode: GainNode // Connects to the main 'sfxGain'
+        private outputNode: GainNode,
+        private defaultMaxSize: number
     ) {}
 
     async play(soundId: string, volume: number = 1.0): Promise<void> {
@@ -54,7 +55,7 @@ export class SfxPool {
             pool = {
                 buffer: buffer,
                 available: [],
-                maxSize: 5
+               maxSize: this.defaultMaxSize
             };
             this.pools.set(soundId, pool);
         }

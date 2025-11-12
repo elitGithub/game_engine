@@ -29,7 +29,6 @@ describe('TypewriterEffect', () => {
     it('should start with blank text', () => {
         expect(mockTarget.getProperty).toHaveBeenCalledWith('textContent');
         expect(mockTarget.setProperty).toHaveBeenCalledWith('textContent', '');
-        expect((effect as any).fullText).toBe('Hello!');
     });
 
     it('should add one character per update tick', () => {

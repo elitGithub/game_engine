@@ -51,6 +51,7 @@ export interface PlatformSystemConfig {
         volume?: number;
         musicVolume?: number;
         sfxVolume?: number;
+        sfxPoolSize?: number;
     };
     effects?: boolean;
     renderer?: { type: 'canvas' | 'dom' | 'svelte' };
@@ -142,20 +143,20 @@ export function createPlatformSystemDefinitions(
                 }
 
                 const timer = platform.getTimerProvider();
-                const audioManager = new AudioManager(eventBus, assetManager, audioContext, timer);
+                const audioConfig = (typeof config.audio === 'object' ? config.audio : {}) ?? {};
+                const sfxPoolSize = audioConfig.sfxPoolSize ?? 10;
+                const audioManager = new AudioManager(eventBus, assetManager, audioContext, timer, {sfxPoolSize});
 
                 // Apply audio config
-                if (typeof config.audio === 'object') {
-                    if (config.audio.volume !== undefined) {
-                        audioManager.setMasterVolume(config.audio.volume);
+                    if (audioConfig.volume !== undefined) { // <-- Use audioConfig
+                        audioManager.setMasterVolume(audioConfig.volume);
                     }
-                    if (config.audio.musicVolume !== undefined) {
-                        audioManager.setMusicVolume(config.audio.musicVolume);
+                    if (audioConfig.musicVolume !== undefined) { // <-- Use audioConfig
+                        audioManager.setMusicVolume(audioConfig.musicVolume);
                     }
-                    if (config.audio.sfxVolume !== undefined) {
-                        audioManager.setSFXVolume(config.audio.sfxVolume);
+                    if (audioConfig.sfxVolume !== undefined) { // <-- Use audioConfig
+                        audioManager.setSFXVolume(audioConfig.sfxVolume);
                     }
-                }
 
                 return audioManager;
             },

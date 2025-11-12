@@ -59,6 +59,10 @@ export {
     CompositeInputAdapter
 } from '@engine/interfaces/IInputAdapter';
 
+export interface AudioManagerOptions {
+    sfxPoolSize: number;
+}
+
 
 export type { ITimerProvider } from '@engine/interfaces/ITimerProvider';
 
