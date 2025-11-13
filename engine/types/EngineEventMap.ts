@@ -84,6 +84,7 @@ export interface EngineEventMap {
     'music.stopped': Record<string, never>;
     'music.crossfaded': { newTrackId: string; duration: number };
     'voice.started': { voiceId: string };
+    'voice.ended': { voiceId: string };
     'audio.allStopped': Record<string, never>;
 
     // InputManager
