@@ -91,7 +91,7 @@ describe('CollectionTracker', () => {
     });
 
     it('should deserialize its state', () => {
-        const data = [['potion', 5], ['arrow', 50]];
+        const data: [string, number][] = [['potion', 5], ['arrow', 50]];
         tracker.deserialize(data);
         expect(tracker.getQuantity('potion')).toBe(5);
         expect(tracker.getQuantity('arrow')).toBe(50);

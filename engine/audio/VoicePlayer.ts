@@ -33,9 +33,14 @@ export class VoicePlayer {
             source.connect(gainNode);
             gainNode.connect(this.outputNode);
 
-            // Note: Without onended callback support in IAudioSource interface,
-            // we can't auto-remove from activeVoices. Sources will accumulate.
-            // Consider implementing a cleanup mechanism or time-based removal.
+            // Auto-remove from activeVoices when playback completes naturally
+            source.onEnded(() => {
+                this.activeVoices.delete(source);
+                source.disconnect();
+                gainNode.disconnect();
+                this.eventBus.emit('voice.ended', { voiceId });
+            });
+
             this.activeVoices.add(source);
             source.start(0);
 

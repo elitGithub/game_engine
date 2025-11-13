@@ -201,6 +201,17 @@ export interface IAudioSource {
      * Check if source is currently playing
      */
     isPlaying?(): boolean;
+
+    /**
+     * Register callback to be invoked when playback ends naturally
+     * (not when stopped manually, only when buffer finishes playing)
+     *
+     * Critical for resource pooling - allows SfxPool and VoicePlayer to
+     * reclaim audio chains when playback completes naturally.
+     *
+     * @param callback - Function to call when playback ends
+     */
+    onEnded(callback: () => void): void;
 }
 
 /**

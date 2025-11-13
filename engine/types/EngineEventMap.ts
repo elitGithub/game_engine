@@ -15,7 +15,7 @@ import type {
     TouchStartEvent,
 } from '@engine/core/InputEvents';
 
-export type InputMode = 'gameplay' | 'menu' | 'cutscene' | 'disabled' | string;
+export type InputMode = 'gameplay' | 'menu' | 'cutscene' | 'disabled';
 
 // --- GameData definitions (moved from index.ts) ---
 export interface SceneData {
@@ -62,6 +62,10 @@ export interface EngineEventMap {
     'engine.criticalError': { message: string; error: unknown };
     'game.data.loaded': GameData;
 
+    // RenderManager
+    'render.frame.start': Record<string, never>;
+    'render.frame.end': { commandCount: number };
+
     // SceneManager
     'scene.changed': {
         sceneId: string;
@@ -84,6 +88,7 @@ export interface EngineEventMap {
     'music.stopped': Record<string, never>;
     'music.crossfaded': { newTrackId: string; duration: number };
     'voice.started': { voiceId: string };
+    'voice.ended': { voiceId: string };
     'audio.allStopped': Record<string, never>;
 
     // InputManager

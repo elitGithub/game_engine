@@ -280,10 +280,10 @@ export class Engine implements ISerializationRegistry {
     }
 
     get save(): SaveManager {
-        if (!this.container.has(Symbol('SaveManager'))) {
+        if (!this.container.has(CORE_SYSTEMS.SaveManager)) {
             throw new Error('[Engine] SaveManager not initialized. Call initializeSystems() or enable save in config.');
         }
-        return this.container.get<SaveManager>(Symbol('SaveManager'));
+        return this.container.get<SaveManager>(CORE_SYSTEMS.SaveManager);
     }
 
     get stateManager(): GameStateManager {
@@ -473,7 +473,7 @@ export class Engine implements ISerializationRegistry {
         this.eventBus.emit('engine.unpaused', {});
     }
 
-    log(...args: any[]): void {
+    log(...args: unknown[]): void {
         if (this.config.debug) {
             this.logger.log('[Engine]', ...args);
         }

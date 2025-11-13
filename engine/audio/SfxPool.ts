@@ -49,8 +49,19 @@ export class SfxPool {
             const pool = this.ensurePool(soundId, buffer);
             pool.active.add(chain);
 
-            // Note: We can't set onended callback with IAudioSource interface
-            // We'll need to clean up chains periodically or accept they stay in active set
+            // Return chain to pool when playback completes naturally
+            chain.source.onEnded(() => {
+                pool.active.delete(chain);
+
+                // Only pool if under max size
+                if (pool.available.length < pool.maxSize) {
+                    pool.available.push(chain);
+                } else {
+                    // Over capacity - disconnect and discard
+                    chain.gain.disconnect();
+                }
+            });
+
             chain.source.start(0);
 
         } catch (error) {
