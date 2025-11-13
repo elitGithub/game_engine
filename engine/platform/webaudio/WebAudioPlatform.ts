@@ -13,7 +13,7 @@ import type {
     AudioFormat
 } from '@engine/interfaces/IAudioPlatform';
 import { WebAudioContext } from './WebAudioContext';
-import {ILogger} from "@engine/interfaces";
+import type {ILogger} from "@engine/interfaces";
 
 /**
  * Extended Window interface for webkit vendor prefix support

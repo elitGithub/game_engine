@@ -15,7 +15,7 @@
  */
 import type { StateData, TypedGameContext } from '@engine/types';
 import type { EngineInputEvent } from '@engine/core/InputEvents';
-import {ILogger} from "@engine/interfaces";
+import type {ILogger} from "@engine/interfaces";
 
 export abstract class GameState<TGame = Record<string, unknown>> {
     public isActive: boolean;

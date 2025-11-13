@@ -3,7 +3,7 @@
  */
 import type {ActionContext} from '@engine/types';
 import {Action} from '@engine/systems/Action';
-import {ILogger} from "@engine/interfaces";
+import type {ILogger} from "@engine/interfaces";
 
 export class ActionRegistry<TGame = Record<string, unknown>> {
     private actions: Map<string, Action<TGame>>;

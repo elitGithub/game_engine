@@ -15,15 +15,44 @@ interface SceneLayer {
 }
 
 /**
- * SceneRenderer - "Smart Helper" for World-Space rendering.
+ * SceneRenderer - Platform-agnostic world-space scene rendering command factory.
  *
- * This class provides methods to generate RenderCommands for
- * all layered visual scene elements.
+ * Generates render commands for layered visual scene elements including sprites,
+ * rectangles, and text. Does not manipulate DOM or perform any platform-specific
+ * rendering operations.
+ *
+ * Supports both explicit layer-based scenes and simple background-based scenes
+ * with automatic fallback behavior.
+ *
+ * @example
+ * ```typescript
+ * const sceneRenderer = new SceneRenderer();
+ * const scene: Scene = {
+ *   sceneData: {
+ *     layers: [
+ *       { type: 'sprite', assetId: 'bg_forest', x: 0, y: 0, zIndex: 0 },
+ *       { type: 'sprite', assetId: 'char_hero', x: 400, y: 300, width: 100, height: 200, zIndex: 1 }
+ *     ]
+ *   }
+ * };
+ * const commands = sceneRenderer.buildSceneCommands(scene);
+ * renderer.execute(commands);
+ * ```
  */
 export class SceneRenderer {
 
     /**
-     * Generates commands for rendering the entire scene.
+     * Generates all render commands needed to display a complete scene.
+     *
+     * Processes scene data and creates commands for all visual layers including
+     * sprites, rectangles, and text elements. If the scene defines explicit layers,
+     * each layer is processed in order. If no layers are defined, falls back to
+     * rendering a simple background sprite if available.
+     *
+     * Validates layer data and logs warnings for incomplete layer definitions.
+     *
+     * @param scene - Scene object containing layer data or background asset information
+     * @returns Array of render commands for all scene visual elements
      */
     buildSceneCommands(scene: Scene): RenderCommand[] {
         const commands: RenderCommand[] = [];

@@ -1,7 +1,7 @@
 // engine/systems/AssetManager.ts
 import type { IAssetLoader, AssetType } from '@engine/core/IAssetLoader';
 import type { EventBus } from '@engine/core/EventBus';
-import {ILogger} from "@engine/interfaces";
+import type {ILogger} from "@engine/interfaces";
 
 export interface AssetManifestEntry {
     id: string;

@@ -1,6 +1,6 @@
 // engine/types/EffectTypes.ts
 import type { TypedGameContext } from './index';
-import {ILogger} from "@engine/interfaces/ILogger";
+import type {ILogger} from "@engine/interfaces/ILogger";
 
 /**
  * A generic, renderer-agnostic wrapper for any object

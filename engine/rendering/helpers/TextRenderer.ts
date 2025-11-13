@@ -6,10 +6,27 @@ import { ChoiceLayoutHelper } from './ChoiceLayoutHelper';
 import type { PositionedChoice, PositionedDialogue } from '@engine/types/RenderingTypes';
 
 /**
- * TextRenderer - "Smart Helper" / "Central Entry Point"
+ * TextRenderer - Central coordinator for text-related rendering commands.
  *
- * This class is the single entry point for text-related rendering logic.
- * It owns and delegates work to specialized helpers.
+ * Serves as the single entry point for all text-related rendering operations,
+ * delegating work to specialized helper classes. Does not manipulate DOM or
+ * perform any platform-specific rendering operations.
+ *
+ * Owns and coordinates DialogueLayoutHelper and ChoiceLayoutHelper to provide
+ * a unified interface for text rendering command generation.
+ *
+ * @example
+ * ```typescript
+ * const textRenderer = new TextRenderer();
+ *
+ * // Generate dialogue commands
+ * const dialogueCommands = textRenderer.buildDialogueCommands(positionedDialogue);
+ *
+ * // Generate choice commands
+ * const choiceCommands = textRenderer.buildChoiceCommands(positionedChoices);
+ *
+ * renderer.execute([...dialogueCommands, ...choiceCommands]);
+ * ```
  */
 export class TextRenderer {
 
@@ -22,16 +39,26 @@ export class TextRenderer {
     }
 
     /**
-     * Generates commands for a dialogue line by delegating
-     * to the DialogueLayoutHelper.
+     * Generates render commands for a dialogue line.
+     *
+     * Delegates to DialogueLayoutHelper to create commands for dialogue background,
+     * speaker name, dialogue text, and optional character portrait.
+     *
+     * @param dialogue - Pre-positioned dialogue data containing all geometry and styling information
+     * @returns Array of render commands for all dialogue visual elements
      */
     public buildDialogueCommands(dialogue: PositionedDialogue): RenderCommand[] {
         return this.dialogueHelper.buildCommands(dialogue);
     }
 
     /**
-     * Generates commands for a list of choices by delegating
-     * to the ChoiceLayoutHelper.
+     * Generates render commands for a list of player choices.
+     *
+     * Delegates to ChoiceLayoutHelper to create commands for choice text labels
+     * and interactive hotspot areas.
+     *
+     * @param choices - Array of pre-positioned choice data containing geometry and interaction information
+     * @returns Array of render commands for all choice visual elements and hotspots
      */
     public buildChoiceCommands(choices: PositionedChoice[]): RenderCommand[] {
         return this.choiceHelper.buildCommands(choices);

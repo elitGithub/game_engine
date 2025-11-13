@@ -1,7 +1,7 @@
 import type { IRenderer, RenderCommand, TextStyleData } from '@engine/types/RenderingTypes';
 import type { AssetManager } from '@engine/systems/AssetManager';
 import { isDomRenderContainer } from '@engine/interfaces';
-import { DomRenderContainer } from "@engine/platform/browser/DomRenderContainer";
+import type { DomRenderContainer } from "@engine/platform/browser/DomRenderContainer";
 
 interface CachedElement {
     el: HTMLElement;

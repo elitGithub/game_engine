@@ -2,7 +2,7 @@
 import type { MigrationFunction } from '@engine/types';
 import type { SaveData } from './SaveManager';
 import semver from 'semver';
-import {ILogger} from "@engine/interfaces";
+import type {ILogger} from "@engine/interfaces";
 
 /**
  * Handles all logic for migrating save data between versions.

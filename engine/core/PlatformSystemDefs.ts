@@ -26,7 +26,7 @@ import {CORE_SYSTEMS} from "@engine/core/CoreSystemDefs";
 import {ImageLoader} from "@engine/platform/browser/asset_loaders/ImageLoader";
 import {JsonLoader} from "@engine/platform/browser/asset_loaders/JsonLoader";
 import {AudioLoader} from "@engine/platform/browser/asset_loaders/AudioLoader";
-import {ILogger} from "@engine/interfaces/ILogger";
+import type {ILogger} from "@engine/interfaces/ILogger";
 
 
 /**

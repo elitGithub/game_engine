@@ -9,16 +9,16 @@ import {EffectManager} from '@engine/systems/EffectManager';
 import {InputManager} from '@engine/systems/InputManager';
 import type {AssetManager, AssetManifestEntry} from './systems/AssetManager';
 import type {StorageAdapter} from '@engine/core/StorageAdapter';
-import {GameData} from "@engine/types/EngineEventMap";
-import {RenderManager} from "@engine/core/RenderManager";
-import {PluginManager} from './core/PluginManager';
+import type {GameData} from "@engine/types/EngineEventMap";
+import type {RenderManager} from "@engine/core/RenderManager";
+import type {PluginManager} from './core/PluginManager';
 import {SystemContainer} from './core/SystemContainer';
 import {createCoreSystemDefinitions, CORE_SYSTEMS} from './core/CoreSystemDefs';
 import {createPlatformSystemDefinitions, PLATFORM_SYSTEMS, type PlatformSystemConfig} from './core/PlatformSystemDefs';
 import type {IPlatformAdapter,} from '@engine/interfaces';
-import {Scene} from "@engine/systems/Scene";
+import type {Scene} from "@engine/systems/Scene";
 import { ConsoleLogger } from '@engine/platform/ConsoleLogger';
-import {ILogger} from "@engine/interfaces/ILogger";
+import type {ILogger} from "@engine/interfaces/ILogger";
 
 /**
  * System configuration (kept for backward compatibility)

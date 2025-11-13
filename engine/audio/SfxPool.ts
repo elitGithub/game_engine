@@ -1,7 +1,7 @@
 // engine/audio/SfxPool.ts
 import type { AssetManager } from '@engine/systems/AssetManager';
 import type { IAudioContext, IAudioBuffer, IAudioSource, IAudioGain } from '@engine/interfaces/IAudioPlatform';
-import {ILogger} from "@engine/interfaces";
+import type {ILogger} from "@engine/interfaces";
 import { AudioUtils } from './AudioUtils';
 
 /**
