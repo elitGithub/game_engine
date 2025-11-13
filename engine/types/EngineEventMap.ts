@@ -62,6 +62,10 @@ export interface EngineEventMap {
     'engine.criticalError': { message: string; error: unknown };
     'game.data.loaded': GameData;
 
+    // RenderManager
+    'render.frame.start': Record<string, never>;
+    'render.frame.end': { commandCount: number };
+
     // SceneManager
     'scene.changed': {
         sceneId: string;

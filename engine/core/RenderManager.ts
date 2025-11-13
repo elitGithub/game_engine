@@ -15,17 +15,22 @@ import type { ILogger, IRenderContainer } from '@engine/interfaces';
  */
 export class RenderManager {
     private renderer: IRenderer;
+    private readonly eventBus: EventBus;
+    private readonly logger: ILogger;
     private sceneQueue: RenderCommand[] = [];
     private uiQueue: RenderCommand[] = [];
 
     constructor(
-        _config: { type: string },
-        _eventBus: EventBus,
+        config: { type: string },
+        eventBus: EventBus,
         container: IRenderContainer,
         renderer: IRenderer,
-        _logger: ILogger
+        logger: ILogger
     ) {
         this.renderer = renderer;
+        this.eventBus = eventBus;
+        this.logger = logger;
+        this.logger.log(`[RenderManager] Initializing ${config.type} renderer`);
         this.renderer.init(container);
     }
 
@@ -48,6 +53,8 @@ export class RenderManager {
     }
 
     flush(): void {
+        this.eventBus.emit('render.frame.start', {});
+
         // Check if either queue has a 'clear' command
         const needsClear = this.sceneQueue.some(cmd => cmd.type === 'clear') ||
                            this.uiQueue.some(cmd => cmd.type === 'clear');
@@ -67,6 +74,9 @@ export class RenderManager {
         if (sortedUICommands.length > 0) {
             this.renderer.flush(sortedUICommands);
         }
+
+        const totalCommands = sortedSceneCommands.length + sortedUICommands.length;
+        this.eventBus.emit('render.frame.end', { commandCount: totalCommands });
 
         // 3. Clear both queues
         this.sceneQueue = [];

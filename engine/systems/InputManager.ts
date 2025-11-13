@@ -26,6 +26,7 @@ export class InputManager {
 
     private readonly stateManager: GameStateManager;
     private readonly eventBus: EventBus;
+    private readonly logger: ILogger;
 
     private readonly state: InputState;
     private enabled: boolean;
@@ -41,10 +42,11 @@ export class InputManager {
         stateManager: GameStateManager,
         eventBus: EventBus,
         timer: ITimerProvider,
-        _logger: ILogger
+        logger: ILogger
     ) {
         this.stateManager = stateManager;
         this.eventBus = eventBus;
+        this.logger = logger;
 
         this.state = {
             keysDown: new Set(),
@@ -60,6 +62,8 @@ export class InputManager {
         // Instantiate helper classes
         this.actionMapper = new InputActionMapper(eventBus);
         this.comboTracker = new InputComboTracker(eventBus, timer, InputManager.DEFAULT_COMBO_BUFFER_SIZE);
+
+        this.logger.log('[InputManager] Initialized with action mapper and combo tracker');
     }
 
     // ============================================================================
