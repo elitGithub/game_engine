@@ -473,7 +473,7 @@ export class Engine implements ISerializationRegistry {
         this.eventBus.emit('engine.unpaused', {});
     }
 
-    log(...args: any[]): void {
+    log(...args: unknown[]): void {
         if (this.config.debug) {
             this.logger.log('[Engine]', ...args);
         }
