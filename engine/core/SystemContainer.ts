@@ -7,7 +7,7 @@
  * - Extensible system registration
  * - Lifecycle management (initialize, dispose)
  */
-import {ILogger} from "@engine/interfaces/ILogger";
+import type {ILogger} from "@engine/interfaces/ILogger";
 
 export type SystemKey = symbol | string;
 

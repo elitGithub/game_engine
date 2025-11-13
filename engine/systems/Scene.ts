@@ -5,7 +5,7 @@
  * When implementing game-specific scenes, cast the context to TypedGameContext<YourGameState>.
  */
 import type {GameContext} from '@engine/types';
-import {SceneChoice, SceneData} from "@engine/types/EngineEventMap";
+import type {SceneChoice, SceneData} from "@engine/types/EngineEventMap";
 
 export class Scene {
 

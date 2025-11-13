@@ -1,5 +1,5 @@
 import type {RenderCommand, IRenderer} from '../types/RenderingTypes';
-import {EventBus} from '../core/EventBus';
+import type {EventBus} from '../core/EventBus';
 import type { ILogger, IRenderContainer } from '@engine/interfaces';
 
 /**

@@ -4,16 +4,40 @@ import type {PositionedDialogue, RenderCommand, } from '../../types/RenderingTyp
 
 
 /**
- * DialogueLayoutHelper - "Command Factory"
+ * DialogueLayoutHelper - Platform-agnostic dialogue rendering command factory.
  *
- * Generates RenderCommand arrays for dialogue.
- * DECOUPLED: Accepts pre-positioned data.
+ * Pure command factory that accepts pre-positioned dialogue data and generates
+ * platform-agnostic render commands. Does not manipulate DOM or perform any
+ * platform-specific rendering operations.
+ *
+ * Generates commands for dialogue UI elements including background, speaker name,
+ * dialogue text, and optional character portraits with proper z-index layering.
+ *
+ * @example
+ * ```typescript
+ * const helper = new DialogueLayoutHelper();
+ * const positionedDialogue: PositionedDialogue = {
+ *   id: 'dialogue_01',
+ *   background: { x: 50, y: 400, width: 700, height: 150, fill: '#000000cc' },
+ *   speaker: { x: 60, y: 415, text: 'Hero', style: { font: '20px Arial', color: '#ffffff' } },
+ *   text: { x: 60, y: 450, text: 'Hello, world!', style: { font: '16px Arial', color: '#ffffff' } },
+ *   zIndex: 1000
+ * };
+ * const commands = helper.buildCommands(positionedDialogue);
+ * renderer.execute(commands);
+ * ```
  */
 export class DialogueLayoutHelper {
 
     /**
-     * Generates all commands needed to render a dialogue line
-     * based on the pre-calculated geometry in the PositionedDialogue object.
+     * Generates all render commands needed to display a dialogue line.
+     *
+     * Creates commands for background rectangle, speaker name text, dialogue text,
+     * and optional character portrait. All geometry and styling is provided via
+     * the pre-positioned dialogue data object.
+     *
+     * @param dialogue - Pre-positioned dialogue data containing all geometry and styling information
+     * @returns Array of render commands for background, speaker, text, and optional portrait
      */
     buildCommands(dialogue: PositionedDialogue): RenderCommand[] {
         const commands: RenderCommand[] = [];

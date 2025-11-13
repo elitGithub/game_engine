@@ -1,6 +1,6 @@
 // engine/core/EventBus.ts
 import type {EventMap, ListenerMap} from '@engine/types';
-import {ILogger} from "@engine/interfaces";
+import type {ILogger} from "@engine/interfaces";
 
 export class EventBus {
     private listeners: ListenerMap;

@@ -3,7 +3,7 @@ import type { StorageAdapter, SaveSlotMetadata } from '../core/StorageAdapter';
 import type { EventBus } from '../core/EventBus';
 import type { ISerializationRegistry } from '../types';
 import { MigrationManager } from "./MigrationManager";
-import { ILogger, ITimerProvider } from "@engine/interfaces";
+import type { ILogger, ITimerProvider } from "@engine/interfaces";
 
 export interface SaveData {
     version: string;

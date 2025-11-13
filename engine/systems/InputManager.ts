@@ -5,10 +5,10 @@ import type {
     EngineInputEvent,
     InputBinding,
 } from '@engine/core/InputEvents';
-import { InputMode } from "@engine/types/EngineEventMap";
+import type { InputMode } from "@engine/types/EngineEventMap";
 import {InputActionMapper} from "@engine/input/InputActionMapper";
 import {InputComboTracker} from "@engine/input/InputComboTracker";
-import {InputState} from "@engine/input/InputState";
+import type {InputState} from "@engine/input/InputState";
 import type { ITimerProvider, ILogger } from '@engine/interfaces';
 
 

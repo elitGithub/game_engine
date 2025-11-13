@@ -1,6 +1,6 @@
 // engine/systems/LocalizationManager.ts
 import type { ISerializable } from '@engine/types';
-import {ILogger} from "@engine/interfaces";
+import type {ILogger} from "@engine/interfaces";
 
 /**
  * Represents the structure of localization data.

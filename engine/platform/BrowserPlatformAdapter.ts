@@ -26,7 +26,7 @@ import {CompositeInputAdapter} from '@engine/interfaces';
 import {CanvasRenderContainer} from "@engine/platform/browser/CanvasRenderContainer";
 import {DomRenderContainer} from "@engine/platform/browser/DomRenderContainer";
 import { ConsoleLogger } from './ConsoleLogger';
-import {ILogger} from "@engine/interfaces/ILogger";
+import type {ILogger} from "@engine/interfaces/ILogger";
 
 /**
  * Extended Window interface for webkit vendor prefix support

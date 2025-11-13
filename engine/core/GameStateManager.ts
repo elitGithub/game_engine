@@ -4,9 +4,9 @@
  * Now injects context into GameState instances for type-safe access
  */
 import type {StateData, TypedGameContext} from '@engine/types';
-import {GameState} from './GameState';
+import type {GameState} from './GameState';
 import type {EngineInputEvent} from './InputEvents';
-import {ILogger} from "@engine/interfaces";
+import type {ILogger} from "@engine/interfaces";
 
 export class GameStateManager<TGame = Record<string, unknown>> {
     public states: Map<string, GameState<TGame>>;

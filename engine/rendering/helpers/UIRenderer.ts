@@ -11,9 +11,31 @@ import type {
 import { TextRenderer } from './TextRenderer';
 
 /**
- * UIRenderer - Screen-space rendering helper
+ * UIRenderer - Platform-agnostic screen-space UI rendering command factory.
  *
- * DECOUPLED: Pure translation layer. Converts pre-positioned game data into render commands.
+ * Pure translation layer that converts pre-positioned game UI data into
+ * platform-agnostic render commands. Does not manipulate DOM or perform
+ * any platform-specific rendering operations.
+ *
+ * Provides unified interface for generating render commands for all UI elements
+ * including dialogue, choices, bars, text displays, and menus. Delegates text
+ * rendering to TextRenderer for specialized handling.
+ *
+ * @example
+ * ```typescript
+ * const uiRenderer = new UIRenderer();
+ *
+ * // Render dialogue
+ * const dialogueCommands = uiRenderer.buildDialogueCommands(positionedDialogue);
+ *
+ * // Render health bar
+ * const barCommands = uiRenderer.buildBarCommands(positionedHealthBar);
+ *
+ * // Render menu
+ * const menuCommands = uiRenderer.buildMenuCommands(positionedMenu);
+ *
+ * renderer.execute([...dialogueCommands, ...barCommands, ...menuCommands]);
+ * ```
  */
 export class UIRenderer {
     private textRenderer: TextRenderer;
@@ -22,14 +44,42 @@ export class UIRenderer {
         this.textRenderer = new TextRenderer();
     }
 
+    /**
+     * Generates render commands for a dialogue line.
+     *
+     * Delegates to TextRenderer for specialized dialogue rendering including
+     * background, speaker name, dialogue text, and optional portrait.
+     *
+     * @param dialogue - Pre-positioned dialogue data containing all geometry and styling information
+     * @returns Array of render commands for all dialogue visual elements
+     */
     buildDialogueCommands(dialogue: PositionedDialogue): RenderCommand[] {
         return this.textRenderer.buildDialogueCommands(dialogue);
     }
 
+    /**
+     * Generates render commands for a list of player choices.
+     *
+     * Delegates to TextRenderer for specialized choice rendering including
+     * text labels and interactive hotspot areas.
+     *
+     * @param choices - Array of pre-positioned choice data containing geometry and interaction information
+     * @returns Array of render commands for all choice visual elements and hotspots
+     */
     buildChoiceCommands(choices: PositionedChoice[]): RenderCommand[] {
         return this.textRenderer.buildChoiceCommands(choices);
     }
 
+    /**
+     * Generates render commands for a progress or resource bar UI element.
+     *
+     * Creates commands for background rectangle, foreground fill rectangle based on
+     * current value, and optional text label. Commonly used for health bars, mana bars,
+     * experience bars, or loading indicators.
+     *
+     * @param barData - Pre-positioned bar data including background, foreground, and optional label geometry
+     * @returns Array of render commands for bar background, foreground, and optional label text
+     */
     buildBarCommands(barData: PositionedBar): RenderCommand[] {
         const commands: RenderCommand[] = [];
         const zIndex = barData.zIndex || 10000;
@@ -73,6 +123,16 @@ export class UIRenderer {
         return commands;
     }
 
+    /**
+     * Generates render commands for a simple text display element.
+     *
+     * Creates a single text command for displaying arbitrary text with optional
+     * styling. Useful for labels, captions, or any simple text that doesn't require
+     * the full dialogue rendering system.
+     *
+     * @param textData - Text display data including text content, position, styling, and z-index
+     * @returns Array containing a single text render command
+     */
     buildTextDisplayCommands(textData: TextDisplayData): RenderCommand[] {
         const { text, position, id = 'text_display', style = {}, zIndex = 10000 } = textData;
 
@@ -92,8 +152,17 @@ export class UIRenderer {
     }
 
     /**
-     * Build menu commands - DECOUPLED from game logic
-     * Uses generic, pre-positioned data.
+     * Generates render commands for a menu UI element.
+     *
+     * Creates commands for menu background, optional title, and all menu items
+     * with their text labels and interactive hotspot areas. Supports generic
+     * data attachment to hotspots for platform-specific event handling.
+     *
+     * Commonly used for pause menus, settings menus, inventory screens, or any
+     * list-based selection interface.
+     *
+     * @param menuData - Pre-positioned menu data including background, title, and menu items with hotspots
+     * @returns Array of render commands for menu background, title, item labels, and interactive hotspots
      */
     buildMenuCommands(menuData: PositionedMenu): RenderCommand[] {
         const commands: RenderCommand[] = [];

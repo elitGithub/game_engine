@@ -111,13 +111,24 @@ The following performance optimizations have been implemented to ensure producti
 - **Impact**: Catches additional bugs at compile time, enforces code quality
 - **Location**: tsconfig.json:14-16
 
+### TypeScript - Import Type Consistency
+- **Issue**: Regular imports used for type-only references (prevents optimal tree-shaking)
+- **Fix**: Converted 35+ imports to `import type` across 28 source files
+- **Impact**: Improved bundle optimization, clearer intent, TypeScript best practices
+- **Most common**: ILogger converted in 26 files, plus EventBus, GameState, type definitions
+
+### Documentation - Rendering Helpers TSDoc
+- **Issue**: Rendering helper classes lacked comprehensive API documentation
+- **Fix**: Added complete TSDoc comments to all 6 rendering helper classes
+- **Documented**: DialogueLayoutHelper, ChoiceLayoutHelper, SceneRenderer, TextRenderer, TypewriterEffect, UIRenderer
+- **Impact**: Clear API documentation with examples, emphasizes platform-agnostic design
+
 ## **Optional Improvements** (Non-Critical)
 
 Minor code quality tasks for future consideration:
 
-1. Improve `import type` consistency for better tree-shaking (LOW priority)
-2. Review and remove any unused utility files
-3. Consider migrating to NX monorepo structure (see vision below)
+1. Review and remove any unused utility files
+2. Consider migrating to NX monorepo structure (see vision below)
 
 ## **Common Tasks**
 

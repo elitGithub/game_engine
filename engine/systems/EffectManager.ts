@@ -1,7 +1,7 @@
 import type { GameContext, EffectStep } from '@engine/types';
 import type { IEffectTarget, IDynamicEffect } from '@engine/types/EffectTypes';
 import type { ITimerProvider } from '@engine/interfaces';
-import {ILogger} from "@engine/interfaces/ILogger";
+import type {ILogger} from "@engine/interfaces/ILogger";
 
 type ActiveDynamicEffect = {
     name: string;
