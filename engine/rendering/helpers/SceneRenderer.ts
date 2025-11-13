@@ -2,6 +2,7 @@
 
 import type {RenderCommand, TextStyleData} from '@engine/types/RenderingTypes';
 import type { Scene } from '@engine/systems/Scene';
+import type { ILogger } from '@engine/interfaces';
 
 interface SceneLayer {
     type: 'sprite' | 'rect' | 'text';
@@ -26,7 +27,7 @@ interface SceneLayer {
  *
  * @example
  * ```typescript
- * const sceneRenderer = new SceneRenderer();
+ * const sceneRenderer = new SceneRenderer(logger);
  * const scene: Scene = {
  *   sceneData: {
  *     layers: [
@@ -40,6 +41,7 @@ interface SceneLayer {
  * ```
  */
 export class SceneRenderer {
+    constructor(private logger: ILogger) {}
 
     /**
      * Generates all render commands needed to display a complete scene.
@@ -76,7 +78,7 @@ if (layers && Array.isArray(layers)) {
                 // --- ADD THIS BLOCK ---
                 else if (layer.type === 'rect') {
                     if (typeof layer.width !== 'number' || typeof layer.height !== 'number') {
-                        console.warn(`[SceneRenderer] 'rect' layer at index ${index} is missing 'width' or 'height'`);
+                        this.logger.warn(`[SceneRenderer] 'rect' layer at index ${index} is missing 'width' or 'height'`);
                     } else {
                         commands.push({
                             type: 'rect',
@@ -94,7 +96,7 @@ if (layers && Array.isArray(layers)) {
                 // --- AND ADD THIS BLOCK ---
                 else if (layer.type === 'text') {
                     if (typeof layer.text !== 'string' || typeof layer.style !== 'object') {
-                        console.warn(`[SceneRenderer] 'text' layer at index ${index} is missing 'text' or 'style'`);
+                        this.logger.warn(`[SceneRenderer] 'text' layer at index ${index} is missing 'text' or 'style'`);
                     } else {
                         commands.push({
                             type: 'text',

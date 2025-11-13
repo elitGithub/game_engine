@@ -1,7 +1,8 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { SceneRenderer } from '@engine/rendering/helpers/SceneRenderer';
 import { Scene } from '@engine/systems/Scene';
 import type { RenderCommand } from '@engine/types/RenderingTypes';
+import type { ILogger } from '@engine/interfaces';
 
 // Mock the Scene class
 class MockScene extends Scene {
@@ -10,11 +11,17 @@ class MockScene extends Scene {
     }
 }
 
+const mockLogger: ILogger = {
+    log: vi.fn(),
+    warn: vi.fn(),
+    error: vi.fn(),
+};
+
 describe('SceneRenderer', () => {
     let renderer: SceneRenderer;
 
     beforeEach(() => {
-        renderer = new SceneRenderer();
+        renderer = new SceneRenderer(mockLogger);
     });
 
     it('should return a fallback background sprite if no layers exist', () => {
