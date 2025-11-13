@@ -47,7 +47,7 @@ export class EventBus {
         const callbacks = this.listeners[event];
         if (!callbacks) return;
 
-// No 'as' cast! Also 100% type-safe.
+        // Type-safe callback removal without casting
         const index = callbacks.indexOf(callback);
         if (index > -1) {
             callbacks.splice(index, 1);
