@@ -124,4 +124,78 @@ describe('AssetManager', () => {
         expect(success).toBe(true);
         expect(assetManager.has('img1')).toBe(false);
     });
+
+    it('should prevent race condition - concurrent loads of same asset', async () => {
+        // Create a loader with a delay to simulate network request
+        const delayedLoader: IAssetLoader = {
+            type: 'image',
+            load: vi.fn(async (url) => {
+                await new Promise(resolve => setTimeout(resolve, 100));
+                return `loaded:${url}`;
+            }),
+        };
+
+        assetManager.registerLoader(delayedLoader);
+
+        // Start two concurrent loads WITHOUT await
+        const promise1 = assetManager.load('hero', '/img/hero.png', 'image');
+        const promise2 = assetManager.load('hero', '/img/hero.png', 'image');
+
+        // Both should resolve to the same result
+        const [result1, result2] = await Promise.all([promise1, promise2]);
+
+        expect(result1).toBe('loaded:/img/hero.png');
+        expect(result2).toBe('loaded:/img/hero.png');
+
+        // Loader should only be called ONCE (no duplicate network request)
+        expect(delayedLoader.load).toHaveBeenCalledTimes(1);
+        expect(delayedLoader.load).toHaveBeenCalledWith('/img/hero.png');
+    });
+
+    it('should handle concurrent loads of different assets', async () => {
+        // Create a loader with a delay
+        const delayedLoader: IAssetLoader = {
+            type: 'image',
+            load: vi.fn(async (url) => {
+                await new Promise(resolve => setTimeout(resolve, 50));
+                return `loaded:${url}`;
+            }),
+        };
+
+        assetManager.registerLoader(delayedLoader);
+
+        // Start concurrent loads of different assets
+        const promise1 = assetManager.load('hero', '/img/hero.png', 'image');
+        const promise2 = assetManager.load('enemy', '/img/enemy.png', 'image');
+
+        const [result1, result2] = await Promise.all([promise1, promise2]);
+
+        expect(result1).toBe('loaded:/img/hero.png');
+        expect(result2).toBe('loaded:/img/enemy.png');
+
+        // Loader should be called TWICE (one for each asset)
+        expect(delayedLoader.load).toHaveBeenCalledTimes(2);
+    });
+
+    it('should clean up loading promises on error', async () => {
+        const failingLoader: IAssetLoader = {
+            type: 'image',
+            load: vi.fn(async () => {
+                throw new Error('Network error');
+            }),
+        };
+
+        assetManager.registerLoader(failingLoader);
+
+        // First load attempt fails
+        await expect(assetManager.load('broken', '/img/broken.png', 'image')).rejects.toThrow('Network error');
+
+        // Reset the mock to succeed
+        vi.mocked(failingLoader.load).mockResolvedValue('loaded:/img/broken.png');
+
+        // Second load attempt should try again (promise was cleaned up after error)
+        const result = await assetManager.load('broken', '/img/broken.png', 'image');
+        expect(result).toBe('loaded:/img/broken.png');
+        expect(failingLoader.load).toHaveBeenCalledTimes(2); // Once failed, once succeeded
+    });
 });

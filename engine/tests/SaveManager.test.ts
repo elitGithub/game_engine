@@ -190,4 +190,145 @@ describe('SaveManager', () => {
         });
     });
 
+    describe('Map and Set serialization', () => {
+        it('should serialize and deserialize a Map', async () => {
+            const inventoryMap = new Map([
+                ['potion', 5],
+                ['sword', 1],
+            ]);
+
+            const mockInventorySystem: ISerializable = {
+                serialize: vi.fn(() => ({ items: inventoryMap })),
+                deserialize: vi.fn(),
+            };
+
+            mockRegistry.serializableSystems.set('inventory', mockInventorySystem);
+
+            // Save
+            vi.mocked(mockStorageAdapter.save).mockResolvedValue(true);
+            await saveManager.saveGame('slot1');
+
+            // Get the JSON that was saved
+            const savedJson = vi.mocked(mockStorageAdapter.save).mock.calls[0][1];
+            const parsedSave = JSON.parse(savedJson);
+
+            // Verify Map was converted to tagged format
+            expect(parsedSave.systems.inventory.items).toEqual({
+                $type: 'Map',
+                value: [['potion', 5], ['sword', 1]]
+            });
+
+            // Load
+            vi.mocked(mockStorageAdapter.load).mockResolvedValue(savedJson);
+            await saveManager.loadGame('slot1');
+
+            // Verify deserialize received actual Map instance
+            const deserializedData = vi.mocked(mockInventorySystem.deserialize).mock.calls[0][0] as any;
+            expect(deserializedData.items).toBeInstanceOf(Map);
+            expect(deserializedData.items.get('potion')).toBe(5);
+            expect(deserializedData.items.get('sword')).toBe(1);
+        });
+
+        it('should serialize and deserialize a Set', async () => {
+            const flagsSet = new Set(['tutorial_complete', 'boss_defeated']);
+
+            const mockFlagsSystem: ISerializable = {
+                serialize: vi.fn(() => ({ flags: flagsSet })),
+                deserialize: vi.fn(),
+            };
+
+            mockRegistry.serializableSystems.set('flags', mockFlagsSystem);
+
+            // Save
+            vi.mocked(mockStorageAdapter.save).mockResolvedValue(true);
+            await saveManager.saveGame('slot1');
+
+            // Get the JSON that was saved
+            const savedJson = vi.mocked(mockStorageAdapter.save).mock.calls[0][1];
+            const parsedSave = JSON.parse(savedJson);
+
+            // Verify Set was converted to tagged format
+            expect(parsedSave.systems.flags.flags).toEqual({
+                $type: 'Set',
+                value: ['tutorial_complete', 'boss_defeated']
+            });
+
+            // Load
+            vi.mocked(mockStorageAdapter.load).mockResolvedValue(savedJson);
+            await saveManager.loadGame('slot1');
+
+            // Verify deserialize received actual Set instance
+            const deserializedData = vi.mocked(mockFlagsSystem.deserialize).mock.calls[0][0] as any;
+            expect(deserializedData.flags).toBeInstanceOf(Set);
+            expect(deserializedData.flags.has('tutorial_complete')).toBe(true);
+            expect(deserializedData.flags.has('boss_defeated')).toBe(true);
+        });
+
+        it('should handle nested Maps and Sets', async () => {
+            const complexData = {
+                playerStats: new Map([
+                    ['strength', 10],
+                    ['dexterity', 15],
+                ]),
+                achievements: new Set(['first_kill', 'level_10']),
+                nested: {
+                    innerMap: new Map([['key', 'value']])
+                }
+            };
+
+            const mockComplexSystem: ISerializable = {
+                serialize: vi.fn(() => complexData),
+                deserialize: vi.fn(),
+            };
+
+            mockRegistry.serializableSystems.set('complex', mockComplexSystem);
+
+            // Save and load
+            vi.mocked(mockStorageAdapter.save).mockResolvedValue(true);
+            await saveManager.saveGame('slot1');
+
+            const savedJson = vi.mocked(mockStorageAdapter.save).mock.calls[0][1];
+            vi.mocked(mockStorageAdapter.load).mockResolvedValue(savedJson);
+            await saveManager.loadGame('slot1');
+
+            // Verify all Maps/Sets were restored correctly
+            const deserializedData = vi.mocked(mockComplexSystem.deserialize).mock.calls[0][0] as any;
+            expect(deserializedData.playerStats).toBeInstanceOf(Map);
+            expect(deserializedData.playerStats.get('strength')).toBe(10);
+            expect(deserializedData.achievements).toBeInstanceOf(Set);
+            expect(deserializedData.achievements.has('first_kill')).toBe(true);
+            expect(deserializedData.nested.innerMap).toBeInstanceOf(Map);
+            expect(deserializedData.nested.innerMap.get('key')).toBe('value');
+        });
+
+        it('should handle plain objects without corrupting them', async () => {
+            const plainData = {
+                name: 'Player',
+                score: 1000,
+                items: ['sword', 'shield'],
+                config: { difficulty: 'hard' }
+            };
+
+            const mockPlainSystem: ISerializable = {
+                serialize: vi.fn(() => plainData),
+                deserialize: vi.fn(),
+            };
+
+            mockRegistry.serializableSystems.set('plain', mockPlainSystem);
+
+            // Save and load
+            vi.mocked(mockStorageAdapter.save).mockResolvedValue(true);
+            await saveManager.saveGame('slot1');
+
+            const savedJson = vi.mocked(mockStorageAdapter.save).mock.calls[0][1];
+            vi.mocked(mockStorageAdapter.load).mockResolvedValue(savedJson);
+            await saveManager.loadGame('slot1');
+
+            // Verify plain data was not corrupted
+            const deserializedData = vi.mocked(mockPlainSystem.deserialize).mock.calls[0][0] as any;
+            expect(deserializedData).toEqual(plainData);
+            expect(Array.isArray(deserializedData.items)).toBe(true);
+        });
+    });
+
 });

@@ -1,9 +1,9 @@
 // engine/systems/SaveManager.ts
 import type { StorageAdapter, SaveSlotMetadata } from '../core/StorageAdapter';
 import type { EventBus } from '../core/EventBus';
-import type {ISerializationRegistry} from '../types';
+import type { ISerializationRegistry } from '../types';
 import { MigrationManager } from "./MigrationManager";
-import {ILogger, ITimerProvider} from "@engine/interfaces";
+import { ILogger, ITimerProvider } from "@engine/interfaces";
 
 export interface SaveData {
     version: string;
@@ -13,8 +13,12 @@ export interface SaveData {
     metadata?: Record<string, unknown>;
 }
 
+/**
+ * SaveManager - robust save/load system with Map/Set support
+ *
+ * Automatically handles Map and Set serialization so plugins don't have to.
+ */
 export class SaveManager {
-
     private migrationManager: MigrationManager;
 
     constructor(
@@ -28,18 +32,16 @@ export class SaveManager {
     }
 
     /**
-     * Save the current game state to a storage slot.
-     * Serializes all registered systems, applies migrations if needed.
-     * Emits 'save.completed' on success or 'save.failed' on error.
-     *
-     * @param slotId - Unique identifier for the save slot
-     * @param metadata - Optional additional data to store with the save
-     * @returns Promise that resolves to true if save succeeded, false otherwise
+     * Save the current game state.
+     * Uses a custom replacer to serialize Map and Set objects natively.
      */
     async saveGame(slotId: string, metadata?: Record<string, unknown>): Promise<boolean> {
         try {
             const saveData = this.serializeGameState(metadata);
-            const json = JSON.stringify(saveData);
+
+            // MAGIC HAPPENS HERE: The replacer handles complex types automatically
+            const json = JSON.stringify(saveData, this.replacer);
+
             const success = await this.adapter.save(slotId, json);
 
             if (success) {
@@ -58,19 +60,17 @@ export class SaveManager {
     }
 
     /**
-     * Load a saved game from a storage slot.
-     * Deserializes all registered systems, applies migrations if needed.
-     * Emits 'save.loaded' on success or 'save.loadFailed' on error.
-     *
-     * @param slotId - Unique identifier of the save slot to load
-     * @returns Promise that resolves to true if load succeeded, false otherwise
+     * Load a saved game.
+     * Uses a custom reviver to restore Map and Set objects natively.
      */
     async loadGame(slotId: string): Promise<boolean> {
         try {
             const json = await this.adapter.load(slotId);
             if (!json) return false;
 
-            let saveData: SaveData = JSON.parse(json);
+            // MAGIC HAPPENS HERE: The reviver restores Maps/Sets before migration runs
+            let saveData: SaveData = JSON.parse(json, this.reviver);
+
             saveData = this.migrationManager.migrate(saveData, this.registry.gameVersion);
 
             this.restoreGameState(saveData);
@@ -87,13 +87,51 @@ export class SaveManager {
         }
     }
 
+    // ========================================================================
+    // SERIALIZATION HELPERS
+    // ========================================================================
+
     /**
-     * Delete a saved game from the specified slot.
-     * Emits a 'save.deleted' event if the deletion is successful.
-     *
-     * @param slotId - The unique identifier of the save slot to delete
-     * @returns A promise that resolves to true if the save was deleted successfully, false otherwise
+     * JSON Replacer: Converts Map/Set to serializable objects with type tags
      */
+    private replacer(key: string, value: unknown): unknown {
+        if (value instanceof Map) {
+            return {
+                $type: 'Map',
+                value: Array.from(value.entries())
+            };
+        }
+        if (value instanceof Set) {
+            return {
+                $type: 'Set',
+                value: Array.from(value)
+            };
+        }
+        return value;
+    }
+
+    /**
+     * JSON Reviver: Restores Map/Set from tagged objects
+     */
+    private reviver(key: string, value: unknown): unknown {
+        if (typeof value === 'object' && value !== null) {
+            // Cast to any to check for our special properties safely
+            const typedValue = value as { $type?: string; value: any };
+
+            if (typedValue.$type === 'Map') {
+                return new Map(typedValue.value);
+            }
+            if (typedValue.$type === 'Set') {
+                return new Set(typedValue.value);
+            }
+        }
+        return value;
+    }
+
+    // ========================================================================
+    // CORE LOGIC (Unchanged)
+    // ========================================================================
+
     async deleteSave(slotId: string): Promise<boolean> {
         const success = await this.adapter.delete(slotId);
         if (success) {
@@ -111,6 +149,7 @@ export class SaveManager {
 
         for (const [key, system] of this.registry.serializableSystems.entries()) {
             try {
+                // Plugins can now just return { myMap: this.map } directly!
                 systemsData[key] = system.serialize();
             } catch (error) {
                 this.logger.error(`[SaveManager] Failed to serialize system '${key}':`, error);

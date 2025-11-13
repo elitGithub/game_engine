@@ -151,14 +151,49 @@ describe('DomRenderer', () => {
         expect(el.dataset.targetId).toBe('123');
     });
 
-    it('should render commands in zIndex order', () => {
+    it('should apply zIndex to elements', () => {
         const cmd1: RenderCommand = {type: 'rect', id: 'r1', x: 0, y: 0, width: 10, height: 10, zIndex: 10};
         const cmd2: RenderCommand = {type: 'rect', id: 'r2', x: 0, y: 0, width: 10, height: 10, zIndex: 5};
 
         renderer.flush([cmd1, cmd2]);
 
-        const children = Array.from(container.children);
-        expect(children[0].id).toBe('r2'); // zIndex 5
-        expect(children[1].id).toBe('r1'); // zIndex 10
+        const el1 = container.querySelector('#r1') as HTMLDivElement;
+        const el2 = container.querySelector('#r2') as HTMLDivElement;
+
+        expect(el1.style.zIndex).toBe('10');
+        expect(el2.style.zIndex).toBe('5');
+    });
+
+    it('should reuse existing elements (diffing)', () => {
+        const cmd: RenderCommand = {type: 'rect', id: 'r1', x: 0, y: 0, width: 100, height: 50};
+
+        renderer.flush([cmd]);
+        const firstEl = container.querySelector('#r1') as HTMLDivElement;
+
+        const updatedCmd: RenderCommand = {type: 'rect', id: 'r1', x: 10, y: 20, width: 200, height: 50};
+        renderer.flush([updatedCmd]);
+        const secondEl = container.querySelector('#r1') as HTMLDivElement;
+
+        // Same DOM node should be reused
+        expect(secondEl).toBe(firstEl);
+
+        // But properties should be updated
+        expect(secondEl.style.left).toBe('10px');
+        expect(secondEl.style.top).toBe('20px');
+        expect(secondEl.style.width).toBe('200px');
+    });
+
+    it('should remove elements not in current frame (garbage collection)', () => {
+        const cmd1: RenderCommand = {type: 'rect', id: 'r1', x: 0, y: 0, width: 10, height: 10};
+        const cmd2: RenderCommand = {type: 'rect', id: 'r2', x: 0, y: 0, width: 10, height: 10};
+
+        renderer.flush([cmd1, cmd2]);
+        expect(container.children).toHaveLength(2);
+
+        // Second flush with only cmd1 - cmd2 should be removed
+        renderer.flush([cmd1]);
+        expect(container.children).toHaveLength(1);
+        expect(container.querySelector('#r1')).toBeTruthy();
+        expect(container.querySelector('#r2')).toBeFalsy();
     });
 });

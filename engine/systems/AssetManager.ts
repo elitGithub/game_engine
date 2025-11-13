@@ -12,10 +12,12 @@ export interface AssetManifestEntry {
 export class AssetManager {
     private loaders: Map<AssetType, IAssetLoader>;
     private cache: Map<string, unknown>;
+    private loadingPromises: Map<string, Promise<unknown>>;
 
     constructor(private eventBus: EventBus, private logger: ILogger) {
         this.loaders = new Map();
         this.cache = new Map();
+        this.loadingPromises = new Map();
     }
 
     /**
@@ -53,6 +55,7 @@ export class AssetManager {
     /**
      * Load a single asset and cache it by its ID.
      * If the asset is already cached, returns the cached version.
+     * If the asset is currently loading, returns the in-flight promise (prevents duplicate loads).
      * Emits 'assets.loaded' event on successful load.
      *
      * @param id - Unique identifier for the asset to be used for caching
@@ -63,8 +66,14 @@ export class AssetManager {
      * @throws Error if the loader fails to load the asset
      */
     async load(id: string, url: string, type: AssetType): Promise<unknown> {
+        // Return cached result if already loaded
         if (this.cache.has(id)) {
             return this.cache.get(id);
+        }
+
+        // Return in-flight promise if already loading (prevents race condition)
+        if (this.loadingPromises.has(id)) {
+            return this.loadingPromises.get(id)!;
         }
 
         const loader = this.loaders.get(type);
@@ -72,15 +81,23 @@ export class AssetManager {
             throw new Error(`[AssetManager] No loader registered for type: ${type}`);
         }
 
-        try {
-            const asset = await loader.load(url);
-            this.cache.set(id, asset);
-            this.eventBus.emit('assets.loaded', { id, type, asset });
-            return asset;
-        } catch (error) {
-            this.logger.error(`[AssetManager] Failed to load asset '${id}' from '${url}':`, error);
-            throw error;
-        }
+        // Create and cache the loading promise
+        const loadPromise = (async () => {
+            try {
+                const asset = await loader.load(url);
+                this.cache.set(id, asset);
+                this.loadingPromises.delete(id); // Clean up
+                this.eventBus.emit('assets.loaded', { id, type, asset });
+                return asset;
+            } catch (error) {
+                this.loadingPromises.delete(id); // Clean up on error too
+                this.logger.error(`[AssetManager] Failed to load asset '${id}' from '${url}':`, error);
+                throw error;
+            }
+        })();
+
+        this.loadingPromises.set(id, loadPromise);
+        return loadPromise;
     }
 
     /**
@@ -117,12 +134,13 @@ export class AssetManager {
     }
 
     /**
-     * Clear all cached assets.
+     * Clear all cached assets and in-flight loading promises.
      * Emits 'assets.cache.cleared' event when complete.
      * Use this to free memory or force reload of all assets.
      */
     clearCache(): void {
         this.cache.clear();
+        this.loadingPromises.clear();
         this.eventBus.emit('assets.cache.cleared', {});
     }
 
