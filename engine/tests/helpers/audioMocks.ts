@@ -15,6 +15,7 @@ export const createMockSource = (): IAudioSource => ({
     connect: vi.fn(),
     disconnect: vi.fn(),
     setLoop: vi.fn(),
+    onEnded: vi.fn(),
 });
 
 /**

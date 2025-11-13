@@ -8,10 +8,14 @@ import { WebAudioGain } from './WebAudioGain';
 
 export class WebAudioSource implements IAudioSource {
     private playing = false;
+    private endedCallback: (() => void) | null = null;
 
     constructor(private native: AudioBufferSourceNode) {
         this.native.onended = () => {
             this.playing = false;
+            if (this.endedCallback) {
+                this.endedCallback();
+            }
         };
     }
 
@@ -55,5 +59,9 @@ export class WebAudioSource implements IAudioSource {
 
     isPlaying(): boolean {
         return this.playing;
+    }
+
+    onEnded(callback: () => void): void {
+        this.endedCallback = callback;
     }
 }

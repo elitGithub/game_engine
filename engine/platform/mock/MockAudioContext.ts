@@ -42,7 +42,8 @@ export class MockAudioContext implements IAudioContext {
             stop: () => {},
             setLoop: () => {},
             connect: () => {},
-            disconnect: () => {}
+            disconnect: () => {},
+            onEnded: () => {}
         };
     }
 
