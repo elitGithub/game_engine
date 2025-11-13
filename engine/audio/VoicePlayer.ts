@@ -3,7 +3,7 @@ import type { EventBus } from '@engine/core/EventBus';
 import type { AssetManager } from '@engine/systems/AssetManager';
 import type { IAudioContext, IAudioBuffer, IAudioSource, IAudioGain } from '@engine/interfaces/IAudioPlatform';
 import type {ILogger} from "@engine/interfaces";
-import { AudioUtils } from './AudioUtils';
+import { AudioUtils } from '@engine/audio/AudioUtils';
 
 /**
  * VoicePlayer - Handles simple, non-pooled playback for voice lines.

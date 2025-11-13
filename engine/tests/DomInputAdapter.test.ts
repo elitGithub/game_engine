@@ -1,9 +1,10 @@
 // engine/tests/DomInputAdapter.test.ts
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { DomInputAdapter } from '@engine/core/DomInputAdapter';
+
 import type {ILogger} from "@engine/interfaces";
 import type { IDomRenderContainer } from '@engine/interfaces/IRenderContainer';
+import {DomInputAdapter} from "@engine/input/DomInputAdapter";
 
 // Mock a DOM element and its event methods
 const mockElement = {

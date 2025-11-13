@@ -1,7 +1,7 @@
 // engine/systems/input/InputComboTracker.ts
 
 import type { EventBus } from '@engine/core/EventBus';
-import type { InputCombo } from '@engine/core/InputEvents';
+import type { InputCombo } from '@engine/types/InputEvents';
 import type { ITimerProvider } from '@engine/interfaces/ITimerProvider';
 
 interface BufferedInput {

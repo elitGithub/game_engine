@@ -11,9 +11,9 @@
  */
 
 import { BaseInputAdapter, type InputAdapterType, type InputCapabilities, type InputAttachOptions } from '@engine/interfaces/IInputAdapter';
-import type { GamepadButtonEvent, GamepadAxisEvent } from '@engine/core/InputEvents';
 import type {ILogger, IRenderContainer} from '@engine/interfaces';
 import type { ITimerProvider } from '@engine/interfaces';
+import {GamepadAxisEvent, GamepadButtonEvent} from "@engine/types/InputEvents";
 
 /**
  * Gamepad button state

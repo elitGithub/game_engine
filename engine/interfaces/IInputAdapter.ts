@@ -8,7 +8,7 @@
  * into engine-agnostic EngineInputEvent objects.
  */
 
-import type { EngineInputEvent } from '@engine/core/InputEvents';
+import type { EngineInputEvent } from '@engine/types/InputEvents';
 import type { IRenderContainer } from '@engine/interfaces/IRenderContainer';
 
 /**
