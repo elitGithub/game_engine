@@ -36,7 +36,7 @@ describe('SfxPool', () => {
         // Setup mock asset
         vi.mocked(mockAssetManager.get).mockReturnValue(mockAudioBuffer);
 
-        sfxPool = new SfxPool(mockAudioContext, mockAssetManager, mockOutputGain, 10, mockLogger);
+        sfxPool = new SfxPool(mockAudioContext, mockAssetManager, mockOutputGain, 10, 32, mockLogger);
     });
 
     it('should play a sound', async () => {

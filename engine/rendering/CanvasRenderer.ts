@@ -14,6 +14,7 @@ import {isCanvasRenderContainer} from '@engine/interfaces';
 export class CanvasRenderer implements IRenderer {
     private canvas: HTMLCanvasElement | null = null;
     private ctx: CanvasRenderingContext2D | null = null;
+    private fontStringCache: Map<string, string> = new Map();
 
     constructor(private assets: AssetManager) {
     }
@@ -104,12 +105,28 @@ export class CanvasRenderer implements IRenderer {
 
     private applyTextStyle(style: TextStyleData): void {
         if (!this.ctx) return;
-        const fontStyle = style.italic ? 'italic' : 'normal';
-        const fontWeight = style.bold ? 'bold' : 'normal';
-        const fontSize = '16px'; // Default
-        const fontFamily = 'Arial'; // Default
 
-        this.ctx.font = style.font || `${fontStyle} ${fontWeight} ${fontSize} ${fontFamily}`;
+        // Use explicit font string if provided, otherwise build from properties
+        if (style.font) {
+            this.ctx.font = style.font;
+        } else {
+            // Build cache key from font properties
+            const cacheKey = `${style.italic ? '1' : '0'}|${style.bold ? '1' : '0'}`;
+
+            // Check cache first to avoid string allocation
+            let fontString = this.fontStringCache.get(cacheKey);
+            if (!fontString) {
+                // Cache miss - generate and store
+                const fontStyle = style.italic ? 'italic' : 'normal';
+                const fontWeight = style.bold ? 'bold' : 'normal';
+                const fontSize = '16px'; // Default
+                const fontFamily = 'Arial'; // Default
+                fontString = `${fontStyle} ${fontWeight} ${fontSize} ${fontFamily}`;
+                this.fontStringCache.set(cacheKey, fontString);
+            }
+
+            this.ctx.font = fontString;
+        }
 
         if (style.color) this.ctx.fillStyle = style.color;
         if (style.align) this.ctx.textAlign = style.align;

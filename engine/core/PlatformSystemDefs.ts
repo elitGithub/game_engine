@@ -123,7 +123,12 @@ function createAudioManagerDefinition(
             const config = (typeof audioConfig === 'object' ? audioConfig : {}) ?? {};
             const sfxPoolSize = config.sfxPoolSize ?? 10;
             const logger = c.get<ILogger>(PLATFORM_SYSTEMS.Logger);
-            const audioManager = new AudioManager(eventBus, assetManager, audioContext, timer, {sfxPoolSize}, logger);
+
+            // Get audio capabilities for maxSources limit
+            const capabilities = audioPlatform.getCapabilities();
+            const maxSources = capabilities.maxSources;
+
+            const audioManager = new AudioManager(eventBus, assetManager, audioContext, timer, {sfxPoolSize, maxSources}, logger);
 
             if (config.volume !== undefined) {
                 audioManager.setMasterVolume(config.volume);

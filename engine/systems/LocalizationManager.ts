@@ -44,10 +44,24 @@ export class LocalizationManager implements ISerializable {
     }
 
     /**
-     * Gets a translated string for a given key.
-     * Supports simple placeholder replacement.
+     * Gets a translated string for a given key with placeholder replacement.
+     *
+     * Supports two placeholder formats:
+     * 1. Indexed: {0}, {1}, {2} - replaced by positional args
+     * 2. Named: {playerName}, {score} - replaced by properties from params object
+     *
+     * @param key - The localization key
+     * @param argsOrParams - Either positional args (for indexed placeholders) or a params object (for named placeholders)
+     *
+     * @example
+     * // Indexed placeholders
+     * getString("welcome", "Alice")  // "Welcome, {0}!" -> "Welcome, Alice!"
+     *
+     * @example
+     * // Named placeholders
+     * getString("score", { playerName: "Bob", score: 100 })  // "Player {playerName} scored {score} points" -> "Player Bob scored 100 points"
      */
-    public getString(key: string, ...args: (string | number)[]): string {
+    public getString(key: string, ...argsOrParams: Array<string | number | Record<string, string | number>>): string {
         let str = this.strings.get(key);
 
         if (str === undefined) {
@@ -55,14 +69,28 @@ export class LocalizationManager implements ISerializable {
             return key; // Fallback to the key itself
         }
 
-        // Handle placeholder replacement (e.g., "Welcome, {0}!")
-        if (args.length > 0) {
+        // Determine if we're using indexed or named parameters
+        const firstArg = argsOrParams[0];
+        const isNamedParams = argsOrParams.length === 1 && typeof firstArg === 'object' && firstArg !== null;
+
+        if (isNamedParams) {
+            // Named parameter replacement: {playerName}, {score}
+            const params = firstArg as Record<string, string | number>;
+            str = str.replace(/{(\w+)}/g, (match, name) => {
+                return typeof params[name] !== 'undefined'
+                    ? String(params[name])
+                    : match;
+            });
+        } else if (argsOrParams.length > 0) {
+            // Indexed parameter replacement: {0}, {1}, {2}
+            const args = argsOrParams as Array<string | number>;
             str = str.replace(/{(\d)}/g, (match, number) => {
                 return typeof args[number] !== 'undefined'
                     ? String(args[number])
                     : match;
             });
         }
+
         return str;
     }
 

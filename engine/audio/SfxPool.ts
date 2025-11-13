@@ -24,12 +24,14 @@ interface SFXPoolItem {
  */
 export class SfxPool {
     private pools: Map<string, SFXPoolItem> = new Map();
+    private globalActiveChains: Map<AudioChain, string> = new Map(); // Track all active chains globally
 
     constructor(
         private audioContext: IAudioContext,
         private assetManager: AssetManager,
         private outputNode: IAudioGain,
         private defaultMaxSize: number,
+        private maxSources: number,
         private logger: ILogger
     ) {}
 
@@ -40,6 +42,12 @@ export class SfxPool {
                 throw new Error(`[SfxPool] Asset '${soundId}' not found. Was it preloaded?`);
             }
 
+            // Check if we've hit the hardware limit (maxSources)
+            // If so, implement voice stealing - stop the oldest playing sound
+            if (this.globalActiveChains.size >= this.maxSources) {
+                this.stealOldestVoice();
+            }
+
             const chain = this.getChainFromPool(soundId, buffer);
 
             // Apply volume using exponential gain conversion
@@ -48,10 +56,12 @@ export class SfxPool {
             // Track and play
             const pool = this.ensurePool(soundId, buffer);
             pool.active.add(chain);
+            this.globalActiveChains.set(chain, soundId);
 
             // Return chain to pool when playback completes naturally
             chain.source.onEnded(() => {
                 pool.active.delete(chain);
+                this.globalActiveChains.delete(chain);
 
                 // Only pool if under max size
                 if (pool.available.length < pool.maxSize) {
@@ -66,6 +76,44 @@ export class SfxPool {
 
         } catch (error) {
             this.logger.error(`[SfxPool] Failed to play sound '${soundId}':`, error);
+        }
+    }
+
+    /**
+     * Voice stealing - stop the oldest playing sound to free up a hardware voice.
+     * Maps preserve insertion order, so the first entry is the oldest.
+     */
+    private stealOldestVoice(): void {
+        // Get the first (oldest) active chain
+        const firstEntry = this.globalActiveChains.entries().next();
+        if (firstEntry.done) {
+            return; // No active chains to steal
+        }
+
+        const [oldestChain, soundId] = firstEntry.value;
+
+        // Stop the chain
+        try {
+            oldestChain.source.stop();
+        } catch (e) {
+            // Ignore errors if already stopped
+        }
+
+        // Clean up tracking
+        this.globalActiveChains.delete(oldestChain);
+
+        // Remove from pool's active set
+        const pool = this.pools.get(soundId);
+        if (pool) {
+            pool.active.delete(oldestChain);
+        }
+
+        // Return to pool if under capacity
+        if (pool && pool.available.length < pool.maxSize) {
+            pool.available.push(oldestChain);
+        } else {
+            // Over capacity - disconnect and discard
+            oldestChain.gain.disconnect();
         }
     }
 
@@ -141,6 +189,9 @@ export class SfxPool {
             });
             pool.available = [];
         });
+
+        // Clear global tracking
+        this.globalActiveChains.clear();
     }
 
     dispose(): void {

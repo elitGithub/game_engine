@@ -54,7 +54,7 @@ export class AudioManager {
 
         // Instantiate helpers
         this.musicPlayer = new MusicPlayer(audioContext, this.assetManager, eventBus, this.musicGain, timer, this.logger);
-        this.sfxPool = new SfxPool(audioContext, this.assetManager, this.sfxGain, options.sfxPoolSize, this.logger);
+        this.sfxPool = new SfxPool(audioContext, this.assetManager, this.sfxGain, options.sfxPoolSize, options.maxSources, this.logger);
         this.voicePlayer = new VoicePlayer(audioContext, this.assetManager, eventBus, this.voiceGain, this.logger);
 
         // Initialize state

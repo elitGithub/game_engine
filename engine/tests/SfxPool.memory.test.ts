@@ -72,7 +72,7 @@ describe('SfxPool - Memory Leak Verification', () => {
             getDestination: vi.fn(() => ({ maxChannelCount: 2 })),
         } as IAudioContext;
 
-        sfxPool = new SfxPool(mockAudioContext, mockAssetManager, mockOutputGain, 5, mockLogger);
+        sfxPool = new SfxPool(mockAudioContext, mockAssetManager, mockOutputGain, 5, 32, mockLogger);
     });
 
     it('should register onEnded callback when playing a sound', async () => {

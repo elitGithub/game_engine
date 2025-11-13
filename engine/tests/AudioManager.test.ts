@@ -45,7 +45,7 @@ describe('AudioManager (Facade)', () => {
 
         // Create mock instances of the helpers
         mockMusicPlayer = new (vi.mocked(MusicPlayer))(vi.fn() as any, vi.fn() as any, vi.fn() as any, vi.fn() as any, vi.fn() as any, mockLogger);
-        mockSfxPool = new (vi.mocked(SfxPool))(vi.fn() as any, vi.fn() as any, vi.fn() as any, 10, mockLogger);
+        mockSfxPool = new (vi.mocked(SfxPool))(vi.fn() as any, vi.fn() as any, vi.fn() as any, 10, 32, mockLogger);
         mockVoicePlayer = new (vi.mocked(VoicePlayer))(vi.fn() as any, vi.fn() as any, vi.fn() as any, vi.fn() as any, mockLogger);
 
         // Re-mock the implementations to return our new instances
@@ -60,7 +60,7 @@ describe('AudioManager (Facade)', () => {
             new (vi.mocked(AssetManager))(vi.fn() as any, mockLogger),
             mockAudioContext,
             mockTimerProvider,
-            { sfxPoolSize: 10 },
+            { sfxPoolSize: 10, maxSources: 32 },
             mockLogger
         );
 
