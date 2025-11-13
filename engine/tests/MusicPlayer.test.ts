@@ -154,10 +154,18 @@ describe('MusicPlayer', () => {
     });
 
     it('should crossfade to new track', async () => {
+        const track2Buffer = createMockBuffer(8.0); // Different buffer for track2
+        vi.mocked(mockAssetManager.get).mockImplementation((id: string) => {
+            if (id === 'track2') return track2Buffer;
+            return mockAudioBuffer;
+        });
+
         await musicPlayer.playMusic('track1', true, 0);
+        vi.mocked(mockEventBus.emit).mockClear(); // Clear the 'music.started' call from first play
 
         await musicPlayer.crossfadeMusic('track2', 2);
 
+        // Should emit music.stopped, music.started, and music.crossfaded
         expect(mockEventBus.emit).toHaveBeenCalledWith('music.crossfaded', { newTrackId: 'track2', duration: 2 });
     });
 
