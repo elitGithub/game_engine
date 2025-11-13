@@ -15,7 +15,7 @@ import type {
     TouchStartEvent,
 } from '@engine/core/InputEvents';
 
-export type InputMode = 'gameplay' | 'menu' | 'cutscene' | 'disabled' | string;
+export type InputMode = 'gameplay' | 'menu' | 'cutscene' | 'disabled';
 
 // --- GameData definitions (moved from index.ts) ---
 export interface SceneData {
