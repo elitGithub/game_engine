@@ -61,6 +61,190 @@ export interface PlatformSystemConfig {
 }
 
 
+// ============================================================================
+// SYSTEM DEFINITION CREATORS (Extracted for modularity and testability)
+// ============================================================================
+
+function createAssetManagerDefinition(platform: IPlatformAdapter): SystemDefinition {
+    return {
+        key: PLATFORM_SYSTEMS.AssetManager,
+        dependencies: [CORE_SYSTEMS.EventBus, PLATFORM_SYSTEMS.Logger],
+        factory: (c) => {
+            const eventBus = c.get<EventBus>(CORE_SYSTEMS.EventBus);
+            const logger = c.get<ILogger>(PLATFORM_SYSTEMS.Logger);
+            const assetManager = new AssetManager(eventBus, logger);
+
+            const networkProvider = platform.getNetworkProvider?.();
+            const imageLoader = platform.getImageLoader?.();
+
+            if (imageLoader) {
+                assetManager.registerLoader(new ImageLoader(imageLoader));
+            }
+            if (networkProvider) {
+                assetManager.registerLoader(new JsonLoader(networkProvider, logger));
+            }
+
+            const audioPlatform = platform.getAudioPlatform?.();
+            if (audioPlatform && networkProvider) {
+                const audioContext = audioPlatform.getNativeContext?.();
+                if (audioContext) {
+                    assetManager.registerLoader(new AudioLoader(audioContext, networkProvider, logger));
+                }
+            }
+
+            return assetManager;
+        },
+        lazy: false
+    };
+}
+
+function createAudioManagerDefinition(
+    platform: IPlatformAdapter,
+    audioConfig: PlatformSystemConfig['audio']
+): SystemDefinition {
+    return {
+        key: PLATFORM_SYSTEMS.AudioManager,
+        dependencies: [CORE_SYSTEMS.EventBus, PLATFORM_SYSTEMS.AssetManager],
+        factory: (c) => {
+            const eventBus = c.get<EventBus>(CORE_SYSTEMS.EventBus);
+            const assetManager = c.get<AssetManager>(PLATFORM_SYSTEMS.AssetManager);
+
+            const audioPlatform = platform.getAudioPlatform?.();
+            if (!audioPlatform) {
+                throw new Error('[PlatformSystemDefs] Platform does not support audio. Cannot create AudioManager.');
+            }
+
+            const audioContext = audioPlatform.getNativeContext?.();
+            if (!audioContext) {
+                throw new Error('[PlatformSystemDefs] Platform audio context is null. Cannot create AudioManager.');
+            }
+
+            const timer = platform.getTimerProvider();
+            const config = (typeof audioConfig === 'object' ? audioConfig : {}) ?? {};
+            const sfxPoolSize = config.sfxPoolSize ?? 10;
+            const logger = c.get<ILogger>(PLATFORM_SYSTEMS.Logger);
+            const audioManager = new AudioManager(eventBus, assetManager, audioContext, timer, {sfxPoolSize}, logger);
+
+            if (config.volume !== undefined) {
+                audioManager.setMasterVolume(config.volume);
+            }
+            if (config.musicVolume !== undefined) {
+                audioManager.setMusicVolume(config.musicVolume);
+            }
+            if (config.sfxVolume !== undefined) {
+                audioManager.setSFXVolume(config.sfxVolume);
+            }
+
+            return audioManager;
+        },
+        lazy: false
+    };
+}
+
+function createEffectManagerDefinition(platform: IPlatformAdapter): SystemDefinition {
+    return {
+        key: PLATFORM_SYSTEMS.EffectManager,
+        dependencies: [PLATFORM_SYSTEMS.Logger],
+        factory: (c) => new EffectManager(
+            platform.getTimerProvider(),
+            c.get<ILogger>(PLATFORM_SYSTEMS.Logger)
+        ),
+        lazy: false
+    };
+}
+
+function createRendererDefinitions(): SystemDefinition[] {
+    return [
+        {
+            key: PLATFORM_SYSTEMS.RendererDOM,
+            dependencies: [PLATFORM_SYSTEMS.AssetManager],
+            factory: (c) => {
+                const assetManager = c.get<AssetManager>(PLATFORM_SYSTEMS.AssetManager);
+                return new DomRenderer(assetManager);
+            },
+            lazy: false
+        },
+        {
+            key: PLATFORM_SYSTEMS.RendererCanvas,
+            dependencies: [PLATFORM_SYSTEMS.AssetManager],
+            factory: (c) => {
+                const assetManager = c.get<AssetManager>(PLATFORM_SYSTEMS.AssetManager);
+                return new CanvasRenderer(assetManager);
+            },
+            lazy: false
+        }
+    ];
+}
+
+function createRenderManagerDefinition(
+    platform: IPlatformAdapter,
+    rendererConfig: PlatformSystemConfig['renderer']
+): SystemDefinition {
+    const renderContainer = platform.getRenderContainer?.();
+    if (!renderContainer) {
+        throw new Error('[PlatformSystemDefs] Platform does not support rendering. Cannot create RenderManager.');
+    }
+
+    const rendererKey = rendererConfig!.type === 'canvas'
+        ? PLATFORM_SYSTEMS.RendererCanvas
+        : PLATFORM_SYSTEMS.RendererDOM;
+
+    return {
+        key: PLATFORM_SYSTEMS.RenderManager,
+        dependencies: [
+            CORE_SYSTEMS.EventBus,
+            PLATFORM_SYSTEMS.RendererDOM,
+            PLATFORM_SYSTEMS.RendererCanvas,
+            PLATFORM_SYSTEMS.Logger
+        ],
+        factory: (c) => {
+            const eventBus = c.get<EventBus>(CORE_SYSTEMS.EventBus);
+            const renderer = c.get<IRenderer>(rendererKey);
+
+            return new RenderManager(
+                rendererConfig!,
+                eventBus,
+                renderContainer,
+                renderer,
+                c.get<ILogger>(PLATFORM_SYSTEMS.Logger)
+            );
+        },
+        lazy: false
+    };
+}
+
+function createInputManagerDefinition(platform: IPlatformAdapter): SystemDefinition {
+    return {
+        key: PLATFORM_SYSTEMS.InputManager,
+        dependencies: [CORE_SYSTEMS.StateManager, CORE_SYSTEMS.EventBus, PLATFORM_SYSTEMS.Logger],
+        factory: (c) => {
+            const stateManager = c.get<GameStateManager>(CORE_SYSTEMS.StateManager);
+            const eventBus = c.get<EventBus>(CORE_SYSTEMS.EventBus);
+            const timer = platform.getTimerProvider();
+            const logger = c.get<ILogger>(PLATFORM_SYSTEMS.Logger);
+            return new InputManager(stateManager, eventBus, timer, logger);
+        },
+        initialize: (inputManager, c) => {
+            const logger = c.get<ILogger>(PLATFORM_SYSTEMS.Logger);
+
+            const inputAdapter = platform.getInputAdapter?.();
+            if (!inputAdapter) {
+                logger.warn('[PlatformSystemDefs] Platform does not provide input adapter. Input will not work.');
+                return;
+            }
+
+            inputAdapter.onEvent((event) => inputManager.processEvent(event));
+
+            const renderContainer = platform.getRenderContainer?.();
+            const attached = inputAdapter.attach(renderContainer, {tabindex: '0'});
+            if (!attached) {
+                logger.warn('[PlatformSystemDefs] Could not attach input adapter.');
+            }
+        },
+        lazy: false
+    };
+}
+
 /**
  * Create platform-aware system definitions
  *
@@ -77,228 +261,31 @@ export function createPlatformSystemDefinitions(
 ): SystemDefinition[] {
     const definitions: SystemDefinition[] = [];
 
-    // ====================================================================
-    // LOGGER (Platform-provided, but used by other systems)
-    // ====================================================================
-    // Note: The Logger is bootstrapped and registered *by the Engine*
-    // because SystemContainer itself needs it before any other system.
-    // We only define its KEY here for dependency tracking.
-
-    // ====================================================================
-    // ASSET MANAGER (Platform-agnostic, but needs audio platform for AudioLoader)
-    // ====================================================================
-
     if (config.assets !== false) {
-        definitions.push({
-            key: PLATFORM_SYSTEMS.AssetManager,
-            dependencies: [CORE_SYSTEMS.EventBus, PLATFORM_SYSTEMS.Logger],
-            factory: (c) => {
-                const eventBus = c.get<EventBus>(CORE_SYSTEMS.EventBus);
-                const logger = c.get<ILogger>(PLATFORM_SYSTEMS.Logger);
-                const assetManager = new AssetManager(eventBus, logger);
-
-                // Get platform-specific loader functions from providers
-                const networkProvider = platform.getNetworkProvider?.();
-                const imageLoader = platform.getImageLoader?.();
-
-                // Register loaders based on platform capabilities
-                if (imageLoader) {
-                    assetManager.registerLoader(new ImageLoader(imageLoader));
-                }
-                if (networkProvider) {
-                    assetManager.registerLoader(new JsonLoader(networkProvider, logger));
-                }
-
-                // Get AudioContext from platform (NOT from window)
-                const audioPlatform = platform.getAudioPlatform?.();
-                if (audioPlatform && networkProvider) {
-                    const audioContext = audioPlatform.getNativeContext?.();
-                    if (audioContext) {
-                        // Inject both AudioContext and the platform's fetch
-                        assetManager.registerLoader(new AudioLoader(audioContext, networkProvider, logger));
-                    }
-                }
-
-                return assetManager;
-            },
-            lazy: false
-        });
+        definitions.push(createAssetManagerDefinition(platform));
     }
-
-    // ====================================================================
-    // AUDIO MANAGER (Requires IAudioPlatform)
-    // ====================================================================
 
     if (config.audio !== false) {
         if (config.assets === false) {
             throw new Error('[PlatformSystemDefs] AudioManager requires AssetManager. Enable assets in config.');
         }
-
-        definitions.push({
-            key: PLATFORM_SYSTEMS.AudioManager,
-            dependencies: [CORE_SYSTEMS.EventBus, PLATFORM_SYSTEMS.AssetManager],
-            factory: (c) => {
-                const eventBus = c.get<EventBus>(CORE_SYSTEMS.EventBus);
-                const assetManager = c.get<AssetManager>(PLATFORM_SYSTEMS.AssetManager);
-
-                // Get AudioContext from platform (NOT from window)
-                const audioPlatform = platform.getAudioPlatform?.();
-                if (!audioPlatform) {
-                    throw new Error('[PlatformSystemDefs] Platform does not support audio. Cannot create AudioManager.');
-                }
-
-                const audioContext = audioPlatform.getNativeContext?.();
-                if (!audioContext) {
-                    throw new Error('[PlatformSystemDefs] Platform audio context is null. Cannot create AudioManager.');
-                }
-
-                const timer = platform.getTimerProvider();
-                const audioConfig = (typeof config.audio === 'object' ? config.audio : {}) ?? {};
-                const sfxPoolSize = audioConfig.sfxPoolSize ?? 10;
-                const logger = c.get<ILogger>(PLATFORM_SYSTEMS.Logger);
-                const audioManager = new AudioManager(eventBus, assetManager, audioContext, timer, {sfxPoolSize}, logger);
-
-                // Apply audio config
-                if (audioConfig.volume !== undefined) {
-                    audioManager.setMasterVolume(audioConfig.volume);
-                }
-                if (audioConfig.musicVolume !== undefined) {
-                    audioManager.setMusicVolume(audioConfig.musicVolume);
-                }
-                if (audioConfig.sfxVolume !== undefined) {
-                    audioManager.setSFXVolume(audioConfig.sfxVolume);
-                }
-
-                return audioManager;
-            },
-            lazy: false
-        });
+        definitions.push(createAudioManagerDefinition(platform, config.audio));
     }
-
-    // ====================================================================
-    // EFFECT MANAGER (Now platform-agnostic)
-    // ====================================================================
 
     if (config.effects !== false) {
-        definitions.push({
-            key: PLATFORM_SYSTEMS.EffectManager,
-            dependencies: [PLATFORM_SYSTEMS.Logger], // <-- ADD DEPENDENCY
-            factory: (c) => new EffectManager(
-                platform.getTimerProvider(),
-                c.get<ILogger>(PLATFORM_SYSTEMS.Logger) // <-- INJECT LOGGER
-            ),
-            lazy: false
-        });
+        definitions.push(createEffectManagerDefinition(platform));
     }
-
-    // ====================================================================
-    // RENDERERS (Renderer implementations as systems)
-    // ====================================================================
 
     if (config.renderer) {
         if (config.assets === false) {
             throw new Error('[PlatformSystemDefs] Renderers require AssetManager. Enable assets in config.');
         }
-
-        // DOM Renderer system
-        definitions.push({
-            key: PLATFORM_SYSTEMS.RendererDOM,
-            dependencies: [PLATFORM_SYSTEMS.AssetManager],
-            factory: (c) => {
-                const assetManager = c.get<AssetManager>(PLATFORM_SYSTEMS.AssetManager);
-                return new DomRenderer(assetManager);
-            },
-            lazy: false
-        });
-
-        // Canvas Renderer system
-        definitions.push({
-            key: PLATFORM_SYSTEMS.RendererCanvas,
-            dependencies: [PLATFORM_SYSTEMS.AssetManager],
-            factory: (c) => {
-                const assetManager = c.get<AssetManager>(PLATFORM_SYSTEMS.AssetManager);
-                return new CanvasRenderer(assetManager);
-            },
-            lazy: false
-        });
+        definitions.push(...createRendererDefinitions());
+        definitions.push(createRenderManagerDefinition(platform, config.renderer));
     }
-
-    // ====================================================================
-    // RENDER MANAGER (Requires IRenderContainer from platform)
-    // ====================================================================
-
-    if (config.renderer) {
-        const renderContainer = platform.getRenderContainer?.();
-        if (!renderContainer) {
-            throw new Error('[PlatformSystemDefs] Platform does not support rendering. Cannot create RenderManager.');
-        }
-
-        // Determine which renderer to use based on config
-        const rendererKey = config.renderer.type === 'canvas'
-            ? PLATFORM_SYSTEMS.RendererCanvas
-            : PLATFORM_SYSTEMS.RendererDOM;
-
-        definitions.push({
-            key: PLATFORM_SYSTEMS.RenderManager,
-            dependencies: [
-                CORE_SYSTEMS.EventBus,
-                PLATFORM_SYSTEMS.RendererDOM,
-                PLATFORM_SYSTEMS.RendererCanvas,
-                PLATFORM_SYSTEMS.Logger
-            ],
-            factory: (c) => {
-                const eventBus = c.get<EventBus>(CORE_SYSTEMS.EventBus);
-                const renderer = c.get<IRenderer>(rendererKey);
-
-                return new RenderManager(
-                    config.renderer!,
-                    eventBus,
-                    renderContainer,
-                    renderer,
-                    c.get<ILogger>(PLATFORM_SYSTEMS.Logger)
-                );
-            },
-            lazy: false
-        });
-    }
-
-    // ====================================================================
-    // INPUT MANAGER (Requires IInputAdapter from platform)
-    // ====================================================================
 
     if (config.input !== false) {
-        definitions.push({
-            key: PLATFORM_SYSTEMS.InputManager,
-            dependencies: [CORE_SYSTEMS.StateManager, CORE_SYSTEMS.EventBus, PLATFORM_SYSTEMS.Logger],
-            factory: (c) => {
-                const stateManager = c.get<GameStateManager>(CORE_SYSTEMS.StateManager);
-                const eventBus = c.get<EventBus>(CORE_SYSTEMS.EventBus);
-                const timer = platform.getTimerProvider();
-                const logger = c.get<ILogger>(PLATFORM_SYSTEMS.Logger);
-                return new InputManager(stateManager, eventBus, timer, logger);
-            },
-            initialize: (inputManager, c) => {
-                const logger = c.get<ILogger>(PLATFORM_SYSTEMS.Logger);
-
-                // Get input adapter from platform (NOT from window/document)
-                const inputAdapter = platform.getInputAdapter?.();
-                if (!inputAdapter) {
-                    logger.warn('[PlatformSystemDefs] Platform does not provide input adapter. Input will not work.');
-                    return;
-                }
-
-                // Wire adapter to InputManager
-                inputAdapter.onEvent((event) => inputManager.processEvent(event));
-
-                // Attach adapter to platform
-                const renderContainer = platform.getRenderContainer?.();
-                const attached = inputAdapter.attach(renderContainer, {tabindex: '0'});
-                if (!attached) {
-                    logger.warn('[PlatformSystemDefs] Could not attach input adapter.');
-                }
-            },
-            lazy: false
-        });
+        definitions.push(createInputManagerDefinition(platform));
     }
 
     return definitions;

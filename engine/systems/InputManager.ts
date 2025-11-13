@@ -77,110 +77,149 @@ export class InputManager {
 
         switch (event.type) {
             case 'keydown':
-                this.state.keysDown.add(event.key);
-                this.comboTracker.addToBuffer(event.key, event.timestamp);
-                this.dispatchEvent(event, true);
-                this.actionMapper.checkActionTriggers('key', event.key, {
-                    shift: event.shift,
-                    ctrl: event.ctrl,
-                    alt: event.alt,
-                    meta: event.meta
-                });
+                this.handleKeyDown(event);
                 break;
-
             case 'keyup':
-                this.state.keysDown.delete(event.key);
-                this.dispatchEvent(event, false);
+                this.handleKeyUp(event);
                 break;
-
             case 'mousedown':
-                this.state.mouseButtonsDown.add(event.button);
-                this.comboTracker.addToBuffer(`mouse${event.button}`, event.timestamp);
-                this.dispatchEvent(event, true);
-                this.actionMapper.checkActionTriggers('mouse', event.button, {
-                    shift: event.shift,
-                    ctrl: event.ctrl,
-                    alt: event.alt,
-                    meta: event.meta
-                });
+                this.handleMouseDown(event);
                 break;
-
             case 'mouseup':
-                this.state.mouseButtonsDown.delete(event.button);
-                this.dispatchEvent(event, false);
+                this.handleMouseUp(event);
                 break;
-
             case 'mousemove':
-                this.state.mousePosition = { x: event.x, y: event.y };
-                this.dispatchEvent(event, false);
+                this.handleMouseMove(event);
                 break;
-
             case 'wheel':
-                this.dispatchEvent(event, false);
+                this.handleWheel(event);
                 break;
             case 'click':
-                // Use pre-extracted data from platform adapter (DomInputAdapter already populated event.data)
-                if (event.data && Object.keys(event.data).length > 0) {
-                    this.eventBus.emit('input.hotspot', {
-                        element: event.target,
-                        data: event.data
-                    });
-                }
-                this.dispatchEvent(event, false);
+                this.handleClick(event);
                 break;
-
             case 'touchstart':
-                event.touches.forEach(touch => {
-                    this.state.touchPoints.set(touch.id, { x: touch.x, y: touch.y });
-                });
-                this.comboTracker.addToBuffer(`touch${event.touches.length}`, event.timestamp);
-                this.dispatchEvent(event, true);
+                this.handleTouchStart(event);
                 break;
-
             case 'touchmove':
-                event.touches.forEach(touch => {
-                    this.state.touchPoints.set(touch.id, { x: touch.x, y: touch.y });
-                });
-                this.dispatchEvent(event, false);
+                this.handleTouchMove(event);
                 break;
-
             case 'touchend':
-                event.touches.forEach(touch => {
-                    this.state.touchPoints.delete(touch.id);
-                });
-                this.dispatchEvent(event, false);
+                this.handleTouchEnd(event);
                 break;
-
             case 'gamepadbutton':
-                // Update gamepad state for button changes
-                const gamepadButtonState = this.state.gamepadStates.get(event.gamepadIndex) ?? {
-                    buttons: new Map(),
-                    axes: new Map()
-                };
-                gamepadButtonState.buttons.set(event.button, {
-                    pressed: event.pressed,
-                    value: event.value
-                });
-                this.state.gamepadStates.set(event.gamepadIndex, gamepadButtonState);
-
-                if (event.pressed) {
-                    this.comboTracker.addToBuffer(`gamepad${event.gamepadIndex}_button${event.button}`, event.timestamp);
-                    this.actionMapper.checkActionTriggers('gamepad', event.button);
-                }
-                this.dispatchEvent(event, event.pressed);
+                this.handleGamepadButton(event);
                 break;
-
             case 'gamepadaxis':
-                // Update gamepad state for axis changes
-                const gamepadState = this.state.gamepadStates.get(event.gamepadIndex) ?? {
-                    buttons: new Map(),
-                    axes: new Map()
-                };
-                gamepadState.axes.set(event.axis, event.value);
-                this.state.gamepadStates.set(event.gamepadIndex, gamepadState);
-                this.dispatchEvent(event, false);
+                this.handleGamepadAxis(event);
                 break;
         }
+    }
+
+    // ============================================================================
+    // EVENT TYPE HANDLERS (Extracted from processEvent)
+    // ============================================================================
+
+    private handleKeyDown(event: Extract<EngineInputEvent, { type: 'keydown' }>): void {
+        this.state.keysDown.add(event.key);
+        this.comboTracker.addToBuffer(event.key, event.timestamp);
+        this.dispatchEvent(event, true);
+        this.actionMapper.checkActionTriggers('key', event.key, {
+            shift: event.shift,
+            ctrl: event.ctrl,
+            alt: event.alt,
+            meta: event.meta
+        });
+    }
+
+    private handleKeyUp(event: Extract<EngineInputEvent, { type: 'keyup' }>): void {
+        this.state.keysDown.delete(event.key);
+        this.dispatchEvent(event, false);
+    }
+
+    private handleMouseDown(event: Extract<EngineInputEvent, { type: 'mousedown' }>): void {
+        this.state.mouseButtonsDown.add(event.button);
+        this.comboTracker.addToBuffer(`mouse${event.button}`, event.timestamp);
+        this.dispatchEvent(event, true);
+        this.actionMapper.checkActionTriggers('mouse', event.button, {
+            shift: event.shift,
+            ctrl: event.ctrl,
+            alt: event.alt,
+            meta: event.meta
+        });
+    }
+
+    private handleMouseUp(event: Extract<EngineInputEvent, { type: 'mouseup' }>): void {
+        this.state.mouseButtonsDown.delete(event.button);
+        this.dispatchEvent(event, false);
+    }
+
+    private handleMouseMove(event: Extract<EngineInputEvent, { type: 'mousemove' }>): void {
+        this.state.mousePosition = { x: event.x, y: event.y };
+        this.dispatchEvent(event, false);
+    }
+
+    private handleWheel(event: Extract<EngineInputEvent, { type: 'wheel' }>): void {
+        this.dispatchEvent(event, false);
+    }
+
+    private handleClick(event: Extract<EngineInputEvent, { type: 'click' }>): void {
+        if (event.data && Object.keys(event.data).length > 0) {
+            this.eventBus.emit('input.hotspot', {
+                element: event.target,
+                data: event.data
+            });
+        }
+        this.dispatchEvent(event, false);
+    }
+
+    private handleTouchStart(event: Extract<EngineInputEvent, { type: 'touchstart' }>): void {
+        event.touches.forEach(touch => {
+            this.state.touchPoints.set(touch.id, { x: touch.x, y: touch.y });
+        });
+        this.comboTracker.addToBuffer(`touch${event.touches.length}`, event.timestamp);
+        this.dispatchEvent(event, true);
+    }
+
+    private handleTouchMove(event: Extract<EngineInputEvent, { type: 'touchmove' }>): void {
+        event.touches.forEach(touch => {
+            this.state.touchPoints.set(touch.id, { x: touch.x, y: touch.y });
+        });
+        this.dispatchEvent(event, false);
+    }
+
+    private handleTouchEnd(event: Extract<EngineInputEvent, { type: 'touchend' }>): void {
+        event.touches.forEach(touch => {
+            this.state.touchPoints.delete(touch.id);
+        });
+        this.dispatchEvent(event, false);
+    }
+
+    private handleGamepadButton(event: Extract<EngineInputEvent, { type: 'gamepadbutton' }>): void {
+        const gamepadButtonState = this.state.gamepadStates.get(event.gamepadIndex) ?? {
+            buttons: new Map(),
+            axes: new Map()
+        };
+        gamepadButtonState.buttons.set(event.button, {
+            pressed: event.pressed,
+            value: event.value
+        });
+        this.state.gamepadStates.set(event.gamepadIndex, gamepadButtonState);
+
+        if (event.pressed) {
+            this.comboTracker.addToBuffer(`gamepad${event.gamepadIndex}_button${event.button}`, event.timestamp);
+            this.actionMapper.checkActionTriggers('gamepad', event.button);
+        }
+        this.dispatchEvent(event, event.pressed);
+    }
+
+    private handleGamepadAxis(event: Extract<EngineInputEvent, { type: 'gamepadaxis' }>): void {
+        const gamepadState = this.state.gamepadStates.get(event.gamepadIndex) ?? {
+            buttons: new Map(),
+            axes: new Map()
+        };
+        gamepadState.axes.set(event.axis, event.value);
+        this.state.gamepadStates.set(event.gamepadIndex, gamepadState);
+        this.dispatchEvent(event, false);
     }
 
     // ============================================================================

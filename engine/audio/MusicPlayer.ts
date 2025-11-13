@@ -19,6 +19,9 @@ export interface MusicTrack {
  * MusicPlayer - Handles all state and logic for music playback.
  */
 export class MusicPlayer {
+    private static readonly MILLISECONDS_PER_SECOND = 1000;
+    private static readonly DEFAULT_CROSSFADE_DURATION_SECONDS = 2;
+
     private currentMusic: MusicTrack | null = null;
     private musicState: MusicState = 'stopped';
 
@@ -128,7 +131,7 @@ export class MusicPlayer {
                 }
                 this.currentMusic = null;
                 this.musicState = 'stopped';
-            }, fadeOutDuration * 1000);
+            }, fadeOutDuration * MusicPlayer.MILLISECONDS_PER_SECOND);
         } else {
             if (this.currentMusic.source) {
                 this.currentMusic.source.stop();
@@ -141,7 +144,7 @@ export class MusicPlayer {
         this.eventBus.emit('music.stopped', {});
     }
 
-    async crossfadeMusic(newTrackId: string, duration: number = 2): Promise<void> {
+    async crossfadeMusic(newTrackId: string, duration: number = MusicPlayer.DEFAULT_CROSSFADE_DURATION_SECONDS): Promise<void> {
         if (this.currentMusic && this.currentMusic.buffer === this.assetManager.get(newTrackId)) {
             return; // Don't crossfade to the same track
         }

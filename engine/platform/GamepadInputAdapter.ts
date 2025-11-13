@@ -51,6 +51,9 @@ interface GamepadState {
  * ```
  */
 export class GamepadInputAdapter extends BaseInputAdapter {
+    private static readonly DEFAULT_POLL_RATE_MS = 16; // ~60Hz (1000ms / 60fps)
+    private static readonly AXIS_DEADZONE_THRESHOLD = 0.1; // 10% deadzone to filter noise
+
     private pollingTimerId: unknown | null = null;
     private lastGamepadStates: Map<number, GamepadState> = new Map();
     private readonly pollRate: number;
@@ -61,7 +64,7 @@ export class GamepadInputAdapter extends BaseInputAdapter {
      * @param pollRate Polling rate in milliseconds (default: 16ms = ~60Hz)
      * @param logger ILogger
      */
-    constructor(timer: ITimerProvider, pollRate: number = 16, private logger: ILogger) {
+    constructor(timer: ITimerProvider, pollRate: number = GamepadInputAdapter.DEFAULT_POLL_RATE_MS, private logger: ILogger) {
         super();
         this.timer = timer;
         this.pollRate = pollRate;
@@ -201,7 +204,7 @@ export class GamepadInputAdapter extends BaseInputAdapter {
                 const lastValue = lastState?.axes.get(index) || 0;
 
                 // Emit axis change event (only if change is significant)
-                if (Math.abs(value - lastValue) > 0.1) {
+                if (Math.abs(value - lastValue) > GamepadInputAdapter.AXIS_DEADZONE_THRESHOLD) {
                     const event: GamepadAxisEvent = {
                         type: 'gamepadaxis',
                         timestamp: this.timer.now(),

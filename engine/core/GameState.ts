@@ -21,7 +21,7 @@ export abstract class GameState<TGame = Record<string, unknown>> {
     public isActive: boolean;
     protected context!: TypedGameContext<TGame>;
 
-    constructor(public name: string, private logger: ILogger) {
+    constructor(public readonly name: string, private readonly logger: ILogger) {
         this.isActive = false;
     }
 

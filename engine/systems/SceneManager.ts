@@ -121,8 +121,8 @@ export class SceneManager {
      * @returns True if navigation succeeded, false if history was empty
      */
     goBack(context: GameContext): boolean {
-        if (this.history.length === 0) return false;
-        const previousSceneId = this.history.pop()!;
+        const previousSceneId = this.history.pop();
+        if (!previousSceneId) return false;
         return this.goToScene(previousSceneId, context, true);
     }
 

@@ -4,9 +4,9 @@
 import type { ActionContext } from '@engine/types';
 
 export abstract class Action<TGame = Record<string, unknown>> {
-    public id: string;
-    public name: string;
-    public description: string;
+    public readonly id: string;
+    public readonly name: string;
+    public readonly description: string;
 
     constructor(id: string, name: string, description: string = '') {
         this.id = id;

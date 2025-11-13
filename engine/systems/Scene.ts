@@ -9,7 +9,7 @@ import {SceneChoice, SceneData} from "@engine/types/EngineEventMap";
 
 export class Scene {
 
-    constructor(public sceneId: string, public sceneType: string, public sceneData: SceneData = {}) {
+    constructor(public readonly sceneId: string, public readonly sceneType: string, public readonly sceneData: SceneData = {}) {
     }
 
     /**

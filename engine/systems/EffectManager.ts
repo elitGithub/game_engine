@@ -60,58 +60,79 @@ export class EffectManager {
     apply(target: IEffectTarget, effectName: string, context: GameContext, duration?: number): Promise<void> {
         if (!target) return Promise.resolve();
 
-        const targetId = target.id;
-
         if (this.dynamicEffects.has(effectName)) {
-            const logic = this.dynamicEffects.get(effectName)!;
-
-            if (!this.activeDynamicEffects.has(targetId)) {
-                this.activeDynamicEffects.set(targetId, []);
-            }
-
-            const existing = this.activeDynamicEffects.get(targetId)!;
-            if (existing.some(e => e.name === effectName)) {
-                return Promise.resolve(); // Effect already active
-            }
-
-            logic.onStart(target, context, this.logger);
-            existing.push({ name: effectName, logic, target });
-
+            this.applyDynamicEffect(target, effectName, context);
         } else if (this.staticEffects.has(effectName)) {
-            const cssClass = this.staticEffects.get(effectName)!;
-            if (target.addClass) {
-                const classes = Array.isArray(cssClass) ? cssClass : [cssClass];
-                classes.forEach(c => target.addClass!(c));
-            } else {
-                this.logger.warn(`[EffectManager] Static effect '${effectName}' not supported by target '${target.id}'.`);
-            }
-
+            this.applyStaticEffect(target, effectName);
         } else {
             this.logger.warn(`[EffectManager] Effect '${effectName}' not registered.`);
             return Promise.resolve();
         }
 
-        if (duration) {
-            return new Promise(resolve => {
-                const timerId = this.timer.setTimeout(() => {
-                    this.remove(target, effectName, context);
+        return duration
+            ? this.applyEffectWithDuration(target, effectName, context, duration)
+            : Promise.resolve();
+    }
 
-                    const timers = this.timedEffects.get(targetId);
-                    if (timers) {
-                        const index = timers.indexOf(timerId);
-                        if (index > -1) timers.splice(index, 1);
-                    }
-                    resolve();
-                }, duration);
+    private applyDynamicEffect(target: IEffectTarget, effectName: string, context: GameContext): void {
+        const targetId = target.id;
+        const logic = this.dynamicEffects.get(effectName)!;
 
-                if (!this.timedEffects.has(targetId)) {
-                    this.timedEffects.set(targetId, []);
-                }
-                this.timedEffects.get(targetId)!.push(timerId);
-            });
+        if (!this.activeDynamicEffects.has(targetId)) {
+            this.activeDynamicEffects.set(targetId, []);
         }
 
-        return Promise.resolve();
+        const existing = this.activeDynamicEffects.get(targetId)!;
+        if (existing.some(e => e.name === effectName)) {
+            return; // Effect already active
+        }
+
+        logic.onStart(target, context, this.logger);
+        existing.push({ name: effectName, logic, target });
+    }
+
+    private applyStaticEffect(target: IEffectTarget, effectName: string): void {
+        const cssClass = this.staticEffects.get(effectName)!;
+        if (target.addClass) {
+            const classes = Array.isArray(cssClass) ? cssClass : [cssClass];
+            classes.forEach(c => target.addClass!(c));
+        } else {
+            this.logger.warn(`[EffectManager] Static effect '${effectName}' not supported by target '${target.id}'.`);
+        }
+    }
+
+    private applyEffectWithDuration(
+        target: IEffectTarget,
+        effectName: string,
+        context: GameContext,
+        duration: number
+    ): Promise<void> {
+        const targetId = target.id;
+
+        return new Promise(resolve => {
+            const timerId = this.timer.setTimeout(() => {
+                this.remove(target, effectName, context);
+                this.removeTimerEntry(targetId, timerId);
+                resolve();
+            }, duration);
+
+            this.addTimerEntry(targetId, timerId);
+        });
+    }
+
+    private addTimerEntry(targetId: string, timerId: unknown): void {
+        if (!this.timedEffects.has(targetId)) {
+            this.timedEffects.set(targetId, []);
+        }
+        this.timedEffects.get(targetId)!.push(timerId);
+    }
+
+    private removeTimerEntry(targetId: string, timerId: unknown): void {
+        const timers = this.timedEffects.get(targetId);
+        if (timers) {
+            const index = timers.indexOf(timerId);
+            if (index > -1) timers.splice(index, 1);
+        }
     }
 
     remove(target: IEffectTarget, effectName: string, context: GameContext): void {

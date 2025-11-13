@@ -61,9 +61,9 @@ export class GameStateManager<TGame = Record<string, unknown>> {
     }
 
     popState(): void {
-        if (this.stateStack.length === 0) return;
+        const removedState = this.stateStack.pop();
+        if (!removedState) return;
 
-        const removedState = this.stateStack.pop()!;
         removedState.exit();
 
         const newState = this.getCurrentState();
@@ -74,7 +74,8 @@ export class GameStateManager<TGame = Record<string, unknown>> {
 
     changeState(stateName: string, data: StateData = {}): void {
         while (this.stateStack.length > 0) {
-            this.stateStack.pop()!.exit();
+            const state = this.stateStack.pop();
+            if (state) state.exit();
         }
 
         this.pushState(stateName, data);
