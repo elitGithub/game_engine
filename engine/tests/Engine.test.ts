@@ -3,7 +3,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { Engine, type EngineConfig } from '@engine/Engine';
 import type { ISerializable } from '@engine/types';
-import { BrowserContainer } from '@engine/core/PlatformContainer';
 import { GameState } from '@engine/core/GameState';
 import { Scene } from '@engine/systems/Scene';
 import type {ILogger} from "@engine/interfaces";
@@ -57,15 +56,11 @@ describe('Engine', () => {
     beforeEach(() => {
         vi.clearAllMocks();
 
-        // Create a mock container element
-        const mockElement = document.createElement('div');
-
         config = {
             debug: false,
             gameVersion: '1.0.0',
             systems: { audio: true, save: true, assets: true },
             gameState: { player: mockPlayer },
-            container: new BrowserContainer(mockElement)
         };
     });
 

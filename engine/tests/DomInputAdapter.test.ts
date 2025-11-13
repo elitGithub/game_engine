@@ -13,11 +13,6 @@ const mockElement = {
     focus: vi.fn(),
 };
 
-// Mock a PlatformContainer
-const mockContainer = {
-    getDomElement: vi.fn(() => mockElement as any),
-};
-
 const mockLogger: ILogger = {
     log: vi.fn(),
     warn: vi.fn(),
@@ -44,12 +39,12 @@ describe('DomInputAdapter', () => {
             listenerMap.set(event, listener);
         });
 
-        adapter.attachToElement(mockElement as any);
+        adapter.attach(mockElement as any);
     });
 
     it('should attach to element and add all listeners', () => {
         // Use attachToElement directly since attachToContainer was removed
-        adapter.attachToElement(mockElement as any, { focus: true, tabindex: '0' });
+        adapter.attach(mockElement as any, { focus: true, tabindex: '0' });
 
         expect(mockElement.setAttribute).toHaveBeenCalledWith('tabindex', '0');
         expect(mockElement.focus).toHaveBeenCalled();

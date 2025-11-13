@@ -93,32 +93,6 @@ export class DomInputAdapter extends BaseInputAdapter {
         return true;
     }
 
-    /**
-     * Legacy attach to HTML element (direct usage)
-     * @deprecated Use attach(container, options) instead
-     */
-    attachToElement(element: HTMLElement, options?: { focus?: boolean; tabindex?: string }): void {
-        if (this.attached) {
-            this.detach();
-        }
-
-        this.targetElement = element;
-
-        if (options?.tabindex !== undefined) {
-            element.setAttribute('tabindex', options.tabindex);
-        } else if (!element.hasAttribute('tabindex')) {
-            element.setAttribute('tabindex', '0');
-        }
-
-        this.attachListeners();
-
-        if (options?.focus) {
-            element.focus();
-        }
-
-        this.attached = true;
-    }
-
     detach(): void {
         if (!this.targetElement) return;
 

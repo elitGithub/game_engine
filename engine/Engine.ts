@@ -10,14 +10,12 @@ import {InputManager} from '@engine/systems/InputManager';
 import type {AssetManager, AssetManifestEntry} from './systems/AssetManager';
 import type {StorageAdapter} from '@engine/core/StorageAdapter';
 import {GameData} from "@engine/types/EngineEventMap";
-import {PlatformContainer} from "@engine/core/PlatformContainer";
 import {RenderManager} from "@engine/core/RenderManager";
 import {PluginManager} from './core/PluginManager';
 import {SystemContainer} from './core/SystemContainer';
 import {createCoreSystemDefinitions, CORE_SYSTEMS} from './core/CoreSystemDefs';
 import {createPlatformSystemDefinitions, PLATFORM_SYSTEMS, type PlatformSystemConfig} from './core/PlatformSystemDefs';
 import type {IPlatformAdapter,} from '@engine/interfaces';
-import {BrowserPlatformAdapter} from '@engine/platform/BrowserPlatformAdapter';
 import {Scene} from "@engine/systems/Scene";
 import { ConsoleLogger } from '@engine/platform/ConsoleLogger';
 import {ILogger} from "@engine/interfaces/ILogger";
@@ -61,19 +59,7 @@ export interface EngineConfig {
     systems: SystemConfig;
     gameState: Record<string, unknown>;
     gameData?: GameData;
-
-    /**
-     * Platform adapter (new, preferred way)
-     * Provides platform-specific functionality (audio, rendering, input, storage)
-     */
     platform?: IPlatformAdapter;
-
-    /**
-     * Platform container (old, deprecated way - kept for backward compatibility)
-     * Will be converted to IPlatformAdapter internally
-     */
-    container?: PlatformContainer;
-
     storageAdapter?: StorageAdapter;
     localization?: boolean | {
         initialLanguage?: string;
@@ -182,22 +168,6 @@ export class Engine implements ISerializationRegistry {
         if (config.platform) {
             return config.platform;
         }
-
-        // Old API: convert PlatformContainer to IPlatformAdapter
-        if (config.container) {
-            const containerElement = config.container.getDomElement?.();
-            if (!containerElement) {
-                throw new Error('[Engine] PlatformContainer must provide getDomElement() for backward compatibility');
-            }
-
-            return new BrowserPlatformAdapter({
-                containerElement,
-                renderType: 'auto',
-                audio: config.systems.audio !== false,
-                input: config.systems.input !== false
-            });
-        }
-
         throw new Error('[Engine] Must provide either platform or container in config');
     }
 

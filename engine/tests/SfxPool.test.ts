@@ -29,8 +29,7 @@ const mockLogger: ILogger = {
 };
 
 let lastCreatedMockBufferSource = createMockBufferSource();
-
-const createMockGainNode = () => ({
+const mockGainNode = {
     connect: vi.fn(),
     disconnect: vi.fn(),
     gain: {
@@ -39,8 +38,7 @@ const createMockGainNode = () => ({
         linearRampToValueAtTime: vi.fn(),
         cancelScheduledValues: vi.fn(),
     },
-});
-
+};
 // Mock AudioContext
 const MockAudioContext = vi.fn(() => ({
     createGain: vi.fn(() => mockGainNode),
