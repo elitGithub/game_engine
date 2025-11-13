@@ -87,6 +87,13 @@ export class SaveManager {
         }
     }
 
+    /**
+     * Delete a saved game from the specified slot.
+     * Emits a 'save.deleted' event if the deletion is successful.
+     *
+     * @param slotId - The unique identifier of the save slot to delete
+     * @returns A promise that resolves to true if the save was deleted successfully, false otherwise
+     */
     async deleteSave(slotId: string): Promise<boolean> {
         const success = await this.adapter.delete(slotId);
         if (success) {

@@ -105,7 +105,11 @@ export class SystemContainer implements ISystemFactoryContext {
     }
 
     /**
-     * Register a system definition
+     * Register a system definition in the container.
+     * If a system with the same key is already registered, it will be overwritten with a warning.
+     *
+     * @template T - The type of the system instance
+     * @param definition - The system definition describing how to create and configure the system
      */
     register<T>(definition: SystemDefinition<T>): void {
         if (this.systems.has(definition.key)) {
@@ -140,7 +144,14 @@ export class SystemContainer implements ISystemFactoryContext {
     }
 
     /**
-     * Get a system instance (will create and initialize if lazy)
+     * Get a system instance from the container.
+     * If the system has not been instantiated yet, it will be created and initialized automatically.
+     * Dependencies will be resolved recursively.
+     *
+     * @template T - The type of the system instance
+     * @param key - The unique key identifying the system
+     * @returns The system instance
+     * @throws Error if the system is not registered or if a circular dependency is detected
      */
     get<T>(key: SystemKey): T {
         const entry = this.systems.get(key);
@@ -249,7 +260,10 @@ export class SystemContainer implements ISystemFactoryContext {
     }
 
     /**
-     * Dispose of a specific system
+     * Dispose of a specific system and clean up its resources.
+     * Calls the system's dispose callback if defined, then marks the system as disposed.
+     *
+     * @param key - The unique key identifying the system to dispose
      */
     async dispose(key: SystemKey): Promise<void> {
         const entry = this.systems.get(key);

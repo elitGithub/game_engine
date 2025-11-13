@@ -10,7 +10,12 @@ export class EventBus {
     }
 
     /**
-     * Subscribe to an event
+     * Subscribe to an event.
+     *
+     * @template K - The event type from the EventMap
+     * @param event - The event name to subscribe to
+     * @param callback - The callback function to invoke when the event is emitted
+     * @returns A function that can be called to unsubscribe from the event
      */
     on<K extends keyof EventMap>(
         event: K,
@@ -27,7 +32,11 @@ export class EventBus {
     }
 
     /**
-     * Unsubscribe from an event
+     * Unsubscribe from an event.
+     *
+     * @template K - The event type from the EventMap
+     * @param event - The event name to unsubscribe from
+     * @param callback - The callback function to remove from the event listeners
      */
     off<K extends keyof EventMap>(
         event: K,
@@ -45,7 +54,12 @@ export class EventBus {
     }
 
     /**
-     * Emit an event to all subscribers
+     * Emit an event to all subscribers.
+     * Errors thrown by event handlers are caught and logged without interrupting other handlers.
+     *
+     * @template K - The event type from the EventMap
+     * @param event - The event name to emit
+     * @param data - The data to pass to all event listeners
      */
     emit<K extends keyof EventMap>(event: K, data: EventMap[K]): void {
         const callbacks = this.listeners[event];

@@ -358,7 +358,11 @@ export class Engine implements ISerializationRegistry {
     }
 
     /**
-     * Pre-load assets from a manifest before starting the game
+     * Pre-load assets from a manifest before starting the game.
+     * This method should be called before start() to ensure all required assets are loaded.
+     *
+     * @param manifest - Array of asset manifest entries to preload
+     * @returns A promise that resolves when all assets are loaded
      */
     async preload(manifest: AssetManifestEntry[]): Promise<void> {
         this.log(`Preloading ${manifest.length} assets...`);
@@ -370,6 +374,13 @@ export class Engine implements ISerializationRegistry {
     // ENGINE LIFECYCLE
     // ========================================================================
 
+    /**
+     * Start the game engine and begin the game loop.
+     * Transitions to the initial game state and emits the 'engine.started' event.
+     *
+     * @param initialState - The ID of the initial game state to load
+     * @param initialData - Optional data to pass to the initial state
+     */
     start(initialState: string, initialData: StateData = {}): void {
         this.log('Starting engine...');
 
@@ -419,6 +430,10 @@ export class Engine implements ISerializationRegistry {
         this.frameCount++;
     }
 
+    /**
+     * Stop the game engine and halt the game loop.
+     * Cancels any pending animation frames or timers and emits the 'engine.stopped' event.
+     */
     stop(): void {
         this.log('Stopping engine...');
         this.isRunning = false;
@@ -438,6 +453,11 @@ export class Engine implements ISerializationRegistry {
         this.eventBus.emit('engine.stopped', {});
     }
 
+    /**
+     * Pause the game engine.
+     * The game loop continues running but update logic is suspended.
+     * Audio is suspended and the 'engine.paused' event is emitted.
+     */
     pause(): void {
         if (this.isPaused) return;
         this.isPaused = true;
