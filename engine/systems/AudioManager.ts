@@ -2,6 +2,7 @@
 import type { EventBus } from '../core/EventBus';
 import type { AssetManager } from './AssetManager';
 import type {AudioManagerOptions, ILogger, ITimerProvider} from '@engine/interfaces';
+import type { IAudioContext, IAudioGain, IAudioBuffer, IAudioSource } from '@engine/interfaces/IAudioPlatform';
 import { MusicPlayer, type MusicState } from '@engine/audio/MusicPlayer';
 import { SfxPool } from '@engine/audio/SfxPool';
 import { VoicePlayer } from '@engine/audio/VoicePlayer';
@@ -17,10 +18,10 @@ import { AudioUtils } from '@engine/audio/AudioUtils';
  */
 export class AudioManager {
     // Gain nodes for volume control
-    private masterGain: GainNode;
-    private musicGain: GainNode;
-    private sfxGain: GainNode;
-    private voiceGain: GainNode;
+    private masterGain: IAudioGain;
+    private musicGain: IAudioGain;
+    private sfxGain: IAudioGain;
+    private voiceGain: IAudioGain;
 
     // Specialized helper classes
     private musicPlayer: MusicPlayer;
@@ -33,12 +34,11 @@ export class AudioManager {
     constructor(
         private eventBus: EventBus,
         private assetManager: AssetManager,
-        private readonly audioContext: AudioContext,
+        private readonly audioContext: IAudioContext,
         timer: ITimerProvider,
         options: AudioManagerOptions,
         private logger: ILogger
     ) {
-        this.audioContext = audioContext;
 
         // Create gain nodes
         this.masterGain = this.audioContext.createGain();
@@ -50,7 +50,7 @@ export class AudioManager {
         this.musicGain.connect(this.masterGain);
         this.sfxGain.connect(this.masterGain);
         this.voiceGain.connect(this.masterGain);
-        this.masterGain.connect(this.audioContext.destination);
+        this.masterGain.connect(this.audioContext.getDestination());
 
         // Instantiate helpers
         this.musicPlayer = new MusicPlayer(audioContext, this.assetManager, eventBus, this.musicGain, timer, this.logger);
@@ -81,10 +81,10 @@ export class AudioManager {
         try {
             await this.audioContext.resume();
 
+            // Play a silent buffer to unlock the audio context
             const buffer = this.audioContext.createBuffer(1, 1, 22050);
-            const source = this.audioContext.createBufferSource();
-            source.buffer = buffer;
-            source.connect(this.audioContext.destination);
+            const source = this.audioContext.createSource(buffer);
+            source.connect(this.audioContext.getDestination());
             source.start(0);
 
             this.isUnlocked = true;
@@ -106,7 +106,7 @@ export class AudioManager {
      * @param level - Linear volume level between 0.0 (silent) and 1.0 (full volume)
      */
     setMasterVolume(level: number): void {
-        this.masterGain.gain.value = AudioUtils.toGain(level);
+        this.masterGain.setValue(AudioUtils.toGain(level));
     }
 
     /**
@@ -117,7 +117,7 @@ export class AudioManager {
      * @param level - Linear volume level between 0.0 (silent) and 1.0 (full volume)
      */
     setMusicVolume(level: number): void {
-        this.musicGain.gain.value = AudioUtils.toGain(level);
+        this.musicGain.setValue(AudioUtils.toGain(level));
     }
 
     /**
@@ -128,7 +128,7 @@ export class AudioManager {
      * @param level - Linear volume level between 0.0 (silent) and 1.0 (full volume)
      */
     setSFXVolume(level: number): void {
-        this.sfxGain.gain.value = AudioUtils.toGain(level);
+        this.sfxGain.setValue(AudioUtils.toGain(level));
     }
 
     /**
@@ -139,7 +139,7 @@ export class AudioManager {
      * @param level - Linear volume level between 0.0 (silent) and 1.0 (full volume)
      */
     setVoiceVolume(level: number): void {
-        this.voiceGain.gain.value = AudioUtils.toGain(level);
+        this.voiceGain.setValue(AudioUtils.toGain(level));
     }
 
     /**
@@ -149,7 +149,7 @@ export class AudioManager {
      * @returns Current linear master volume between 0.0 and 1.0
      */
     getMasterVolume(): number {
-        return AudioUtils.toVolume(this.masterGain.gain.value);
+        return AudioUtils.toVolume(this.masterGain.getValue());
     }
 
     /**
@@ -159,7 +159,7 @@ export class AudioManager {
      * @returns Current linear music volume between 0.0 and 1.0
      */
     getMusicVolume(): number {
-        return AudioUtils.toVolume(this.musicGain.gain.value);
+        return AudioUtils.toVolume(this.musicGain.getValue());
     }
 
     /**
@@ -169,7 +169,7 @@ export class AudioManager {
      * @returns Current linear SFX volume between 0.0 and 1.0
      */
     getSFXVolume(): number {
-        return AudioUtils.toVolume(this.sfxGain.gain.value);
+        return AudioUtils.toVolume(this.sfxGain.getValue());
     }
 
     /**
@@ -179,7 +179,7 @@ export class AudioManager {
      * @returns Current linear voice volume between 0.0 and 1.0
      */
     getVoiceVolume(): number {
-        return AudioUtils.toVolume(this.voiceGain.gain.value);
+        return AudioUtils.toVolume(this.voiceGain.getValue());
     }
 
     // ============================================================================
@@ -303,12 +303,12 @@ export class AudioManager {
     // ============================================================================
 
     /**
-     * Get the underlying Web Audio API context.
-     * Use this for advanced audio operations not covered by AudioManager.
+     * Get the audio context for advanced operations.
+     * Use this for platform-agnostic audio operations not covered by AudioManager.
      *
-     * @returns The AudioContext instance
+     * @returns The platform-agnostic audio context
      */
-    public getAudioContext(): AudioContext {
+    public getAudioContext(): IAudioContext {
         return this.audioContext;
     }
 
@@ -330,14 +330,14 @@ export class AudioManager {
      * Stops all audio, disposes all players, and closes the audio context.
      * Call this when shutting down the audio system.
      */
-    dispose(): void {
+    async dispose(): Promise<void> {
         this.stopAll();
         this.musicPlayer.dispose();
         this.sfxPool.dispose();
         this.voicePlayer.dispose();
 
         if (this.audioContext.state !== 'closed') {
-            this.audioContext.close();
+            await this.audioContext.close();
         }
     }
 }

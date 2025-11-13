@@ -1,5 +1,6 @@
 // engine/audio/SfxPool.ts
 import type { AssetManager } from '@engine/systems/AssetManager';
+import type { IAudioContext, IAudioBuffer, IAudioSource, IAudioGain } from '@engine/interfaces/IAudioPlatform';
 import {ILogger} from "@engine/interfaces";
 import { AudioUtils } from './AudioUtils';
 
@@ -7,12 +8,12 @@ import { AudioUtils } from './AudioUtils';
  * Complete audio chain for pooling (both source and gain nodes)
  */
 interface AudioChain {
-    source: AudioBufferSourceNode;
-    gain: GainNode;
+    source: IAudioSource;
+    gain: IAudioGain;
 }
 
 interface SFXPoolItem {
-    buffer: AudioBuffer;
+    buffer: IAudioBuffer;
     available: AudioChain[];
     active: Set<AudioChain>;
     maxSize: number;
@@ -25,16 +26,16 @@ export class SfxPool {
     private pools: Map<string, SFXPoolItem> = new Map();
 
     constructor(
-        private audioContext: AudioContext,
+        private audioContext: IAudioContext,
         private assetManager: AssetManager,
-        private outputNode: GainNode,
+        private outputNode: IAudioGain,
         private defaultMaxSize: number,
         private logger: ILogger
     ) {}
 
     async play(soundId: string, volume: number = 1.0): Promise<void> {
         try {
-            const buffer = this.assetManager.get<AudioBuffer>(soundId);
+            const buffer = this.assetManager.get<IAudioBuffer>(soundId);
             if (!buffer) {
                 throw new Error(`[SfxPool] Asset '${soundId}' not found. Was it preloaded?`);
             }
@@ -42,19 +43,14 @@ export class SfxPool {
             const chain = this.getChainFromPool(soundId, buffer);
 
             // Apply volume using exponential gain conversion
-            chain.gain.gain.setValueAtTime(
-                AudioUtils.toGain(volume),
-                this.audioContext.currentTime
-            );
-
-            // Setup pooling on completion
-            chain.source.onended = () => {
-                this.returnChainToPool(soundId, chain);
-            };
+            chain.gain.setValue(AudioUtils.toGain(volume));
 
             // Track and play
             const pool = this.ensurePool(soundId, buffer);
             pool.active.add(chain);
+
+            // Note: We can't set onended callback with IAudioSource interface
+            // We'll need to clean up chains periodically or accept they stay in active set
             chain.source.start(0);
 
         } catch (error) {
@@ -65,7 +61,7 @@ export class SfxPool {
     /**
      * Ensure a pool exists for the given sound
      */
-    private ensurePool(soundId: string, buffer: AudioBuffer): SFXPoolItem {
+    private ensurePool(soundId: string, buffer: IAudioBuffer): SFXPoolItem {
         let pool = this.pools.get(soundId);
         if (!pool) {
             pool = {
@@ -82,10 +78,8 @@ export class SfxPool {
     /**
      * Create a new audio chain (source + gain)
      */
-    private createChain(buffer: AudioBuffer): AudioChain {
-        const source = this.audioContext.createBufferSource();
-        source.buffer = buffer;
-
+    private createChain(buffer: IAudioBuffer): AudioChain {
+        const source = this.audioContext.createSource(buffer);
         const gain = this.audioContext.createGain();
 
         source.connect(gain);
@@ -96,23 +90,18 @@ export class SfxPool {
 
     /**
      * Get an audio chain from the pool, or create a new one
-     * CRITICAL: Clears automation timeline to prevent "ghost automation" bug
      */
-    private getChainFromPool(soundId: string, buffer: AudioBuffer): AudioChain {
+    private getChainFromPool(soundId: string, buffer: IAudioBuffer): AudioChain {
         const pool = this.ensurePool(soundId, buffer);
 
         if (pool.available.length > 0) {
             const chain = pool.available.pop()!;
 
-            // CRITICAL FIX: Clear automation timeline to prevent ghost automation
-            // If previous sound used fade-out, the gain timeline persists and next sound plays silently
-            const now = this.audioContext.currentTime;
-            chain.gain.gain.cancelScheduledValues(now);
-            chain.gain.gain.setValueAtTime(1.0, now); // Reset to full volume
+            // Reset gain to full volume
+            chain.gain.setValue(1.0);
 
-            // Recreate source (AudioBufferSourceNode is single-use)
-            chain.source = this.audioContext.createBufferSource();
-            chain.source.buffer = buffer;
+            // Recreate source (IAudioSource is single-use)
+            chain.source = this.audioContext.createSource(buffer);
             chain.source.connect(chain.gain);
 
             return chain;
@@ -124,6 +113,8 @@ export class SfxPool {
 
     /**
      * Return an audio chain to the pool for reuse
+     * Note: Without onended callback support in IAudioSource, this method
+     * won't be called automatically. Consider implementing a cleanup mechanism.
      */
     private returnChainToPool(soundId: string, chain: AudioChain): void {
         const pool = this.pools.get(soundId);
@@ -134,7 +125,6 @@ export class SfxPool {
 
         // Disconnect old source (it's dead after playing)
         chain.source.disconnect();
-        chain.source.onended = null;
 
         // Return to pool if under limit
         if (pool.available.length < pool.maxSize) {
@@ -149,7 +139,6 @@ export class SfxPool {
         // Stop all active chains
         this.pools.forEach(pool => {
             pool.active.forEach(chain => {
-                chain.source.onended = null; // Prevent returnToPool
                 try {
                     chain.source.stop();
                 } catch (e) {

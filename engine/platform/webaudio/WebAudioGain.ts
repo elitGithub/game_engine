@@ -21,8 +21,10 @@ export class WebAudioGain implements IAudioGain {
         this.native.gain.linearRampToValueAtTime(value, now + duration);
     }
 
-    connect(destination: IAudioDestination): void {
+    connect(destination: IAudioDestination | IAudioGain): void {
         if (destination instanceof WebAudioDestination) {
+            this.native.connect(destination.getNative());
+        } else if (destination instanceof WebAudioGain) {
             this.native.connect(destination.getNative());
         }
     }

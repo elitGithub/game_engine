@@ -15,8 +15,8 @@ export class WebAudioSource implements IAudioSource {
         };
     }
 
-    start(when: number = 0): void {
-        this.native.start(when);
+    start(when: number = 0, offset?: number, duration?: number): void {
+        this.native.start(when, offset, duration);
         this.playing = true;
     }
 
