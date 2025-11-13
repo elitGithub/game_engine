@@ -38,48 +38,6 @@ This repository *must not* contain *any* "Step 2" logic. All "batteries-included
 
 These are the non-negotiable rules for the "Refactor-of-the-Refactor."
 
-### **1\. The "One Container" Rule (DI)**
-
-* **STATUS: FIXED.** This project has **one and only one** Dependency Injection (DI) tool: engine/core/SystemContainer.ts.
-* The monolithic SystemDefinitions.ts and the conflicting SystemFactory.ts, SystemRegistry.ts, and SystemContainerBridge.ts **have been deleted**.
-* Engine.ts is now a minimal "host" that creates the SystemContainer and makes it publicly accessible.
-
-### **2\. The "Empty Engine" Rule (No "Non-Negotiables")**
-
-* **STATUS: FIXED.**
-* The "Step 1" Engine Library has **zero** "non-negotiable" systems.
-* The Engine constructor **does not** register any systems.
-* The **developer ("assembler")** can access engine.container to manually register system definitions.
-* **BACKWARD COMPATIBILITY:** Engine.create() factory auto-registers systems for existing code.
-
-### **3\. The "Platform-Agnostic" Rule (Zero Coupling)**
-
-* **STATUS: FIXED.**  
-* Core engine code (engine/core/, engine/systems/) is **strictly forbidden** from *any* direct platform access.  
-* **FORBIDDEN GLOBALS:** window, document, navigator, localStorage, setInterval, setTimeout, AudioContext.  
-* All platform interaction *must* be abstracted through the IPlatformAdapter provided to the Engine's constructor.  
-* **FIXED:** InputManager.ts and PlatformSystemDefs.ts no longer violate this rule.
-
-### **4\. The "Facade" Rule (No "God Classes")**
-
-* **STATUS: FIXED.**  
-* Systems (InputManager, AudioManager, etc.) *must* be clean **facades**.  
-* AudioManager.ts is the **gold standard**.  
-* **FIXED:** InputManager.ts has been refactored into a clean facade. Platform-specific logic (gamepad polling) has been correctly moved into GamepadInputAdapter.ts.
-
-### **5\. The "Single Responsibility" Rule (Clean Files)**
-
-* **STATUS: FIXED.**
-* **Interface files** (I\*.ts) *must* contain *only* types, interfaces, and enums.
-* **Concrete implementations** (e.g., WebAudioPlatform, DomRenderContainer) *must* be in their own separate files.
-* **VERIFIED:** IAudioPlatform.ts and IRenderContainer.ts are clean interface files containing only types and interfaces.
-
-### **6\. The "Complete Lifecycle" Rule (No Leaks)**
-
-* **STATUS: FIXED.**
-* All systems and plugins must have a complete lifecycle.
-* **VERIFIED:** Engine.unregisterSerializableSystem() is exposed (Engine.ts:490) and PluginManager can properly uninstall plugins.
-
 ## **Development & Test Rules**
 
 ### **CRITICAL: Test-First Rule**
@@ -92,8 +50,7 @@ These are the non-negotiable rules for the "Refactor-of-the-Refactor."
 **NEVER proceed if either fails.** This ensures zero regressions and maintains code quality.
 
 ### **Test Quality**
-
-* **STATUS: FIXED.**  
+ 
 * Tests **must not** access private state via (as any).  
 * Tests *must* only use the public API of a class.  
 * If a class is "hard to test," it is a sign that the *class's API is bad*, and the *class* must be refactored.
@@ -111,17 +68,7 @@ When working on this codebase:
 * Always consider: "Does this belong in Step 1 (Library) or Step 2 (Framework)?"  
 * Maintain comprehensive test coverage for engine systems.  
 * Document all public APIs with TSDoc.
-
-## **Status: A Grade Achieved**
-
-All critical architectural violations have been resolved:
-
-1. **Rule #1 (One Container):** FIXED - SystemContainer.ts is sole DI mechanism
-2. **Rule #2 (Empty Engine):** FIXED - Engine constructor does not auto-register systems
-3. **Rule #3 (Platform-Agnostic):** FIXED - All platform access through IPlatformAdapter with provider pattern
-4. **Rule #4 (Facade Pattern):** FIXED - InputManager and AudioManager are clean facades
-5. **Rule #5 (Single Responsibility):** FIXED - All interface files are clean (IAudioPlatform.ts, IRenderContainer.ts)
-6. **Rule #6 (Complete Lifecycle):** FIXED - unregisterSerializableSystem exposed
+* Do not commit or push code without user approval
 
 ## **Optional Improvements** (Non-Critical)
 
@@ -130,8 +77,6 @@ Minor code quality tasks for future consideration:
 1. Consider converting SaveManager to proper SystemDefinition pattern
 2. Review and remove any unused utility files
 3. Consider migrating to NX monorepo structure (see vision below)
-
-Note: All 19 audit flags have been resolved (17 from ISSUES.txt + 2 discovered during code review and documentation audit).
 
 ## **Common Tasks**
 
