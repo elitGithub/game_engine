@@ -106,9 +106,8 @@ export class DomRenderer implements IRenderer {
     }
 
     private setInitialProperties(el: HTMLElement, cmd: Exclude<RenderCommand, { type: 'clear' }>): void {
-        // Set positioning
-        el.style.left = `${cmd.x}px`;
-        el.style.top = `${cmd.y}px`;
+        // Set positioning using GPU-accelerated transforms (avoids layout reflow)
+        el.style.transform = `translate3d(${cmd.x}px, ${cmd.y}px, 0)`;
         el.style.zIndex = `${cmd.zIndex ?? 0}`;
 
         // Type-specific properties
@@ -157,9 +156,9 @@ export class DomRenderer implements IRenderer {
 
     private updateElement(el: HTMLElement, oldCmd: Exclude<RenderCommand, { type: 'clear' }>, newCmd: Exclude<RenderCommand, { type: 'clear' }>): void {
         // 1. Common positioning (Optimization: check if changed)
+        // Use GPU-accelerated transforms to avoid layout reflow
         if (oldCmd.x !== newCmd.x || oldCmd.y !== newCmd.y) {
-            el.style.left = `${newCmd.x}px`;
-            el.style.top = `${newCmd.y}px`;
+            el.style.transform = `translate3d(${newCmd.x}px, ${newCmd.y}px, 0)`;
         }
 
         if (oldCmd.zIndex !== newCmd.zIndex) {

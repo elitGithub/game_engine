@@ -69,6 +69,9 @@ When working on this codebase:
 * Maintain comprehensive test coverage for engine systems.  
 * Document all public APIs with TSDoc.
 * Do not commit or push code without user approval
+* Always consider PERFORMANCE when refactoring or creating code. 
+* Do not use any "hacks" or "workarounds"
+* Do not consider an issue as resolved or "100% done" until it is reviewed again by you, approved by the user AND all tests pass. 
 
 ## **Optional Improvements** (Non-Critical)
 

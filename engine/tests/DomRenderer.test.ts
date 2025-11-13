@@ -79,8 +79,7 @@ describe('DomRenderer', () => {
         const el = container.querySelector('#img1') as HTMLImageElement;
         expect(el).toBeInstanceOf(HTMLImageElement);
         expect(el.src).toContain('mock-src.png');
-        expect(el.style.left).toBe('10px');
-        expect(el.style.top).toBe('20px');
+        expect(el.style.transform).toBe('translate3d(10px, 20px, 0)');
         expect(el.style.width).toBe('50px');
         expect(el.style.height).toBe('60px');
         expect(el.style.objectFit).toBe('cover');
@@ -101,8 +100,7 @@ describe('DomRenderer', () => {
         const el = container.querySelector('#txt1') as HTMLDivElement;
         expect(el).toBeInstanceOf(HTMLDivElement);
         expect(el.textContent).toBe('Hello');
-        expect(el.style.left).toBe('10px');
-        expect(el.style.top).toBe('20px');
+        expect(el.style.transform).toBe('translate3d(10px, 20px, 0)');
         expect(el.style.color).toBe('red');
         expect(el.style.font).toBe('16px Arial');
     });
@@ -123,8 +121,7 @@ describe('DomRenderer', () => {
 
         const el = container.querySelector('#rect1') as HTMLDivElement;
         expect(el).toBeInstanceOf(HTMLDivElement);
-        expect(el.style.left).toBe('10px');
-        expect(el.style.top).toBe('20px');
+        expect(el.style.transform).toBe('translate3d(10px, 20px, 0)');
         expect(el.style.width).toBe('100px');
         expect(el.style.height).toBe('50px');
         expect(el.style.backgroundColor).toBe('blue');
@@ -178,8 +175,7 @@ describe('DomRenderer', () => {
         expect(secondEl).toBe(firstEl);
 
         // But properties should be updated
-        expect(secondEl.style.left).toBe('10px');
-        expect(secondEl.style.top).toBe('20px');
+        expect(secondEl.style.transform).toBe('translate3d(10px, 20px, 0)');
         expect(secondEl.style.width).toBe('200px');
     });
 

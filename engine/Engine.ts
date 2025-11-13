@@ -50,6 +50,14 @@ export interface EngineConfig {
     debug?: boolean;
     targetFPS?: number;
     gameVersion?: string;
+
+    /**
+     * Maximum deltaTime in seconds to prevent physics tunneling and spiral of death.
+     * If a frame takes longer than this (e.g., tab loses focus), deltaTime will be clamped.
+     * Default: 0.1 (100ms / minimum 10fps)
+     */
+    maxDeltaTime?: number;
+
     systems: SystemConfig;
     gameState: Record<string, unknown>;
     gameData?: GameData;
@@ -88,7 +96,7 @@ export interface EngineConfig {
  * ```
  */
 export class Engine implements ISerializationRegistry {
-    public readonly config: Required<Pick<EngineConfig, 'debug' | 'targetFPS' | 'gameVersion'>>;
+    public readonly config: Required<Pick<EngineConfig, 'debug' | 'targetFPS' | 'gameVersion' | 'maxDeltaTime'>>;
     public readonly context: GameContext;
     public readonly container: SystemContainer;
     private readonly platform: IPlatformAdapter;
@@ -111,7 +119,8 @@ export class Engine implements ISerializationRegistry {
         this.config = {
             debug: userConfig.debug ?? false,
             targetFPS: userConfig.targetFPS ?? 60,
-            gameVersion: userConfig.gameVersion ?? '1.0.0'
+            gameVersion: userConfig.gameVersion ?? '1.0.0',
+            maxDeltaTime: userConfig.maxDeltaTime ?? 0.1
         };
 
         // Get or create platform adapter
@@ -412,7 +421,10 @@ export class Engine implements ISerializationRegistry {
         }
 
         const currentTime = performance.now();
-        const deltaTime = (currentTime - this.lastFrameTime) / 1000;
+        const rawDeltaTime = (currentTime - this.lastFrameTime) / 1000;
+        // Clamp deltaTime to prevent physics tunneling when tab loses focus or debugger pauses
+        const maxDelta = this.config.maxDeltaTime ?? 0.1; // Default: 100ms
+        const deltaTime = Math.min(rawDeltaTime, maxDelta);
         this.lastFrameTime = currentTime;
 
         if (!this.isPaused) {

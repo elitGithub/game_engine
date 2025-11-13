@@ -65,7 +65,9 @@ export class EventBus {
         const callbacks = this.listeners[event];
         if (!callbacks) return;
 
-        callbacks.forEach(callback => {
+        // Clone array before iteration to prevent issues when listeners
+        // unsubscribe during emit (which would mutate the array mid-iteration)
+        [...callbacks].forEach(callback => {
             try {
                 callback(data);
             } catch (error) {

@@ -231,4 +231,68 @@ describe('Engine', () => {
         expect(engine.isPaused).toBe(false);
         expect(emitSpy).toHaveBeenCalledWith('engine.unpaused', {});
     });
+
+    it('should clamp deltaTime to prevent physics tunneling', async () => {
+        const engine = await Engine.create(config);
+
+        const testState = new TestState('test', mockLogger);
+        const updateSpy = vi.spyOn(testState, 'update');
+        engine.stateManager.register('test', testState);
+
+        // Mock performance.now to simulate large time gap
+        let timeValue = 0;
+        vi.spyOn(performance, 'now').mockImplementation(() => timeValue);
+
+        engine.start('test');
+
+        // First frame at time 0
+        timeValue = 0;
+
+        // Manually trigger one loop iteration to set lastFrameTime
+        // @ts-ignore - accessing private method for testing
+        engine.gameLoop();
+
+        // Simulate 5 second gap (tab lost focus)
+        timeValue = 5000;
+
+        // @ts-ignore - accessing private method for testing
+        engine.gameLoop();
+
+        // Verify deltaTime was clamped to max (0.1s by default, not 5.0s)
+        expect(updateSpy).toHaveBeenCalledWith(0.1);
+
+        engine.stop();
+    });
+
+    it('should respect custom maxDeltaTime config', async () => {
+        const customConfig = {
+            ...config,
+            maxDeltaTime: 0.05, // Custom 50ms max
+        };
+        const engine = await Engine.create(customConfig);
+
+        const testState = new TestState('test', mockLogger);
+        const updateSpy = vi.spyOn(testState, 'update');
+        engine.stateManager.register('test', testState);
+
+        // Mock performance.now
+        let timeValue = 0;
+        vi.spyOn(performance, 'now').mockImplementation(() => timeValue);
+
+        engine.start('test');
+
+        timeValue = 0;
+        // @ts-ignore - accessing private method for testing
+        engine.gameLoop();
+
+        // Simulate large gap
+        timeValue = 2000;
+        // @ts-ignore - accessing private method for testing
+        engine.gameLoop();
+
+        // Verify deltaTime was clamped to custom max (0.05s, not 2.0s)
+        expect(updateSpy).toHaveBeenCalledWith(0.05);
+
+        engine.stop();
+    });
 });

@@ -98,4 +98,69 @@ describe('EventBus', () => {
         expect(listener1).not.toHaveBeenCalled();
         expect(listener2).not.toHaveBeenCalled();
     });
+
+    it('should safely handle unsubscribe during emit', () => {
+        const listener1 = vi.fn();
+        const listener2 = vi.fn();
+        const listener3 = vi.fn();
+
+        eventBus.on('test.event', listener1);
+        const unsubscribe2 = eventBus.on('test.event', listener2);
+        eventBus.on('test.event', () => {
+            // Unsubscribe listener2 during emit
+            unsubscribe2();
+            listener3();
+        });
+
+        eventBus.emit('test.event', { value: 1 });
+
+        // All listeners should execute despite mid-iteration unsubscribe
+        expect(listener1).toHaveBeenCalledTimes(1);
+        expect(listener2).toHaveBeenCalledTimes(1);
+        expect(listener3).toHaveBeenCalledTimes(1);
+    });
+
+    it('should handle self-unsubscribe during emit', () => {
+        const listener1 = vi.fn();
+        const listener2 = vi.fn();
+        let unsubscribeSelf: (() => void) | null = null;
+
+        eventBus.on('test.event', listener1);
+        unsubscribeSelf = eventBus.on('test.event', () => {
+            // Listener unsubscribes itself during execution
+            unsubscribeSelf!();
+            listener2();
+        });
+
+        // First emit: both listeners execute, second unsubscribes itself
+        eventBus.emit('test.event', { value: 1 });
+        expect(listener1).toHaveBeenCalledTimes(1);
+        expect(listener2).toHaveBeenCalledTimes(1);
+
+        // Second emit: only listener1 executes (second already unsubscribed)
+        eventBus.emit('test.event', { value: 2 });
+        expect(listener1).toHaveBeenCalledTimes(2);
+        expect(listener2).toHaveBeenCalledTimes(1);
+    });
+
+    it('should handle multiple unsubscribes during emit', () => {
+        const executionOrder: number[] = [];
+
+        const unsub1 = eventBus.on('test.event', () => executionOrder.push(1));
+        const unsub2 = eventBus.on('test.event', () => executionOrder.push(2));
+        const unsub3 = eventBus.on('test.event', () => executionOrder.push(3));
+        eventBus.on('test.event', () => {
+            // Unsubscribe all previous listeners during emit
+            unsub1();
+            unsub2();
+            unsub3();
+            executionOrder.push(4);
+        });
+        eventBus.on('test.event', () => executionOrder.push(5));
+
+        eventBus.emit('test.event', { value: 1 });
+
+        // All 5 listeners should execute in order despite unsubscriptions
+        expect(executionOrder).toEqual([1, 2, 3, 4, 5]);
+    });
 });
