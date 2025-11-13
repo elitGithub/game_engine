@@ -2,7 +2,7 @@
 import type { EventBus } from '../core/EventBus';
 import type { AssetManager } from './AssetManager';
 import type {AudioManagerOptions, ILogger, ITimerProvider} from '@engine/interfaces';
-import type { IAudioContext, IAudioGain, IAudioBuffer, IAudioSource } from '@engine/interfaces/IAudioPlatform';
+import type { IAudioContext, IAudioGain } from '@engine/interfaces/IAudioPlatform';
 import { MusicPlayer, type MusicState } from '@engine/audio/MusicPlayer';
 import { SfxPool } from '@engine/audio/SfxPool';
 import { VoicePlayer } from '@engine/audio/VoicePlayer';
@@ -60,11 +60,19 @@ export class AudioManager {
         // Initialize state
         this.isUnlocked = false;
 
-        // Set default volumes
-        this.setMasterVolume(1.0);
-        this.setMusicVolume(0.7);
-        this.setSFXVolume(0.8);
-        this.setVoiceVolume(1.0);
+        // Set initial volumes (use provided values or sensible defaults)
+        // Defaults chosen for typical game balance:
+        // - Master: 1.0 (full volume control to user)
+        // - Music: 0.7 (background, not overpowering)
+        // - SFX: 0.8 (prominent but not jarring)
+        // - Voice: 1.0 (dialogue should be clear)
+        const defaultVolumes = { master: 1.0, music: 0.7, sfx: 0.8, voice: 1.0 };
+        const volumes = { ...defaultVolumes, ...options.volumes };
+
+        this.setMasterVolume(volumes.master);
+        this.setMusicVolume(volumes.music);
+        this.setSFXVolume(volumes.sfx);
+        this.setVoiceVolume(volumes.voice);
     }
 
     /**

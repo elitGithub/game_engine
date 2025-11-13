@@ -79,7 +79,7 @@ export class GamepadInputAdapter extends BaseInputAdapter {
      *
      * Note: Gamepad input is global, so container is optional and unused.
      */
-    attach(container?: IRenderContainer, options?: InputAttachOptions): boolean {
+    attach(_container?: IRenderContainer, _options?: InputAttachOptions): boolean {
         // Check if browser supports Gamepad API
         if (typeof navigator === 'undefined' || !navigator.getGamepads) {
             this.logger.warn('[GamepadInputAdapter] Gamepad API not supported in this environment.');

@@ -56,9 +56,9 @@ const createMockAudioContext = () => {
         resume: vi.fn(async () => {}),
         suspend: vi.fn(async () => {}),
         close: vi.fn(async () => {}),
-        createBuffer: vi.fn((channels: number, length: number, sampleRate: number) => createMockBuffer(length / sampleRate)),
-        decodeAudioData: vi.fn(async (data: ArrayBuffer) => createMockBuffer()),
-        createSource: vi.fn((buffer: IAudioBuffer) => createMockSource()),
+        createBuffer: vi.fn((_channels: number, length: number, sampleRate: number) => createMockBuffer(length / sampleRate)),
+        decodeAudioData: vi.fn(async (_data: ArrayBuffer) => createMockBuffer()),
+        createSource: vi.fn((_buffer: IAudioBuffer) => createMockSource()),
         createGain: vi.fn(() => createMockGain()),
         getDestination: vi.fn(() => mockDestination),
     } as IAudioContext;

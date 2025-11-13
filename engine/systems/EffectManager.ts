@@ -36,14 +36,19 @@ export class EffectManager {
 
     update(deltaTime: number, context: GameContext): void {
         this.activeDynamicEffects.forEach((effects) => {
-            // Clone array to prevent issues when effects remove themselves or other effects during update
-            const snapshot = [...effects];
-            snapshot.forEach(effect => {
+            // Iterate backwards to safely handle self-removal during update
+            // This avoids array cloning which causes GC pressure in effect-heavy games
+            // Reverse iteration is safe because:
+            // - Removing current element doesn't affect already-visited indices
+            // - Adding new effects appends to end (doesn't affect current iteration)
+            for (let i = effects.length - 1; i >= 0; i--) {
+                const effect = effects[i];
+
                 // Skip zombie effects (removed during this loop iteration)
-                if (effect.isDead) return;
+                if (effect.isDead) continue;
 
                 effect.logic.onUpdate(effect.target, context, deltaTime, this.logger);
-            });
+            }
         });
     }
 

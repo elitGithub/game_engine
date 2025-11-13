@@ -17,11 +17,11 @@ class MockAction extends Action {
     canExecuteResult = true;
     executeResult: any = null;
 
-    canExecute(context: ActionContext): boolean {
+    canExecute(_context: ActionContext): boolean {
         return this.canExecuteResult;
     }
 
-    execute(context: ActionContext): any {
+    execute(_context: ActionContext): any {
         return this.executeResult;
     }
 }

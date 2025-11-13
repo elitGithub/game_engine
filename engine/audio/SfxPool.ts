@@ -111,30 +111,6 @@ export class SfxPool {
         return this.createChain(buffer);
     }
 
-    /**
-     * Return an audio chain to the pool for reuse
-     * Note: Without onended callback support in IAudioSource, this method
-     * won't be called automatically. Consider implementing a cleanup mechanism.
-     */
-    private returnChainToPool(soundId: string, chain: AudioChain): void {
-        const pool = this.pools.get(soundId);
-        if (!pool) return;
-
-        // Remove from active tracking
-        pool.active.delete(chain);
-
-        // Disconnect old source (it's dead after playing)
-        chain.source.disconnect();
-
-        // Return to pool if under limit
-        if (pool.available.length < pool.maxSize) {
-            pool.available.push(chain);
-        } else {
-            // Exceeded limit - cleanup entire chain
-            chain.gain.disconnect();
-        }
-    }
-
     stopAll(): void {
         // Stop all active chains
         this.pools.forEach(pool => {

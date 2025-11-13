@@ -26,7 +26,7 @@ describe('EventBus', () => {
     });
 
     it('should subscribe to an event and receive data', () => {
-        const listener = vi.fn((data: EventMap['test.event']) => {});
+        const listener = vi.fn((_data: EventMap['test.event']) => {});
         eventBus.on('test.event', listener);
 
         eventBus.emit('test.event', { value: 123 });
