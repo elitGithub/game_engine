@@ -9,7 +9,11 @@
  */
 import type {ILogger} from "@engine/interfaces/ILogger";
 
-export type SystemKey = symbol | string;
+/**
+ * System key must be a symbol to prevent key collisions.
+ * For serialization keys (SaveManager), use string keys separately via registerSerializableSystem()
+ */
+export type SystemKey = symbol;
 
 /**
  * Lifecycle stages for system initialization

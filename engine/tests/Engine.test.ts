@@ -81,6 +81,7 @@ describe('Engine', () => {
     });
 
     it('should NOT unlock audio if AudioManager is disabled', async () => {
+        config.systems = config.systems ?? {};
         config.systems.audio = false;
         const engine = await Engine.create(config);
 

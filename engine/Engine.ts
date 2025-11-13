@@ -56,7 +56,12 @@ export interface EngineConfig {
      */
     maxDeltaTime?: number;
 
-    systems: SystemConfig;
+    /**
+     * System configuration (optional for new DI-based approach)
+     * When using the new DI approach, register systems manually via engine.container.register()
+     * This field is kept for backward compatibility with legacy config-driven setup
+     */
+    systems?: SystemConfig;
     gameState: Record<string, unknown>;
     gameData?: GameData;
     platform?: IPlatformAdapter;
@@ -230,13 +235,14 @@ export class Engine implements ISerializationRegistry {
             engine.container.register(def);
         }
 
-        // Register platform-aware systems
+        // Register platform-aware systems (use defaults if systems config not provided)
+        const systemsConfig = config.systems ?? {};
         const platformConfig: PlatformSystemConfig = {
-            assets: config.systems.assets,
-            audio: config.systems.audio,
-            effects: config.systems.effects,
-            renderer: config.systems.renderer,
-            input: config.systems.input
+            assets: systemsConfig.assets,
+            audio: systemsConfig.audio,
+            effects: systemsConfig.effects,
+            renderer: systemsConfig.renderer,
+            input: systemsConfig.input
         };
         const platformDefinitions = createPlatformSystemDefinitions(engine.platform, platformConfig);
         for (const def of platformDefinitions) {

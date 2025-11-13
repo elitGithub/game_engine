@@ -76,7 +76,19 @@ export interface EngineEventMap {
     // AssetManager
     'assets.manifest.loaded': { count: number };
     'assets.manifest.failed': { error: unknown };
-    'assets.loaded': { id: string; type: AssetType; asset: unknown };
+    'assets.loaded': {
+        id: string;
+        type: AssetType;
+        /**
+         * Loaded asset type depends on AssetType:
+         * - 'image': HTMLImageElement (browser) or platform-specific image
+         * - 'audio': AudioBuffer or IAudioBuffer (platform-specific)
+         * - 'json': Record<string, any>
+         * - 'text': string
+         * - 'binary': ArrayBuffer
+         */
+        asset: HTMLImageElement | AudioBuffer | Record<string, any> | string | ArrayBuffer | unknown;
+    };
     'assets.cache.cleared': Record<string, never>;
     'assets.evicted': { id: string };
 

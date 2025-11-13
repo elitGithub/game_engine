@@ -79,6 +79,11 @@ export class EventBus {
      * Emit an event to all subscribers.
      * Errors thrown by event handlers are caught and logged without interrupting other handlers.
      *
+     * Note: Array cloning is necessary for EventBus because:
+     * - Listener execution order MUST be preserved (registration order)
+     * - Listeners can unsubscribe OTHER listeners during emit
+     * - Unlike EffectManager, listener order is semantically important
+     *
      * @template K - The event type from the EventMap
      * @param event - The event name to emit
      * @param data - The data to pass to all event listeners
@@ -92,6 +97,7 @@ export class EventBus {
 
         // Clone array before iteration to prevent issues when listeners
         // unsubscribe during emit (which would mutate the array mid-iteration)
+        // This ensures all registered listeners execute in order
         [...callbacks].forEach(callback => {
             try {
                 callback(data);
