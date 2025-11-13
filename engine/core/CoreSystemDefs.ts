@@ -26,6 +26,7 @@ export const CORE_SYSTEMS = {
     SceneManager: Symbol('SceneManager'),
     ActionRegistry: Symbol('ActionRegistry'),
     PluginManager: Symbol('PluginManager'),
+    SaveManager: Symbol('SaveManager'),
 } as const;
 
 /**
