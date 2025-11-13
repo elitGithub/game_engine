@@ -15,14 +15,14 @@ export class Scene {
     /**
      * Called when scene is entered
      */
-    onEnter(context: GameContext): void {
+    onEnter(_context: GameContext): void {
         // Override in game systems if needed
     }
 
     /**
      * Called when scene is exited
      */
-    onExit(context: GameContext): void {
+    onExit(_context: GameContext): void {
         // Override in game systems if needed
     }
 
@@ -36,7 +36,7 @@ export class Scene {
     /**
      * Get available choices/exits from this scene
      */
-    getChoices(context: GameContext): SceneChoice[] {
+    getChoices(_context: GameContext): SceneChoice[] {
         return this.sceneData?.choices || [];
     }
 

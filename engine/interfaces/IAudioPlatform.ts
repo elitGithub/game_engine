@@ -156,8 +156,10 @@ export interface IAudioSource {
     /**
      * Start playback
      * @param when - When to start (in context time), 0 = immediate
+     * @param offset - Offset into the buffer to start playback (in seconds)
+     * @param duration - Duration to play (in seconds)
      */
-    start(when?: number): void;
+    start(when?: number, offset?: number, duration?: number): void;
 
     /**
      * Stop playback
@@ -226,9 +228,9 @@ export interface IAudioGain {
     fadeTo?(value: number, duration: number): void;
 
     /**
-     * Connect to destination
+     * Connect to destination or another gain node
      */
-    connect(destination: IAudioDestination): void;
+    connect(destination: IAudioDestination | IAudioGain): void;
 
     /**
      * Disconnect from all outputs

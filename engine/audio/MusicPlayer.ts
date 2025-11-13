@@ -2,13 +2,14 @@
 import type { EventBus } from '@engine/core/EventBus';
 import type { AssetManager } from '@engine/systems/AssetManager';
 import type {ILogger, ITimerProvider} from '@engine/interfaces';
+import type { IAudioContext, IAudioBuffer, IAudioSource, IAudioGain } from '@engine/interfaces/IAudioPlatform';
 
 export type MusicState = 'playing' | 'paused' | 'stopped';
 
 export interface MusicTrack {
-    buffer: AudioBuffer;
-    source: AudioBufferSourceNode | null;
-    gainNode: GainNode;
+    buffer: IAudioBuffer;
+    source: IAudioSource | null;
+    gainNode: IAudioGain;
     startTime: number;
     pausedAt: number;
     duration: number;
@@ -26,17 +27,17 @@ export class MusicPlayer {
     private musicState: MusicState = 'stopped';
 
     constructor(
-        private audioContext: AudioContext,
+        private audioContext: IAudioContext,
         private assetManager: AssetManager,
         private eventBus: EventBus,
-        private outputNode: GainNode, // Connects to the main 'musicGain'
+        private outputNode: IAudioGain, // Connects to the main 'musicGain'
         private timer: ITimerProvider,
         private logger: ILogger,
     ) {}
 
     async playMusic(trackId: string, loop: boolean = true, fadeInDuration: number = 0): Promise<void> {
         try {
-            const buffer = this.assetManager.get<AudioBuffer>(trackId);
+            const buffer = this.assetManager.get<IAudioBuffer>(trackId);
             if (!buffer) {
                 throw new Error(`[MusicPlayer] Asset '${trackId}' not found. Was it preloaded?`);
             }
@@ -45,19 +46,20 @@ export class MusicPlayer {
                 await this.stopMusic(0);
             }
 
-            const source = this.audioContext.createBufferSource();
+            const source = this.audioContext.createSource(buffer);
             const gainNode = this.audioContext.createGain();
 
-            source.buffer = buffer;
-            source.loop = loop;
+            source.setLoop(loop);
             source.connect(gainNode);
             gainNode.connect(this.outputNode);
 
             if (fadeInDuration > 0) {
-                gainNode.gain.value = 0;
-                gainNode.gain.linearRampToValueAtTime(1, this.audioContext.currentTime + fadeInDuration);
+                gainNode.setValue(0);
+                if (gainNode.fadeTo) {
+                    gainNode.fadeTo(1, fadeInDuration);
+                }
             } else {
-                gainNode.gain.value = 1;
+                gainNode.setValue(1);
             }
 
             source.start(0);
@@ -96,9 +98,8 @@ export class MusicPlayer {
     resumeMusic(): void {
         if (!this.currentMusic || this.musicState !== 'paused') return;
 
-        const source = this.audioContext.createBufferSource();
-        source.buffer = this.currentMusic.buffer;
-        source.loop = true; // Assuming music always loops, adjust if needed
+        const source = this.audioContext.createSource(this.currentMusic.buffer);
+        source.setLoop(true); // Assuming music always loops, adjust if needed
         source.connect(this.currentMusic.gainNode);
 
         const offset = this.currentMusic.pausedAt;
@@ -120,9 +121,9 @@ export class MusicPlayer {
         }
 
         if (fadeOutDuration > 0 && this.currentMusic.source) {
-            const currentTime = this.audioContext.currentTime;
-            this.currentMusic.gainNode.gain.setValueAtTime(this.currentMusic.gainNode.gain.value, currentTime);
-            this.currentMusic.gainNode.gain.linearRampToValueAtTime(0, currentTime + fadeOutDuration);
+            if (this.currentMusic.gainNode.fadeTo) {
+                this.currentMusic.gainNode.fadeTo(0, fadeOutDuration);
+            }
 
             this.currentMusic.fadeOutTimer = this.timer.setTimeout(() => {
                 if (this.currentMusic?.source) {

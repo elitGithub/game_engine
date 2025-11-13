@@ -41,7 +41,7 @@ export class InputManager {
         stateManager: GameStateManager,
         eventBus: EventBus,
         timer: ITimerProvider,
-        private readonly logger: ILogger
+        _logger: ILogger
     ) {
         this.stateManager = stateManager;
         this.eventBus = eventBus;

@@ -39,7 +39,7 @@ export abstract class GameState<TGame = Record<string, unknown>> {
      *
      * You can now access: this.context.game.X with full type safety!
      */
-    enter(data: StateData = {}): void {
+    enter(_data: StateData = {}): void {
         this.isActive = true;
         this.logger.log(`[State] Entering: ${this.name}`);
     }
@@ -75,7 +75,7 @@ export abstract class GameState<TGame = Record<string, unknown>> {
      * Called by the GameStateManager every frame if this state is on top of the stack.
      * Override this to run your main game logic (e.g., player movement, physics).
      */
-    update(deltaTime: number): void {
+    update(_deltaTime: number): void {
         // Override in subclasses
     }
 
@@ -83,7 +83,7 @@ export abstract class GameState<TGame = Record<string, unknown>> {
      * Called by the GameStateManager if this state is on top of the stack.
      * Override this to handle all keyboard, mouse, touch, and gamepad events.
      */
-    handleEvent(event: EngineInputEvent): void {
+    handleEvent(_event: EngineInputEvent): void {
         // Override in subclasses
     }
 }

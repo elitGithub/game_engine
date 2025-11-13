@@ -59,6 +59,12 @@ export {
 
 export interface AudioManagerOptions {
     sfxPoolSize: number;
+    volumes?: {
+        master?: number;
+        music?: number;
+        sfx?: number;
+        voice?: number;
+    };
 }
 
 

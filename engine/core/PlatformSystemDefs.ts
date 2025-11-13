@@ -114,7 +114,7 @@ function createAudioManagerDefinition(
                 throw new Error('[PlatformSystemDefs] Platform does not support audio. Cannot create AudioManager.');
             }
 
-            const audioContext = audioPlatform.getNativeContext?.();
+            const audioContext = audioPlatform.getContext();
             if (!audioContext) {
                 throw new Error('[PlatformSystemDefs] Platform audio context is null. Cannot create AudioManager.');
             }

@@ -9,15 +9,29 @@ export interface AssetManifestEntry {
     type: AssetType;
 }
 
+export interface AssetManagerOptions {
+    /**
+     * Maximum number of assets to keep in cache. When exceeded, least recently used assets are evicted.
+     * Set to 0 or undefined for unlimited cache (default).
+     */
+    maxCacheSize?: number;
+}
+
 export class AssetManager {
     private loaders: Map<AssetType, IAssetLoader>;
     private cache: Map<string, unknown>;
     private loadingPromises: Map<string, Promise<unknown>>;
 
-    constructor(private eventBus: EventBus, private logger: ILogger) {
+    // LRU tracking
+    private accessOrder: string[]; // Most recently used at the end
+    private maxCacheSize: number;
+
+    constructor(private eventBus: EventBus, private logger: ILogger, options: AssetManagerOptions = {}) {
         this.loaders = new Map();
         this.cache = new Map();
         this.loadingPromises = new Map();
+        this.accessOrder = [];
+        this.maxCacheSize = options.maxCacheSize || 0; // 0 = unlimited
     }
 
     /**
@@ -68,6 +82,7 @@ export class AssetManager {
     async load(id: string, url: string, type: AssetType): Promise<unknown> {
         // Return cached result if already loaded
         if (this.cache.has(id)) {
+            this.updateAccessOrder(id); // Mark as recently used
             return this.cache.get(id);
         }
 
@@ -85,7 +100,7 @@ export class AssetManager {
         const loadPromise = (async () => {
             try {
                 const asset = await loader.load(url);
-                this.cache.set(id, asset);
+                this.addToCache(id, asset); // Use LRU-aware method
                 this.loadingPromises.delete(id); // Clean up
                 this.eventBus.emit('assets.loaded', { id, type, asset });
                 return asset;
@@ -120,6 +135,7 @@ export class AssetManager {
             this.logger.warn(`[AssetManager] Asset '${id}' not found in cache.`);
             return null;
         }
+        this.updateAccessOrder(id); // Mark as recently used
         return this.cache.get(id) as T;
     }
 
@@ -152,6 +168,69 @@ export class AssetManager {
      * @returns True if the asset was found and removed, false if it was not in cache
      */
     remove(id: string): boolean {
-        return this.cache.delete(id);
+        const deleted = this.cache.delete(id);
+        if (deleted) {
+            // Remove from access order tracking
+            const index = this.accessOrder.indexOf(id);
+            if (index > -1) {
+                this.accessOrder.splice(index, 1);
+            }
+        }
+        return deleted;
+    }
+
+    /**
+     * Get cache statistics for monitoring and debugging.
+     *
+     * @returns Object with cache size, limit, and usage percentage
+     */
+    getCacheStats(): { size: number; limit: number; usagePercent: number } {
+        const size = this.cache.size;
+        const limit = this.maxCacheSize || Infinity;
+        const usagePercent = this.maxCacheSize ? (size / this.maxCacheSize) * 100 : 0;
+        return { size, limit, usagePercent };
+    }
+
+    // --- PRIVATE LRU HELPERS ---
+
+    /**
+     * Add asset to cache with LRU eviction if needed.
+     */
+    private addToCache(id: string, asset: unknown): void {
+        // If cache is at limit, evict least recently used
+        if (this.maxCacheSize > 0 && this.cache.size >= this.maxCacheSize && !this.cache.has(id)) {
+            this.evictLRU();
+        }
+
+        this.cache.set(id, asset);
+        this.updateAccessOrder(id);
+    }
+
+    /**
+     * Update access order for LRU tracking.
+     * Moves the asset to the end (most recently used).
+     */
+    private updateAccessOrder(id: string): void {
+        // Remove from current position
+        const index = this.accessOrder.indexOf(id);
+        if (index > -1) {
+            this.accessOrder.splice(index, 1);
+        }
+        // Add to end (most recently used)
+        this.accessOrder.push(id);
+    }
+
+    /**
+     * Evict the least recently used asset from the cache.
+     */
+    private evictLRU(): void {
+        if (this.accessOrder.length === 0) return;
+
+        const lruId = this.accessOrder[0]; // First item is least recently used
+        this.cache.delete(lruId);
+        this.accessOrder.shift();
+
+        this.logger.log(`[AssetManager] Evicted LRU asset: ${lruId}`);
+        this.eventBus.emit('assets.evicted', { id: lruId });
     }
 }

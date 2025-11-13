@@ -3,6 +3,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { DomInputAdapter } from '@engine/core/DomInputAdapter';
 import type {ILogger} from "@engine/interfaces";
+import type { IDomRenderContainer } from '@engine/interfaces/IRenderContainer';
 
 // Mock a DOM element and its event methods
 const mockElement = {
@@ -12,6 +13,17 @@ const mockElement = {
     hasAttribute: vi.fn(() => false),
     focus: vi.fn(),
 };
+
+// Mock a DOM render container
+const createMockDomContainer = (): IDomRenderContainer => ({
+    getType: () => 'dom' as const,
+    getElement: () => mockElement as any,
+    getDimensions: () => ({ width: 800, height: 600 }),
+    requestAnimationFrame: (callback: () => void) => {
+        const id = requestAnimationFrame(callback);
+        return () => cancelAnimationFrame(id);
+    },
+});
 
 const mockLogger: ILogger = {
     log: vi.fn(),
@@ -24,6 +36,7 @@ describe('DomInputAdapter', () => {
     let adapter: DomInputAdapter;
     let mockEventHandler: ReturnType<typeof vi.fn>;
     let listenerMap: Map<string, (evt: any) => void>;
+    let mockContainer: IDomRenderContainer;
 
     beforeEach(() => {
         vi.clearAllMocks();
@@ -39,12 +52,14 @@ describe('DomInputAdapter', () => {
             listenerMap.set(event, listener);
         });
 
-        adapter.attach(mockElement as any);
+        mockContainer = createMockDomContainer();
+        adapter.attach(mockContainer);
     });
 
     it('should attach to element and add all listeners', () => {
-        // Use attachToElement directly since attachToContainer was removed
-        adapter.attach(mockElement as any, { focus: true, tabindex: '0' });
+        // Create a new adapter to test fresh attach with options
+        const testAdapter = new DomInputAdapter(mockLogger);
+        testAdapter.attach(mockContainer, { focus: true, tabindex: '0' });
 
         expect(mockElement.setAttribute).toHaveBeenCalledWith('tabindex', '0');
         expect(mockElement.focus).toHaveBeenCalled();

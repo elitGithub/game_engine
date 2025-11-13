@@ -17,17 +17,15 @@ export class RenderManager {
     private renderer: IRenderer;
     private sceneQueue: RenderCommand[] = [];
     private uiQueue: RenderCommand[] = [];
-    private logger: ILogger;
 
     constructor(
-        config: { type: string },
-        eventBus: EventBus,
+        _config: { type: string },
+        _eventBus: EventBus,
         container: IRenderContainer,
         renderer: IRenderer,
-        logger: ILogger
+        _logger: ILogger
     ) {
         this.renderer = renderer;
-        this.logger = logger;
         this.renderer.init(container);
     }
 

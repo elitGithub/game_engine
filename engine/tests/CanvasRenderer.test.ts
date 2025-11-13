@@ -89,7 +89,7 @@ describe('CanvasRenderer', () => {
             getCanvas: () => canvas,
             getContext: () => mockContext as any,
             getDimensions: () => ({ width: 800, height: 600 }),
-            setDimensions: (width: number, height: number) => true,
+            setDimensions: (_width: number, _height: number) => true,
             getPixelRatio: () => 1.0,
             requestAnimationFrame: (callback: () => void) => {
                 const id = setTimeout(callback, 16);

@@ -74,6 +74,7 @@ export interface EngineEventMap {
     'assets.manifest.failed': { error: unknown };
     'assets.loaded': { id: string; type: AssetType; asset: unknown };
     'assets.cache.cleared': Record<string, never>;
+    'assets.evicted': { id: string };
 
     // AudioManager
     'audio.unlocked': Record<string, never>;

@@ -17,7 +17,7 @@ export abstract class Action<TGame = Record<string, unknown>> {
     /**
      * Check if this action can be executed right now
      */
-    canExecute(context: ActionContext<TGame>): boolean {
+    canExecute(_context: ActionContext<TGame>): boolean {
         return true;
     }
 

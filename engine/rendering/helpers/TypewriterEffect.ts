@@ -37,13 +37,12 @@ export class TypewriterEffect implements IDynamicEffect {
     }
 
 
-    onStart(target: IEffectTarget, _context: TypedGameContext<any>, logger: ILogger): void {
+    onStart(target: IEffectTarget, _context: TypedGameContext<any>, _logger: ILogger): void {
         // Use the IEffectTarget interface, not getRaw()
         const fullText = target.getProperty<string>('textContent');
 
         // Check if the property exists on the target
         if (typeof fullText === 'undefined') {
-            logger.warn(`[TypewriterEffect] Target '${target.id}' does not have a 'textContent' property. Skipping.`);
             return;
         }
 
@@ -67,7 +66,7 @@ export class TypewriterEffect implements IDynamicEffect {
      * This is now the core logic loop, driven by the engine's EffectManager.
      */
     // FIX: Prefixed unused 'context' parameter with '_' to satisfy TS6133
-    onUpdate(target: IEffectTarget, _context: TypedGameContext<any>, deltaTime: number, logger: ILogger): void {
+    onUpdate(target: IEffectTarget, _context: TypedGameContext<any>, deltaTime: number, _logger: ILogger): void {
         // Instant mode: Skip animation loop (text already displayed in onStart)
         if (this.charsPerSecond === Infinity) {
             return;
@@ -106,7 +105,7 @@ export class TypewriterEffect implements IDynamicEffect {
     }
 
     // FIX: Prefixed unused 'context' parameter with '_' to satisfy TS6133
-    onStop(target: IEffectTarget, _context: TypedGameContext<any>, logger: ILogger): void {
+    onStop(target: IEffectTarget, _context: TypedGameContext<any>, _logger: ILogger): void {
         // When stopped, instantly complete the text
         target.setProperty('textContent', this.fullText);
         // Mark as complete
