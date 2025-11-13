@@ -2,6 +2,7 @@
 import type { EventBus } from '@engine/core/EventBus';
 import type { AssetManager } from '@engine/systems/AssetManager';
 import {ILogger} from "@engine/interfaces";
+import { AudioUtils } from './AudioUtils';
 
 /**
  * VoicePlayer - Handles simple, non-pooled playback for voice lines.
@@ -28,7 +29,7 @@ export class VoicePlayer {
             source.buffer = buffer;
 
             const gainNode = this.audioContext.createGain();
-            gainNode.gain.value = Math.max(0, Math.min(1, volume));
+            gainNode.gain.value = AudioUtils.toGain(volume);
 
             source.connect(gainNode);
             gainNode.connect(this.outputNode);

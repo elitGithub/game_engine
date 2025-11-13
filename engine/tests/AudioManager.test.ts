@@ -129,16 +129,17 @@ describe('AudioManager (Facade)', () => {
         const sfxGain = vi.mocked(mockAudioContext.createGain).mock.results[2].value.gain;
         const voiceGain = vi.mocked(mockAudioContext.createGain).mock.results[3].value.gain;
 
+        // Volume setters now use exponential gain (volume²) for natural perception
         audioManager.setMasterVolume(0.5);
-        expect(masterGain.value).toBe(0.5);
+        expect(masterGain.value).toBe(0.25); // 0.5² = 0.25
 
         audioManager.setMusicVolume(0.6);
-        expect(musicGain.value).toBe(0.6);
+        expect(musicGain.value).toBe(0.36); // 0.6² = 0.36
 
         audioManager.setSFXVolume(0.7);
-        expect(sfxGain.value).toBe(0.7);
+        expect(sfxGain.value).toBe(0.49); // 0.7² = 0.49
 
         audioManager.setVoiceVolume(0.8);
-        expect(voiceGain.value).toBe(0.8);
+        expect(voiceGain.value).toBe(0.64); // 0.8² = 0.64
     });
 });

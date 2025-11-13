@@ -84,7 +84,8 @@ describe('VoicePlayer', () => {
 
         expect(mockAssetManager.get).toHaveBeenCalledWith('voice_line_1');
         expect(mockBufferSource.buffer).toBe(mockAudioBuffer);
-        expect(mockGainNode.gain.value).toBe(0.9);
+        // Volume uses exponential gain (0.9² = 0.81) for natural perception
+        expect(mockGainNode.gain.value).toBe(0.81);
         expect(mockBufferSource.start).toHaveBeenCalledWith(0);
         expect(mockEventBus.emit).toHaveBeenCalledWith('voice.started', { voiceId: 'voice_line_1' });
     });

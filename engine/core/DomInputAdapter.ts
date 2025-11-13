@@ -5,7 +5,6 @@ import {
     type InputAttachOptions,
     type InputCapabilities
 } from '../interfaces/IInputAdapter';
-import type { PlatformContainer } from './PlatformContainer';
 import type {
     KeyDownEvent,
     KeyUpEvent,
@@ -49,9 +48,9 @@ export class DomInputAdapter extends BaseInputAdapter {
     }
 
     /**
-     * Attach to a render container or platform container
+     * Attach to a render container that implements IRenderContainer
      */
-    attach(container?: IRenderContainer | PlatformContainer, options?: InputAttachOptions): boolean {
+    attach(container?: IRenderContainer, options?: InputAttachOptions): boolean {
         // If already attached, detach first
         if (this.attached) {
             this.detach();
@@ -61,13 +60,12 @@ export class DomInputAdapter extends BaseInputAdapter {
 
         // Try to get HTMLElement from container
         if (container) {
-            // Check if it's an IRenderContainer
-            if (isDomRenderContainer(container as IRenderContainer)) {
+            // Check if it's a DOM-capable render container
+            if (isDomRenderContainer(container)) {
                 element = (container as IDomRenderContainer).getElement();
-            }
-            // Check if it's a legacy PlatformContainer
-            else if ((container as PlatformContainer).getDomElement) {
-                element = (container as PlatformContainer).getDomElement?.();
+            } else {
+                this.logger.warn('[DomInputAdapter] Container does not implement IDomRenderContainer. Skipping.');
+                return false;
             }
         }
 
@@ -119,21 +117,6 @@ export class DomInputAdapter extends BaseInputAdapter {
         }
 
         this.attached = true;
-    }
-
-    /**
-     * Legacy attach to platform container
-     * @deprecated Use attach(container, options) instead
-     */
-    attachToContainer(container: PlatformContainer, options?: { focus?: boolean; tabindex?: string }): boolean {
-        const element = container.getDomElement?.();
-        if (!element) {
-            this.logger.warn('[DomInputAdapter] Container does not provide DOM element. Skipping.');
-            return false;
-        }
-
-        this.attachToElement(element, options);
-        return true;
     }
 
     detach(): void {

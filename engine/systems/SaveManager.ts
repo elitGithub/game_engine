@@ -60,30 +60,108 @@ export class SaveManager {
     }
 
     /**
-     * Load a saved game.
-     * Uses a custom reviver to restore Map and Set objects natively.
+     * Load a saved game using Muted Transaction pattern.
+     *
+     * PHASE 1: Async I/O (events still active - game remains responsive)
+     * PHASE 2: Muted transaction (snapshot + deserialize - milliseconds only)
+     * PHASE 3: Rollback on failure (restore from snapshot)
+     * PHASE 4: Nuclear fallback (emit criticalError if rollback fails)
+     *
+     * This prevents "frozen game" during network loads and "phantom events" during state mutation.
      */
     async loadGame(slotId: string): Promise<boolean> {
+        // PHASE 1: ASYNC I/O - Events still active, game still responsive
+        let json: string | null;
         try {
-            const json = await this.adapter.load(slotId);
-            if (!json) return false;
+            json = await this.adapter.load(slotId);
+        } catch (ioError) {
+            this.logger.error('[SaveManager] IO Failed', ioError);
+            this.eventBus.emit('save.loadFailed', { slotId, error: ioError });
+            return false;
+        }
 
-            // MAGIC HAPPENS HERE: The reviver restores Maps/Sets before migration runs
+        if (!json) {
+            this.logger.warn('[SaveManager] Save slot not found:', slotId);
+            this.eventBus.emit('save.loadFailed', { slotId, error: new Error('Slot not found') });
+            return false;
+        }
+
+        // PHASE 2: MUTED TRANSACTION START (Critical Section - Milliseconds only)
+        this.eventBus.suppressEvents();
+        const snapshot = new Map<string, unknown>();
+
+        try {
+            // PHASE 2.1: SNAPSHOT (Synchronous - Fast)
+            for (const [key, system] of this.registry.serializableSystems.entries()) {
+                try {
+                    // structuredClone creates true memory barrier - no shared references
+                    snapshot.set(key, structuredClone(system.serialize()));
+                } catch (cloneError) {
+                    this.logger.error(`[SaveManager] Failed to snapshot system '${key}':`, cloneError);
+                    throw new Error(`Snapshot failed for system '${key}'`);
+                }
+            }
+
+            // PHASE 2.2: PARSE & DESERIALIZE (Synchronous - Fast)
             let saveData: SaveData = JSON.parse(json, this.reviver);
-
             saveData = this.migrationManager.migrate(saveData, this.registry.gameVersion);
 
-            this.restoreGameState(saveData);
+            // Deserialize all systems
+            if (saveData.systems) {
+                for (const [key, data] of Object.entries(saveData.systems)) {
+                    const system = this.registry.serializableSystems.get(key);
+                    if (system) {
+                        system.deserialize(data);
+                    }
+                }
+            }
 
+            // Restore scene
+            if (saveData.currentSceneId) {
+                this.registry.restoreScene(saveData.currentSceneId);
+            }
+
+            // PHASE 2.3: SUCCESS - Re-enable events and notify
+            this.eventBus.resumeEvents();
             this.eventBus.emit('save.loaded', {
                 slotId,
                 timestamp: saveData.timestamp
             });
             return true;
-        } catch (error) {
-            this.logger.error('[SaveManager] Load failed:', error);
-            this.eventBus.emit('save.loadFailed', { slotId, error });
-            return false;
+
+        } catch (deserializeError) {
+            this.logger.error('[SaveManager] Deserialization failed, restoring state...', deserializeError);
+
+            // PHASE 3: ROLLBACK - Restore from snapshot
+            try {
+                for (const [key, snapshotData] of snapshot.entries()) {
+                    const system = this.registry.serializableSystems.get(key);
+                    if (system) {
+                        system.deserialize(snapshotData);
+                    }
+                }
+
+                this.eventBus.resumeEvents();
+                this.eventBus.emit('save.loadFailed', { slotId, error: deserializeError });
+                return false;
+
+            } catch (restoreError) {
+                // PHASE 4: NUCLEAR FALLBACK - State is corrupted
+                this.logger.error('[SaveManager] CRITICAL: Restore failed. State corrupted.', restoreError);
+                this.eventBus.resumeEvents();
+                this.eventBus.emit('engine.criticalError', {
+                    message: 'Save system failure - state corrupted',
+                    error: restoreError
+                });
+                return false;
+            }
+        } finally {
+            snapshot.clear();
+
+            // Safety: Ensure events are always resumed, even on unexpected exit paths
+            if (this.eventBus.isSuppressed()) {
+                this.eventBus.resumeEvents();
+            }
         }
     }
 

@@ -4,6 +4,7 @@ import {ILogger} from "@engine/interfaces";
 
 export class EventBus {
     private listeners: ListenerMap;
+    private suppressionEnabled: boolean = false;
 
     constructor(private logger: ILogger) {
         this.listeners = {};
@@ -62,6 +63,9 @@ export class EventBus {
      * @param data - The data to pass to all event listeners
      */
     emit<K extends keyof EventMap>(event: K, data: EventMap[K]): void {
+        // Silently return if events are suppressed (used by SaveManager during load transactions)
+        if (this.suppressionEnabled) return;
+
         const callbacks = this.listeners[event];
         if (!callbacks) return;
 
@@ -74,6 +78,29 @@ export class EventBus {
                this.logger.error(`Error in event handler for '${event}':`, error);
             }
         });
+    }
+
+    /**
+     * Suppress all event emissions. Events will be silently dropped until resumeEvents() is called.
+     * Used by SaveManager to prevent "phantom events" during load transactions.
+     */
+    suppressEvents(): void {
+        this.suppressionEnabled = true;
+    }
+
+    /**
+     * Resume normal event emission after suppressEvents() was called.
+     */
+    resumeEvents(): void {
+        this.suppressionEnabled = false;
+    }
+
+    /**
+     * Check if event suppression is currently enabled.
+     * @returns true if events are being suppressed, false otherwise
+     */
+    isSuppressed(): boolean {
+        return this.suppressionEnabled;
     }
 
     /**

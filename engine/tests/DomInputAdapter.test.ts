@@ -48,9 +48,9 @@ describe('DomInputAdapter', () => {
     });
 
     it('should attach to element and add all listeners', () => {
-        adapter.attachToContainer(mockContainer as any, { focus: true, tabindex: '0' });
+        // Use attachToElement directly since attachToContainer was removed
+        adapter.attachToElement(mockElement as any, { focus: true, tabindex: '0' });
 
-        expect(mockContainer.getDomElement).toHaveBeenCalled();
         expect(mockElement.setAttribute).toHaveBeenCalledWith('tabindex', '0');
         expect(mockElement.focus).toHaveBeenCalled();
 

@@ -7,6 +7,7 @@ type ActiveDynamicEffect = {
     name: string;
     logic: IDynamicEffect;
     target: IEffectTarget; // Store the target
+    isDead?: boolean; // Track removed effects to prevent zombie execution
 };
 
 export class EffectManager {
@@ -35,7 +36,12 @@ export class EffectManager {
 
     update(deltaTime: number, context: GameContext): void {
         this.activeDynamicEffects.forEach((effects) => {
-            effects.forEach(effect => {
+            // Clone array to prevent issues when effects remove themselves or other effects during update
+            const snapshot = [...effects];
+            snapshot.forEach(effect => {
+                // Skip zombie effects (removed during this loop iteration)
+                if (effect.isDead) return;
+
                 effect.logic.onUpdate(effect.target, context, deltaTime, this.logger);
             });
         });
@@ -144,7 +150,15 @@ export class EffectManager {
             if (active) {
                 const effectIndex = active.findIndex(e => e.name === effectName);
                 if (effectIndex > -1) {
-                    const [removedEffect] = active.splice(effectIndex, 1);
+                    const removedEffect = active[effectIndex];
+
+                    // Mark as dead BEFORE calling onStop (prevents zombie execution if onStop triggers update)
+                    removedEffect.isDead = true;
+
+                    // Remove from array
+                    active.splice(effectIndex, 1);
+
+                    // Call lifecycle hook
                     removedEffect.logic.onStop(target, context, this.logger);
                 }
                 if (active.length === 0) {

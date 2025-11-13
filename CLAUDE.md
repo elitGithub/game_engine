@@ -24,6 +24,7 @@ This project is **Step 1** and *only* Step 1\.
 
 * **Step 1: The Engine Library (This Repository's Goal)**
   * **Goal:** A 100% **agnostic, decoupled, clear, and unopinionated set of tools** (a **Library**), with the long-term vision of structuring as an **NX monorepo** (e.g., @engine/core, @engine/dom-renderer).
+  * **Core Ideal:** V1 Forever. Build once, never have to re-build. The engine MUST be ready for the future. Patches are not acceptable solutions. Consider bulletproof, clean, robust solutions.
   * **Current State:** Single-package TypeScript project using Vite + Vitest. NX migration is a future consideration.
   * **Philosophy:** "Plug-and-Develop." The developer is an **Assembler** who must explicitly register *every* system they use.
   * **Audience:** Engine programmers (including our future selves) building a "Step 2" framework.  
@@ -65,7 +66,17 @@ These are the non-negotiable rules for the "Refactor-of-the-Refactor."
 When working on this codebase:
 
 * Prioritize decoupling and clear interfaces (adhere to the rules above).  
-* Always consider: "Does this belong in Step 1 (Library) or Step 2 (Framework)?"  
+* Always consider: "Does this belong in Step 1 (Library) or Step 2 (Framework)?"
+* Always consider: "Is this a good design choice?"
+* Always consider: "Is this a good API?"
+* Always consider: "Is this a good implementation?"
+* Always consider: "Is this a good test?"
+* Always consider: "Is this a good documentation?"
+* Always consider: "Is this a good audit?"
+* Always consider: "Is this a good state file?"
+* Always consider: "Is this a good code comment?"
+* Always consider: "How does this impact performance?"
+* Always consider: "How does this impact maintainability?"
 * Maintain comprehensive test coverage for engine systems.  
 * Document all public APIs with TSDoc.
 * Do not commit or push code without user approval

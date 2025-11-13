@@ -5,6 +5,7 @@ import type {AudioManagerOptions, ILogger, ITimerProvider} from '@engine/interfa
 import { MusicPlayer, type MusicState } from '@engine/audio/MusicPlayer';
 import { SfxPool } from '@engine/audio/SfxPool';
 import { VoicePlayer } from '@engine/audio/VoicePlayer';
+import { AudioUtils } from '@engine/audio/AudioUtils';
 
 /**
  * AudioManager - A facade for coordinating audio playback.
@@ -100,77 +101,85 @@ export class AudioManager {
     /**
      * Set the master volume level for all audio.
      * Affects music, sound effects, and voice simultaneously.
+     * Uses exponential curve to compensate for logarithmic human hearing.
      *
-     * @param level - Volume level between 0.0 (silent) and 1.0 (full volume)
+     * @param level - Linear volume level between 0.0 (silent) and 1.0 (full volume)
      */
     setMasterVolume(level: number): void {
-        this.masterGain.gain.value = Math.max(0, Math.min(1, level));
+        this.masterGain.gain.value = AudioUtils.toGain(level);
     }
 
     /**
      * Set the music volume level.
      * Only affects background music playback.
+     * Uses exponential curve to compensate for logarithmic human hearing.
      *
-     * @param level - Volume level between 0.0 (silent) and 1.0 (full volume)
+     * @param level - Linear volume level between 0.0 (silent) and 1.0 (full volume)
      */
     setMusicVolume(level: number): void {
-        this.musicGain.gain.value = Math.max(0, Math.min(1, level));
+        this.musicGain.gain.value = AudioUtils.toGain(level);
     }
 
     /**
      * Set the sound effects volume level.
      * Only affects SFX playback.
+     * Uses exponential curve to compensate for logarithmic human hearing.
      *
-     * @param level - Volume level between 0.0 (silent) and 1.0 (full volume)
+     * @param level - Linear volume level between 0.0 (silent) and 1.0 (full volume)
      */
     setSFXVolume(level: number): void {
-        this.sfxGain.gain.value = Math.max(0, Math.min(1, level));
+        this.sfxGain.gain.value = AudioUtils.toGain(level);
     }
 
     /**
      * Set the voice volume level.
      * Only affects voice-over playback.
+     * Uses exponential curve to compensate for logarithmic human hearing.
      *
-     * @param level - Volume level between 0.0 (silent) and 1.0 (full volume)
+     * @param level - Linear volume level between 0.0 (silent) and 1.0 (full volume)
      */
     setVoiceVolume(level: number): void {
-        this.voiceGain.gain.value = Math.max(0, Math.min(1, level));
+        this.voiceGain.gain.value = AudioUtils.toGain(level);
     }
 
     /**
      * Get the current master volume level.
+     * Converts from exponential gain back to linear volume for display.
      *
-     * @returns Current master volume between 0.0 and 1.0
+     * @returns Current linear master volume between 0.0 and 1.0
      */
     getMasterVolume(): number {
-        return this.masterGain.gain.value;
+        return AudioUtils.toVolume(this.masterGain.gain.value);
     }
 
     /**
      * Get the current music volume level.
+     * Converts from exponential gain back to linear volume for display.
      *
-     * @returns Current music volume between 0.0 and 1.0
+     * @returns Current linear music volume between 0.0 and 1.0
      */
     getMusicVolume(): number {
-        return this.musicGain.gain.value;
+        return AudioUtils.toVolume(this.musicGain.gain.value);
     }
 
     /**
      * Get the current sound effects volume level.
+     * Converts from exponential gain back to linear volume for display.
      *
-     * @returns Current SFX volume between 0.0 and 1.0
+     * @returns Current linear SFX volume between 0.0 and 1.0
      */
     getSFXVolume(): number {
-        return this.sfxGain.gain.value;
+        return AudioUtils.toVolume(this.sfxGain.gain.value);
     }
 
     /**
      * Get the current voice volume level.
+     * Converts from exponential gain back to linear volume for display.
      *
-     * @returns Current voice volume between 0.0 and 1.0
+     * @returns Current linear voice volume between 0.0 and 1.0
      */
     getVoiceVolume(): number {
-        return this.voiceGain.gain.value;
+        return AudioUtils.toVolume(this.voiceGain.gain.value);
     }
 
     // ============================================================================

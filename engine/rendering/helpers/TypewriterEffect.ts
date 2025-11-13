@@ -16,9 +16,24 @@ export class TypewriterEffect implements IDynamicEffect {
     private readonly charsPerSecond: number = Infinity;
 
     constructor(config: { charsPerSecond?: number, punctuationDelay?: number } = {}) {
-        this.charsPerSecond = config.charsPerSecond || 0;
-        this.punctuationDelay = config.punctuationDelay || 0;
-        this.timePerChar = (config.charsPerSecond && config.charsPerSecond > 0) ? 1.0 / config.charsPerSecond : 0;
+        const cps = config.charsPerSecond ?? 30; // Default to 30 chars/second
+
+        // Validation: Ensure finite positive number or Infinity
+        if (Number.isNaN(cps)) {
+            throw new Error('[TypewriterEffect] charsPerSecond cannot be NaN');
+        }
+        if (cps < 0) {
+            throw new Error('[TypewriterEffect] charsPerSecond cannot be negative');
+        }
+        if (!Number.isFinite(cps) && cps !== Infinity) {
+            throw new Error(`[TypewriterEffect] Invalid charsPerSecond: ${cps}`);
+        }
+
+        // Normalize: 0 means instant = Infinity (for convenience)
+        this.charsPerSecond = cps === 0 ? Infinity : cps;
+
+        this.punctuationDelay = config.punctuationDelay ?? 0;
+        this.timePerChar = this.charsPerSecond === Infinity ? 0 : (1.0 / this.charsPerSecond);
     }
 
 
@@ -38,8 +53,14 @@ export class TypewriterEffect implements IDynamicEffect {
         this.timeAccumulator = 0;
         this.currentDelay = this.timePerChar;
 
-        // Set the initial state (blank text)
-        target.setProperty('textContent', '');
+        // Instant mode (Infinity): Display full text immediately, skip animation
+        if (this.charsPerSecond === Infinity) {
+            target.setProperty('textContent', this.fullText);
+            this.charIndex = this.fullText.length; // Mark as complete
+        } else {
+            // Normal mode: Start with blank text
+            target.setProperty('textContent', '');
+        }
     }
 
     /**
@@ -47,6 +68,11 @@ export class TypewriterEffect implements IDynamicEffect {
      */
     // FIX: Prefixed unused 'context' parameter with '_' to satisfy TS6133
     onUpdate(target: IEffectTarget, _context: TypedGameContext<any>, deltaTime: number, logger: ILogger): void {
+        // Instant mode: Skip animation loop (text already displayed in onStart)
+        if (this.charsPerSecond === Infinity) {
+            return;
+        }
+
         if (this.charIndex >= this.fullText.length) {
             return; // Effect is complete
         }

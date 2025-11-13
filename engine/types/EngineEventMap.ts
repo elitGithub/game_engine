@@ -59,6 +59,7 @@ export interface EngineEventMap {
     'engine.stopped': Record<string, never>;
     'engine.paused': Record<string, never>;
     'engine.unpaused': Record<string, never>;
+    'engine.criticalError': { message: string; error: unknown };
     'game.data.loaded': GameData;
 
     // SceneManager
