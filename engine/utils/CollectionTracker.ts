@@ -1,6 +1,8 @@
 // engine/utils/CollectionTracker.ts
 import type { ISerializable } from '../types';
 
+type CollectionTrackerSaveData = [string, number][];
+
 export class CollectionTracker implements ISerializable {
     private items: Map<string, number>;
 
@@ -46,11 +48,11 @@ export class CollectionTracker implements ISerializable {
         this.items.clear();
     }
 
-    serialize(): any {
+    serialize(): CollectionTrackerSaveData {
         return Array.from(this.items.entries());
     }
 
-    deserialize(data: any): void {
+    deserialize(data: CollectionTrackerSaveData): void {
         this.items = new Map(data || []);
     }
 }

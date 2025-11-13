@@ -64,7 +64,7 @@ describe('ValueTracker', () => {
 
     it('should deserialize its state', () => {
         const data = {
-            values: [['health', 80], ['mana', 50]],
+            values: [['health', 80], ['mana', 50]] as [string, number][],
             defaultValue: 10
         };
         tracker.deserialize(data);

@@ -12,6 +12,10 @@ interface LocalizationData {
     [key: string]: string | LocalizationData;
 }
 
+interface LocalizationSaveData {
+    currentLanguage: string;
+}
+
 export class LocalizationManager implements ISerializable {
     private strings: Map<string, string> = new Map();
 
@@ -84,14 +88,14 @@ export class LocalizationManager implements ISerializable {
 
     // --- ISerializable Implementation ---
 
-    serialize(): any {
+    serialize(): LocalizationSaveData {
         return {
             currentLanguage: this.currentLanguage
             // We don't save the 'strings' map, as that is loaded from assets
         };
     }
 
-    deserialize(data: any): void {
+    deserialize(data: LocalizationSaveData): void {
         this.currentLanguage = data.currentLanguage || 'en';
         this.strings.clear();
     }
