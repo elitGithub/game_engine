@@ -12,7 +12,7 @@ import type {
     AudioCapabilities,
     AudioFormat
 } from '@engine/interfaces/IAudioPlatform';
-import { WebAudioContext } from './WebAudioContext';
+import { WebAudioContext } from '@engine/platform/webaudio/WebAudioContext';
 import type {ILogger} from "@engine/interfaces";
 
 /**

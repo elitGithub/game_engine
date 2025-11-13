@@ -4,7 +4,7 @@ import {
     type InputAdapterType,
     type InputAttachOptions,
     type InputCapabilities
-} from '../interfaces/IInputAdapter';
+} from '@engine/interfaces/IInputAdapter';
 import type {
     KeyDownEvent,
     KeyUpEvent,
@@ -16,7 +16,7 @@ import type {
     TouchStartEvent,
     TouchMoveEvent,
     TouchEndEvent
-} from './InputEvents';
+} from '@engine/types/InputEvents';
 import {ILogger, IRenderContainer, IDomRenderContainer, isDomRenderContainer} from "@engine/interfaces";
 
 /**

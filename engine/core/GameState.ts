@@ -14,7 +14,7 @@
  * ```
  */
 import type { StateData, TypedGameContext } from '@engine/types';
-import type { EngineInputEvent } from '@engine/core/InputEvents';
+import type { EngineInputEvent } from '@engine/types/InputEvents';
 import type {ILogger} from "@engine/interfaces";
 
 export abstract class GameState<TGame = Record<string, unknown>> {

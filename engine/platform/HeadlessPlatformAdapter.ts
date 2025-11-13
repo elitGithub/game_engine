@@ -21,7 +21,7 @@ import {
 import type { StorageAdapter } from '@engine/core/StorageAdapter';
 import { InMemoryStorageAdapter } from '@engine/systems/InMemoryStorageAdapter';
 import {HeadlessRenderContainer} from "@engine/interfaces/HeadlessRenderContainer";
-import { ConsoleLogger } from './ConsoleLogger';
+import { ConsoleLogger } from '@engine/platform/ConsoleLogger';
 import type {ILogger} from "@engine/interfaces/ILogger";
 
 /**

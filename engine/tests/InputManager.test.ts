@@ -4,7 +4,7 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { InputManager } from '@engine/systems/InputManager';
 import { EventBus } from '@engine/core/EventBus';
 import { GameStateManager } from '@engine/core/GameStateManager';
-import type { KeyDownEvent, KeyUpEvent } from '@engine/core/InputEvents';
+import type { KeyDownEvent, KeyUpEvent } from '@engine/types/InputEvents';
 import type { GameState } from '@engine/core/GameState';
 import type { ITimerProvider } from '@engine/interfaces/ITimerProvider';
 import {ILogger} from "@engine/interfaces";

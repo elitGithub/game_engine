@@ -1,7 +1,7 @@
 // engine/systems/input/InputActionMapper.ts
 
 import type { EventBus } from '@engine/core/EventBus';
-import type { InputAction, InputBinding } from '@engine/core/InputEvents';
+import type { InputAction, InputBinding } from '@engine/types/InputEvents';
 
 export class InputActionMapper {
     private eventBus: EventBus;

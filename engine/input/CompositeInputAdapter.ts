@@ -5,7 +5,7 @@
  * Useful for supporting multiple input methods simultaneously.
  */
 
-import { BaseInputAdapter } from './BaseInputAdapter';
+import { BaseInputAdapter } from '@engine/input/BaseInputAdapter';
 import type { IInputAdapter, InputAdapterType, InputAttachOptions, InputCapabilities } from '@engine/interfaces';
 import type { IRenderContainer } from '@engine/interfaces';
 

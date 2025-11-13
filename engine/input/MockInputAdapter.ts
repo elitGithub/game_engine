@@ -7,7 +7,7 @@
 import { BaseInputAdapter } from './BaseInputAdapter';
 import type { InputAdapterType, InputAttachOptions, InputCapabilities } from '@engine/interfaces';
 import type { IRenderContainer } from '@engine/interfaces';
-import type { EngineInputEvent } from '../core/InputEvents';
+import type { EngineInputEvent } from '@engine/types/InputEvents';
 
 /**
  * MockInputAdapter - Testing implementation

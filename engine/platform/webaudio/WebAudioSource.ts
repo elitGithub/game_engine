@@ -3,7 +3,7 @@
  */
 
 import type { IAudioSource, IAudioDestination, IAudioGain } from '@engine/interfaces/IAudioPlatform';
-import { WebAudioDestination } from './WebAudioDestination';
+import { WebAudioDestination } from '@engine/platform/webaudio/WebAudioDestination';
 import { WebAudioGain } from './WebAudioGain';
 
 export class WebAudioSource implements IAudioSource {

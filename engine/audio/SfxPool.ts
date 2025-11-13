@@ -2,7 +2,7 @@
 import type { AssetManager } from '@engine/systems/AssetManager';
 import type { IAudioContext, IAudioBuffer, IAudioSource, IAudioGain } from '@engine/interfaces/IAudioPlatform';
 import type {ILogger} from "@engine/interfaces";
-import { AudioUtils } from './AudioUtils';
+import { AudioUtils } from '@engine/audio/AudioUtils';
 
 /**
  * Complete audio chain for pooling (both source and gain nodes)

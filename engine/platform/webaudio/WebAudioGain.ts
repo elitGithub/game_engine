@@ -3,7 +3,7 @@
  */
 
 import type { IAudioGain, IAudioDestination } from '@engine/interfaces/IAudioPlatform';
-import { WebAudioDestination } from './WebAudioDestination';
+import { WebAudioDestination } from '@engine/platform/webaudio/WebAudioDestination';
 
 export class WebAudioGain implements IAudioGain {
     constructor(private native: GainNode) {}

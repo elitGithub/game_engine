@@ -13,7 +13,7 @@ import type {
     TouchEndEvent,
     TouchMoveEvent,
     TouchStartEvent,
-} from '@engine/core/InputEvents';
+} from '@engine/types/InputEvents';
 
 export type InputMode = 'gameplay' | 'menu' | 'cutscene' | 'disabled';
 

@@ -6,7 +6,7 @@
 
 import type { IInputAdapter, InputAdapterType, InputAttachOptions, InputEventHandler } from '@engine/interfaces';
 import type { IRenderContainer } from '@engine/interfaces';
-import type { EngineInputEvent } from '../core/InputEvents';
+import type { EngineInputEvent } from '@engine/types/InputEvents';
 
 /**
  * BaseInputAdapter - Abstract base class for input adapters

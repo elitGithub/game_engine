@@ -1,5 +1,5 @@
 // engine/core/PluginManager.ts
-import type { IEngineHost, IEnginePlugin, TypedGameContext } from '../types';
+import type { IEngineHost, IEnginePlugin, TypedGameContext } from '@engine/types';
 import type {ILogger} from "@engine/interfaces";
 
 export class PluginManager<TGame = Record<string, unknown>> {
