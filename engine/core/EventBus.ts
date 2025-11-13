@@ -55,6 +55,27 @@ export class EventBus {
     }
 
     /**
+     * Subscribe to an event for a single emission, then automatically unsubscribe.
+     * Useful for preventing memory leaks from one-time event handlers.
+     *
+     * @template K - The event type from the EventMap
+     * @param event - The event name to subscribe to
+     * @param callback - The callback function to invoke once when the event is emitted
+     * @returns A function that can be called to cancel the subscription before it fires
+     */
+    once<K extends keyof EventMap>(
+        event: K,
+        callback: (data: EventMap[K]) => void
+    ): () => void {
+        const wrapper = (data: EventMap[K]) => {
+            this.off(event, wrapper);
+            callback(data);
+        };
+
+        return this.on(event, wrapper);
+    }
+
+    /**
      * Emit an event to all subscribers.
      * Errors thrown by event handlers are caught and logged without interrupting other handlers.
      *

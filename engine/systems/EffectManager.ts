@@ -175,6 +175,65 @@ export class EffectManager {
         }
     }
 
+    /**
+     * Remove all effects from a specific target and clean up all associated resources.
+     * IMPORTANT: Call this when removing a target (e.g., DOM element) from your scene
+     * to prevent memory leaks.
+     *
+     * @param target - The target to clean up
+     * @param context - The game context
+     */
+    removeAllEffectsFromTarget(target: IEffectTarget, context: GameContext): void {
+        if (!target) return;
+        const targetId = target.id;
+
+        // Clean up dynamic effects
+        const active = this.activeDynamicEffects.get(targetId);
+        if (active) {
+            // Mark all as dead and call onStop
+            active.forEach(effect => {
+                effect.isDead = true;
+                effect.logic.onStop(target, context, this.logger);
+            });
+            this.activeDynamicEffects.delete(targetId);
+        }
+
+        // Clean up timed effects
+        const timers = this.timedEffects.get(targetId);
+        if (timers) {
+            timers.forEach(id => this.timer.clearTimeout(id));
+            this.timedEffects.delete(targetId);
+        }
+
+        // Note: Static effects (CSS classes) should be cleaned up by removing the DOM element itself
+    }
+
+    /**
+     * Get the number of targets currently tracked by the effect manager.
+     * Useful for debugging memory leaks.
+     *
+     * @returns Object with counts of active dynamic effects and timed effects
+     */
+    getActiveTargetCount(): { dynamicEffects: number; timedEffects: number } {
+        return {
+            dynamicEffects: this.activeDynamicEffects.size,
+            timedEffects: this.timedEffects.size
+        };
+    }
+
+    /**
+     * Get all currently tracked target IDs.
+     * Useful for debugging to see which targets haven't been cleaned up.
+     *
+     * @returns Array of active target IDs
+     */
+    getActiveTargetIds(): string[] {
+        const dynamicIds = Array.from(this.activeDynamicEffects.keys());
+        const timedIds = Array.from(this.timedEffects.keys());
+        // Combine and dedupe
+        return [...new Set([...dynamicIds, ...timedIds])];
+    }
+
     async sequence(target: IEffectTarget, steps: EffectStep[], context: GameContext): Promise<void> {
         for (const step of steps) {
             if ('wait' in step) {
