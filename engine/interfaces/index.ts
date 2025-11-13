@@ -51,11 +51,6 @@ export type {
     InputAttachOptions,
     InputCapabilities
 } from '@engine/interfaces/IInputAdapter';
-export {
-    BaseInputAdapter,
-    MockInputAdapter,
-    CompositeInputAdapter
-} from '@engine/interfaces/IInputAdapter';
 
 export interface AudioManagerOptions {
     sfxPoolSize: number;

@@ -10,8 +10,8 @@
  * platform-agnostic events from this adapter.
  */
 
-import { BaseInputAdapter, type InputAdapterType, type InputCapabilities, type InputAttachOptions } from '@engine/interfaces/IInputAdapter';
-import type {ILogger, IRenderContainer} from '@engine/interfaces';
+import { BaseInputAdapter } from '@engine/input';
+import type { InputAdapterType, InputCapabilities, InputAttachOptions, ILogger, IRenderContainer} from '@engine/interfaces';
 import type { ITimerProvider } from '@engine/interfaces';
 import {GamepadAxisEvent, GamepadButtonEvent} from "@engine/types/InputEvents";
 

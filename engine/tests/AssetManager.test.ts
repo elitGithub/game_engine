@@ -198,4 +198,87 @@ describe('AssetManager', () => {
         expect(result).toBe('loaded:/img/broken.png');
         expect(failingLoader.load).toHaveBeenCalledTimes(2); // Once failed, once succeeded
     });
+
+    describe('Type Validation', () => {
+        beforeEach(() => {
+            // Ensure loaders return success for type validation tests
+            vi.mocked(mockImageLoader.load).mockResolvedValue('loaded:mock');
+            vi.mocked(mockAudioLoader.load).mockResolvedValue('loaded:mock');
+        });
+
+        it('should store and retrieve asset type metadata', async () => {
+            await assetManager.load('img1', '/img/foo.png', 'image');
+            await assetManager.load('sfx1', '/snd/bar.mp3', 'audio');
+
+            expect(assetManager.getType('img1')).toBe('image');
+            expect(assetManager.getType('sfx1')).toBe('audio');
+            expect(assetManager.getType('nonexistent')).toBeNull();
+        });
+
+        it('should allow get without type validation (backward compatibility)', async () => {
+            await assetManager.load('img1', '/img/foo.png', 'image');
+
+            const asset = assetManager.get('img1');
+            expect(asset).toBe('loaded:mock');
+        });
+
+        it('should validate type and return asset on correct type', async () => {
+            await assetManager.load('img1', '/img/foo.png', 'image');
+
+            const asset = assetManager.get('img1', 'image');
+            expect(asset).toBe('loaded:mock');
+        });
+
+        it('should detect type mismatch and return null with error', async () => {
+            // Load as audio
+            await assetManager.load('bgm', '/music.mp3', 'audio');
+
+            // Try to get as image (WRONG TYPE)
+            const asset = assetManager.get('bgm', 'image');
+
+            // Should return null
+            expect(asset).toBeNull();
+
+            // Should have logged an error
+            expect(mockLogger.error).toHaveBeenCalledWith(
+                expect.stringContaining("Type mismatch for asset 'bgm'"),
+            );
+            expect(mockLogger.error).toHaveBeenCalledWith(
+                expect.stringContaining("expected 'image', got 'audio'"),
+            );
+        });
+
+        it('should prevent silent type errors that crash renderers', async () => {
+            // Scenario: Developer accidentally loads audio as 'texture'
+            await assetManager.load('texture', '/sound.mp3', 'audio');
+
+            // Later, renderer tries to get it as an image
+            const texture = assetManager.get<HTMLImageElement>('texture', 'image');
+
+            // With validation: Returns null, logs error, fails fast
+            expect(texture).toBeNull();
+            expect(mockLogger.error).toHaveBeenCalled();
+
+            // Without validation (old behavior): Would return AudioBuffer disguised as Image
+            // Renderer would crash at runtime with cryptic error
+        });
+
+        it('should validate multiple type mismatches independently', async () => {
+            await assetManager.load('img1', '/img/foo.png', 'image');
+            await assetManager.load('sfx1', '/snd/bar.mp3', 'audio');
+
+            // Wrong type for img1
+            expect(assetManager.get('img1', 'audio')).toBeNull();
+
+            // Wrong type for sfx1
+            expect(assetManager.get('sfx1', 'image')).toBeNull();
+
+            // Correct types still work
+            expect(assetManager.get('img1', 'image')).toBe('loaded:mock');
+            expect(assetManager.get('sfx1', 'audio')).toBe('loaded:mock');
+
+            // Should have logged exactly 2 errors (for the 2 mismatches)
+            expect(mockLogger.error).toHaveBeenCalledTimes(2);
+        });
+    });
 });

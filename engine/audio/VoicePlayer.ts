@@ -62,6 +62,19 @@ export class VoicePlayer {
         this.activeVoices.clear();
     }
 
+    /**
+     * Get count of currently active voices.
+     *
+     * Intended for testing and debugging memory leaks.
+     * Production code should not rely on this method.
+     *
+     * @internal
+     * @returns Number of voices currently playing
+     */
+    getActiveVoiceCount(): number {
+        return this.activeVoices.size;
+    }
+
     dispose(): void {
         this.stopAll();
     }

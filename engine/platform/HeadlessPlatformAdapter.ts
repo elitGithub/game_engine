@@ -14,10 +14,8 @@ import type {
     IInputAdapter,
     ITimerProvider,
 } from '@engine/interfaces';
-import {
-    MockAudioPlatform,
-    MockInputAdapter
-} from '@engine/interfaces';
+import { MockAudioPlatform } from '@engine/interfaces';
+import { MockInputAdapter } from '@engine/input';
 import type { StorageAdapter } from '@engine/core/StorageAdapter';
 import { InMemoryStorageAdapter } from '@engine/systems/InMemoryStorageAdapter';
 import {HeadlessRenderContainer} from "@engine/interfaces/HeadlessRenderContainer";

@@ -175,8 +175,3 @@ export interface InputCapabilities {
      */
     custom?: Record<string, boolean>;
 }
-
-// Re-export concrete implementations from their own files
-export { BaseInputAdapter } from '@engine/input/BaseInputAdapter';
-export { MockInputAdapter } from '@engine/input/MockInputAdapter';
-export { CompositeInputAdapter } from '@engine/input/CompositeInputAdapter';

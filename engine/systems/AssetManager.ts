@@ -17,9 +17,17 @@ export interface AssetManagerOptions {
     maxCacheSize?: number;
 }
 
+/**
+ * Internal cache entry that stores asset with type metadata for runtime validation
+ */
+interface CacheEntry {
+    asset: unknown;
+    type: AssetType;
+}
+
 export class AssetManager {
     private loaders: Map<AssetType, IAssetLoader>;
-    private cache: Map<string, unknown>;
+    private cache: Map<string, CacheEntry>;
     private loadingPromises: Map<string, Promise<unknown>>;
 
     // LRU tracking
@@ -83,7 +91,7 @@ export class AssetManager {
         // Return cached result if already loaded
         if (this.cache.has(id)) {
             this.updateAccessOrder(id); // Mark as recently used
-            return this.cache.get(id);
+            return this.cache.get(id)!.asset;
         }
 
         // Return in-flight promise if already loading (prevents race condition)
@@ -100,7 +108,7 @@ export class AssetManager {
         const loadPromise = (async () => {
             try {
                 const asset = await loader.load(url);
-                this.addToCache(id, asset); // Use LRU-aware method
+                this.addToCache(id, asset, type); // Store with type metadata
                 this.loadingPromises.delete(id); // Clean up
                 this.eventBus.emit('assets.loaded', { id, type, asset });
                 return asset;
@@ -116,27 +124,58 @@ export class AssetManager {
     }
 
     /**
-     * Get a pre-loaded asset from the cache.
-     * Returns null if the asset is not found. Caller must specify the expected
-     * type parameter to ensure type safety.
+     * Get a pre-loaded asset from the cache with optional runtime type validation.
+     *
+     * If expectedType is provided, validates that the cached asset matches the
+     * expected type and returns null with an error log if there's a mismatch.
+     * This prevents silent type errors that could crash at render time.
      *
      * @param id - Unique identifier of the asset to retrieve
-     * @returns The cached asset cast to type T, or null if not found
+     * @param expectedType - Optional asset type to validate against (recommended for type safety)
+     * @returns The cached asset cast to type T, or null if not found or type mismatch
      * @example
      * ```typescript
+     * // Without validation (trusts developer)
      * const texture = assetManager.get<HTMLImageElement>('player-sprite');
+     *
+     * // With validation (recommended - fails fast on type mismatch)
+     * const texture = assetManager.get<HTMLImageElement>('player-sprite', 'image');
      * if (texture) {
-     *   // use texture
+     *   // Safe to use - type validated at runtime
      * }
      * ```
      */
-    get<T>(id: string): T | null {
-        if (!this.cache.has(id)) {
+    get<T>(id: string, expectedType?: AssetType): T | null {
+        const entry = this.cache.get(id);
+        if (!entry) {
             this.logger.warn(`[AssetManager] Asset '${id}' not found in cache.`);
             return null;
         }
+
+        // Validate type if provided
+        if (expectedType && entry.type !== expectedType) {
+            this.logger.error(
+                `[AssetManager] Type mismatch for asset '${id}': ` +
+                `expected '${expectedType}', got '${entry.type}'. ` +
+                `This could cause runtime errors. Check your asset loading code.`
+            );
+            return null;
+        }
+
         this.updateAccessOrder(id); // Mark as recently used
-        return this.cache.get(id) as T;
+        return entry.asset as T;
+    }
+
+    /**
+     * Get the type of a cached asset without retrieving it.
+     * Useful for runtime type checking and debugging.
+     *
+     * @param id - Unique identifier of the asset
+     * @returns The AssetType of the cached asset, or null if not found
+     */
+    getType(id: string): AssetType | null {
+        const entry = this.cache.get(id);
+        return entry ? entry.type : null;
     }
 
     /**
@@ -195,14 +234,15 @@ export class AssetManager {
 
     /**
      * Add asset to cache with LRU eviction if needed.
+     * Stores asset with type metadata for runtime validation.
      */
-    private addToCache(id: string, asset: unknown): void {
+    private addToCache(id: string, asset: unknown, type: AssetType): void {
         // If cache is at limit, evict least recently used
         if (this.maxCacheSize > 0 && this.cache.size >= this.maxCacheSize && !this.cache.has(id)) {
             this.evictLRU();
         }
 
-        this.cache.set(id, asset);
+        this.cache.set(id, { asset, type });
         this.updateAccessOrder(id);
     }
 

@@ -1,10 +1,10 @@
 // engine/core/DomInputAdapter.ts
-import {
-    BaseInputAdapter,
-    type InputAdapterType,
-    type InputAttachOptions,
-    type InputCapabilities
-} from '@engine/interfaces/IInputAdapter';
+import { BaseInputAdapter } from './BaseInputAdapter';
+import type {
+    InputAdapterType,
+    InputAttachOptions,
+    InputCapabilities
+} from '@engine/interfaces';
 import type {
     KeyDownEvent,
     KeyUpEvent,
