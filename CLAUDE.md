@@ -123,6 +123,25 @@ The following performance optimizations have been implemented to ensure producti
 - **Documented**: DialogueLayoutHelper, ChoiceLayoutHelper, SceneRenderer, TextRenderer, TypewriterEffect, UIRenderer
 - **Impact**: Clear API documentation with examples, emphasizes platform-agnostic design
 
+## **Critical Fixes (Code Review - 2025-01-13)**
+
+### Audio System - Memory Leak Fixes
+- **Issue**: SfxPool and VoicePlayer leaked memory - audio chains/voices never cleaned up after natural completion
+- **Fix**: Added IAudioSource.onEnded() callback interface, implemented in WebAudioSource and mock implementations
+- **Impact**: Eliminates unbounded memory growth in audio system - critical for long-running games
+- **Location**: engine/interfaces/IAudioPlatform.ts:205-214, engine/audio/SfxPool.ts:52-63, engine/audio/VoicePlayer.ts:36-42
+
+### Code Quality Improvements
+- **Unused Parameters**: Cleaned up InputManager and RenderManager - logger/eventBus now properly used
+- **Type Safety**: Added proper return types to all ISerializable implementations (LocalizationManager, ValueTracker, CollectionTracker)
+- **Logging Abstraction**: Fixed SceneRenderer to use injected ILogger instead of console.warn
+- **API Implementation**: Implemented customCSS feature in DomRenderer (was defined but ignored)
+- **Type System**: Fixed InputMode to remove | string (preserved IDE autocomplete)
+- **Symbol Constants**: Defined SaveManager symbol constant in CORE_SYSTEMS
+- **Engine.log**: Changed from any[] to unknown[] for better type safety
+- **Dice Ergonomics**: Added Math.random as default RNG parameter (maintains testability)
+- **Impact**: Improved type safety, maintainability, and API consistency throughout codebase
+
 ## **Optional Improvements** (Non-Critical)
 
 Minor code quality tasks for future consideration:
