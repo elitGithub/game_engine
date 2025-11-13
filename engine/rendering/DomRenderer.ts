@@ -247,6 +247,13 @@ export class DomRenderer implements IRenderer {
         if (style.align) el.style.textAlign = style.align;
         if (style.bold) el.style.fontWeight = 'bold';
         if (style.italic) el.style.fontStyle = 'italic';
+
+        // Apply custom CSS properties
+        if (style.customCSS) {
+            Object.entries(style.customCSS).forEach(([key, value]) => {
+                el.style.setProperty(key, value);
+            });
+        }
     }
 
     dispose(): void {
