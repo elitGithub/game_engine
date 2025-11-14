@@ -12,7 +12,10 @@ interface SceneLayer {
     width?: number;
     height?: number;
     zIndex?: number;
-    [key: string]: unknown;
+    fill?: string;
+    stroke?: string;
+    text?: string;
+    style?: TextStyleData;
 }
 
 /**
@@ -87,8 +90,8 @@ if (layers && Array.isArray(layers)) {
                             y: layer.y || 0,
                             width: layer.width,
                             height: layer.height,
-                            fill: layer.fill as string,
-                            stroke: layer.stroke as string,
+                            fill: layer.fill,
+                            stroke: layer.stroke,
                             zIndex: layer.zIndex || index
                         });
                     }
@@ -104,7 +107,7 @@ if (layers && Array.isArray(layers)) {
                             text: layer.text,
                             x: layer.x || 0,
                             y: layer.y || 0,
-                            style: layer.style as TextStyleData, // Make sure to import TextStyleData
+                            style: layer.style,
                             zIndex: layer.zIndex || index
                         });
                     }

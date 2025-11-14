@@ -8,7 +8,7 @@ import type {ILogger} from "@engine/interfaces";
 
 export class LocalStorageAdapter implements StorageAdapter {
 
-    constructor(private readonly keyPrefix: string = 'game_save_', private logger: ILogger) {
+    constructor(private readonly keyPrefix: string = 'game_save_', private readonly logger: ILogger) {
 
     }
 
@@ -62,8 +62,9 @@ export class LocalStorageAdapter implements StorageAdapter {
                                 timestamp: parsed.timestamp || 0,
                                 ...parsed.metadata
                             });
-                        } catch {
-                            // Skip invalid JSON
+                        } catch (e) {
+                            // Log invalid JSON at debug level
+                            this.logger.log('[LocalStorage] Skipping invalid JSON in slot:', slotId, e);
                         }
                     }
                 }

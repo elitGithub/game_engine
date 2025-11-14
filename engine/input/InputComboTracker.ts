@@ -2,7 +2,6 @@
 
 import type { EventBus } from '@engine/core/EventBus';
 import type { InputCombo } from '@engine/types/InputEvents';
-import type { ITimerProvider } from '@engine/interfaces/ITimerProvider';
 
 interface BufferedInput {
     input: string;
@@ -15,12 +14,15 @@ export class InputComboTracker {
     private inputBuffer: BufferedInput[] = [];
     private readonly bufferSize: number;
 
-    constructor(eventBus: EventBus, _timer: ITimerProvider, bufferSize: number = 10) {
+    constructor(eventBus: EventBus, bufferSize: number = 10) {
         this.eventBus = eventBus;
         this.bufferSize = bufferSize;
     }
 
     public registerCombo(name: string, inputs: string[], timeWindow: number = 1000): void {
+        if (inputs.length === 0) {
+            throw new Error(`[InputComboTracker] Cannot register combo '${name}': inputs array is empty`);
+        }
         this.combos.set(name, { inputs, timeWindow });
     }
 
@@ -36,7 +38,17 @@ export class InputComboTracker {
     }
 
     public checkCombos(): void {
+        // Early exit if buffer is empty
+        if (this.inputBuffer.length === 0) {
+            return;
+        }
+
         this.combos.forEach((combo, name) => {
+            // Skip if buffer is too small for this combo
+            if (this.inputBuffer.length < combo.inputs.length) {
+                return;
+            }
+
             if (this.isComboTriggered(combo)) {
                 this.eventBus.emit('input.combo', { combo: name });
             }

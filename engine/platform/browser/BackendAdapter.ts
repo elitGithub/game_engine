@@ -15,7 +15,7 @@ export interface BackendConfig {
 
 export class BackendAdapter implements StorageAdapter {
 
-    constructor(private readonly config: BackendConfig, private networkProvider: INetworkProvider, private logger: ILogger) {
+    constructor(private readonly config: BackendConfig, private readonly networkProvider: INetworkProvider, private readonly logger: ILogger) {
 
     }
 

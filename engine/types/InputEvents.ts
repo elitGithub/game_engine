@@ -73,7 +73,7 @@ export interface ClickEvent extends BaseInputEvent {
     button: number;
     x: number;
     y: number;
-    target: EventTarget | null;
+    target: unknown;
     data?: Record<string, string>; // Generic data (e.g., dataset from HTMLElement)
 }
 
@@ -153,4 +153,20 @@ export interface InputBinding {
 export interface InputCombo {
     inputs: string[];
     timeWindow: number; // milliseconds
+}
+
+/**
+ * Input state tracking
+ */
+export interface InputState {
+    keysDown: Set<string>;
+    mouseButtonsDown: Set<number>;
+    mousePosition: { x: number; y: number };
+    touchPoints: Map<number, { x: number; y: number }>;
+    gamepadStates: Map<number, GamepadState>;
+}
+
+export interface GamepadState {
+    buttons: Map<number, { pressed: boolean; value: number }>;
+    axes: Map<number, number>;
 }

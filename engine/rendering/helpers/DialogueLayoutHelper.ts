@@ -1,6 +1,7 @@
 // engine/rendering/helpers/DialogueLayoutHelper.ts
 
 import type {PositionedDialogue, RenderCommand, } from '../../types/RenderingTypes';
+import { DEFAULT_Z_INDEX } from '@engine/constants/RenderingConstants';
 
 
 /**
@@ -41,7 +42,7 @@ export class DialogueLayoutHelper {
      */
     buildCommands(dialogue: PositionedDialogue): RenderCommand[] {
         const commands: RenderCommand[] = [];
-        const zIndex = dialogue.zIndex || 1000;
+        const zIndex = dialogue.zIndex || DEFAULT_Z_INDEX.UI_DIALOGUE;
 
         // 1. Background Rect
         if (dialogue.background) {

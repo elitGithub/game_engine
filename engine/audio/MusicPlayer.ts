@@ -75,6 +75,19 @@ export class MusicPlayer {
                 loop
             };
 
+            if (!loop) {
+                source.onEnded(() => {
+                    // Ensure this callback isn't for a track that was already stopped
+                    if (this.currentMusic && this.currentMusic.source === source) {
+                        this.currentMusic.gainNode.disconnect();
+                        this.currentMusic.source = null;
+                        this.currentMusic = null;
+                        this.musicState = 'stopped';
+                        this.eventBus.emit('music.stopped', {});
+                    }
+                });
+            }
+
             this.musicState = 'playing';
             this.eventBus.emit('music.started', { trackId });
         } catch (error) {
@@ -127,14 +140,18 @@ export class MusicPlayer {
                 this.currentMusic.gainNode.fadeTo(0, fadeOutDuration);
             }
 
-            this.currentMusic.fadeOutTimer = this.timer.setTimeout(() => {
-                if (this.currentMusic?.source) {
-                    this.currentMusic.source.stop();
-                    this.currentMusic.source = null;
-                }
-                this.currentMusic = null;
-                this.musicState = 'stopped';
-            }, fadeOutDuration * MusicPlayer.MILLISECONDS_PER_SECOND);
+            return new Promise<void>((resolve) => {
+                this.currentMusic!.fadeOutTimer = this.timer.setTimeout(() => {
+                    if (this.currentMusic?.source) {
+                        this.currentMusic.source.stop();
+                        this.currentMusic.source = null;
+                    }
+                    this.currentMusic = null;
+                    this.musicState = 'stopped';
+                    this.eventBus.emit('music.stopped', {});
+                    resolve();
+                }, fadeOutDuration * MusicPlayer.MILLISECONDS_PER_SECOND);
+            });
         } else {
             if (this.currentMusic.source) {
                 this.currentMusic.source.stop();
@@ -142,9 +159,8 @@ export class MusicPlayer {
             }
             this.currentMusic = null;
             this.musicState = 'stopped';
+            this.eventBus.emit('music.stopped', {});
         }
-
-        this.eventBus.emit('music.stopped', {});
     }
 
     async crossfadeMusic(newTrackId: string, duration: number = MusicPlayer.DEFAULT_CROSSFADE_DURATION_SECONDS): Promise<void> {
@@ -152,7 +168,7 @@ export class MusicPlayer {
             return; // Don't crossfade to the same track
         }
 
-        this.stopMusic(duration);
+        await this.stopMusic(duration);
         await this.playMusic(newTrackId, true, duration);
         this.eventBus.emit('music.crossfaded', { newTrackId, duration });
     }

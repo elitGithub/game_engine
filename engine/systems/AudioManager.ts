@@ -32,12 +32,12 @@ export class AudioManager {
     private isUnlocked: boolean;
 
     constructor(
-        private eventBus: EventBus,
-        private assetManager: AssetManager,
+        private readonly eventBus: EventBus,
+        private readonly assetManager: AssetManager,
         private readonly audioContext: IAudioContext,
         timer: ITimerProvider,
         options: AudioManagerOptions,
-        private logger: ILogger
+        private readonly logger: ILogger
     ) {
 
         // Create gain nodes

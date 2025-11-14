@@ -348,6 +348,11 @@ export class BrowserPlatformAdapter implements IPlatformAdapter {
             this.inputAdapter = null;
         }
 
+        // Dispose render container
+        if (this.renderContainer) {
+            this.renderContainer.dispose?.();
+        }
+
         // Clear singletons
         this.logger = null;
         this.renderContainer = null;

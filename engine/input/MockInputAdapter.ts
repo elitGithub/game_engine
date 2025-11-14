@@ -19,7 +19,7 @@ export class MockInputAdapter extends BaseInputAdapter {
         return 'mock';
     }
 
-    attach(_container: IRenderContainer, _options?: InputAttachOptions): boolean {
+    attach(_container?: IRenderContainer, _options?: InputAttachOptions): boolean {
         this.attached = true;
         return true;
     }
@@ -41,6 +41,9 @@ export class MockInputAdapter extends BaseInputAdapter {
      * Simulate input event (for testing)
      */
     simulateEvent(event: EngineInputEvent): void {
+        if (!this.enabled) {
+            return;
+        }
         this.emitEvent(event);
     }
 }

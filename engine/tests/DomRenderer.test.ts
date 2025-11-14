@@ -35,7 +35,7 @@ describe('DomRenderer', () => {
         // Mock AssetManager.get to return the mock image
         vi.mocked(mockAssets.get).mockReturnValue(mockImage as any);
 
-        renderer = new DomRenderer(mockAssets);
+        renderer = new DomRenderer(mockAssets, mockLogger);
         renderer.init(renderContainer);
     });
 

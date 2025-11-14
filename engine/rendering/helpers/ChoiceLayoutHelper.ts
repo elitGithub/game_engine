@@ -2,6 +2,7 @@
 
 import type { RenderCommand, TextStyleData } from '../../types/RenderingTypes';
 import type { PositionedChoice } from '../../types/RenderingTypes';
+import { DEFAULT_Z_INDEX } from '@engine/constants/RenderingConstants';
 
 /**
  * ChoiceLayoutHelper - Platform-agnostic choice menu rendering command factory.
@@ -54,7 +55,7 @@ export class ChoiceLayoutHelper {
                 x: choice.textPos.x, // <-- Use provided data
                 y: choice.textPos.y, // <-- Use provided data
                 style: { ...defaultStyle, ...(choice.style || {}) },
-                zIndex: 101
+                zIndex: DEFAULT_Z_INDEX.UI_DIALOGUE + 1
             });
 
             // Hotspot with generic data - no game logic here
@@ -66,7 +67,7 @@ export class ChoiceLayoutHelper {
                 y: choice.hotspot.y, // <-- Use provided data
                 width: choice.hotspot.width, // <-- Use provided data
                 height: choice.hotspot.height, // <-- Use provided data
-                zIndex: 102
+                zIndex: DEFAULT_Z_INDEX.UI_DIALOGUE + 2
             });
         });
 

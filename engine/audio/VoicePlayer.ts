@@ -9,7 +9,7 @@ import { AudioUtils } from '@engine/audio/AudioUtils';
  * VoicePlayer - Handles simple, non-pooled playback for voice lines.
  */
 export class VoicePlayer {
-    private activeVoices: Set<IAudioSource> = new Set();
+    private activeVoices: Set<{ source: IAudioSource; gain: IAudioGain }> = new Set();
 
     constructor(
         private audioContext: IAudioContext,
@@ -33,15 +33,17 @@ export class VoicePlayer {
             source.connect(gainNode);
             gainNode.connect(this.outputNode);
 
+            const voiceEntry = { source, gain: gainNode };
+            this.activeVoices.add(voiceEntry);
+
             // Auto-remove from activeVoices when playback completes naturally
             source.onEnded(() => {
-                this.activeVoices.delete(source);
+                this.activeVoices.delete(voiceEntry);
                 source.disconnect();
                 gainNode.disconnect();
                 this.eventBus.emit('voice.ended', { voiceId });
             });
 
-            this.activeVoices.add(source);
             source.start(0);
 
             this.eventBus.emit('voice.started', { voiceId });
@@ -51,13 +53,10 @@ export class VoicePlayer {
     }
 
     stopAll(): void {
-        this.activeVoices.forEach(source => {
-            try {
-                source.stop();
-            } catch (e) {
-                // Ignore if already stopped
-            }
+        this.activeVoices.forEach(({ source, gain }) => {
+            source.stop();
             source.disconnect();
+            gain.disconnect();
         });
         this.activeVoices.clear();
     }

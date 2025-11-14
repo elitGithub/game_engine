@@ -12,6 +12,7 @@ import type {StorageAdapter} from '@engine/core/StorageAdapter';
 import type {GameData} from "@engine/types/EngineEventMap";
 import type {RenderManager} from "@engine/core/RenderManager";
 import type {PluginManager} from './core/PluginManager';
+import type {SerializationRegistry} from '@engine/core/SerializationRegistry';
 import {SystemContainer} from './core/SystemContainer';
 import {CORE_SYSTEMS} from './core/CoreSystemDefs';
 import {PLATFORM_SYSTEMS} from './core/PlatformSystemDefs';
@@ -287,11 +288,11 @@ export class Engine {
         return this.container.get<PluginManager>(CORE_SYSTEMS.PluginManager);
     }
 
-    get serializationRegistry(): import('@engine/core/SerializationRegistry').SerializationRegistry {
+    get serializationRegistry(): SerializationRegistry {
         if (!this.container.has(CORE_SYSTEMS.SerializationRegistry)) {
             throw new Error('[Engine] SerializationRegistry not registered. Call container.register() with core system definitions.');
         }
-        return this.container.get<import('@engine/core/SerializationRegistry').SerializationRegistry>(CORE_SYSTEMS.SerializationRegistry);
+        return this.container.get<SerializationRegistry>(CORE_SYSTEMS.SerializationRegistry);
     }
 
     // ========================================================================

@@ -20,7 +20,7 @@ export abstract class BaseInputAdapter implements IInputAdapter {
     protected enabled: boolean = true;
 
     abstract getType(): InputAdapterType;
-    abstract attach(container: IRenderContainer, options?: InputAttachOptions): boolean;
+    abstract attach(container?: IRenderContainer, options?: InputAttachOptions): boolean;
     abstract detach(): void;
 
     onEvent(handler: InputEventHandler): void {

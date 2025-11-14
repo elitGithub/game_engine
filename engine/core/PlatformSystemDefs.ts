@@ -143,19 +143,21 @@ function createRendererDefinitions(): SystemDefinition[] {
     return [
         {
             key: PLATFORM_SYSTEMS.RendererDOM,
-            dependencies: [PLATFORM_SYSTEMS.AssetManager],
+            dependencies: [PLATFORM_SYSTEMS.AssetManager, PLATFORM_SYSTEMS.Logger],
             factory: (c) => {
                 const assetManager = c.get<AssetManager>(PLATFORM_SYSTEMS.AssetManager);
-                return new DomRenderer(assetManager);
+                const logger = c.get<ILogger>(PLATFORM_SYSTEMS.Logger);
+                return new DomRenderer(assetManager, logger);
             },
             lazy: false
         },
         {
             key: PLATFORM_SYSTEMS.RendererCanvas,
-            dependencies: [PLATFORM_SYSTEMS.AssetManager],
+            dependencies: [PLATFORM_SYSTEMS.AssetManager, PLATFORM_SYSTEMS.Logger],
             factory: (c) => {
                 const assetManager = c.get<AssetManager>(PLATFORM_SYSTEMS.AssetManager);
-                return new CanvasRenderer(assetManager);
+                const logger = c.get<ILogger>(PLATFORM_SYSTEMS.Logger);
+                return new CanvasRenderer(assetManager, logger);
             },
             lazy: false
         }
@@ -206,9 +208,8 @@ function createInputManagerDefinition(platform: IPlatformAdapter): SystemDefinit
         factory: (c) => {
             const stateManager = c.get<GameStateManager>(CORE_SYSTEMS.StateManager);
             const eventBus = c.get<EventBus>(CORE_SYSTEMS.EventBus);
-            const timer = platform.getTimerProvider();
             const logger = c.get<ILogger>(PLATFORM_SYSTEMS.Logger);
-            return new InputManager(stateManager, eventBus, timer, logger);
+            return new InputManager(stateManager, eventBus, logger);
         },
         initialize: (inputManager, c) => {
             const logger = c.get<ILogger>(PLATFORM_SYSTEMS.Logger);

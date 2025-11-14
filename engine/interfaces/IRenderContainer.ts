@@ -46,6 +46,12 @@ export interface IRenderContainer {
      * Defaults to 1.0 if not supported
      */
     getPixelRatio?(): number;
+
+    /**
+     * Clean up resources and cancel pending animation frames.
+     * Called when the platform adapter is disposed.
+     */
+    dispose?(): void;
 }
 
 // ============================================================================

@@ -6,7 +6,6 @@ import { EventBus } from '@engine/core/EventBus';
 import { GameStateManager } from '@engine/core/GameStateManager';
 import type { KeyDownEvent, KeyUpEvent } from '@engine/types/InputEvents';
 import type { GameState } from '@engine/core/GameState';
-import type { ITimerProvider } from '@engine/interfaces/ITimerProvider';
 import {ILogger} from "@engine/interfaces";
 
 // Mock dependencies
@@ -22,7 +21,6 @@ describe('InputManager', () => {
     let mockStateManager: GameStateManager;
     let mockEventBus: EventBus;
     let mockState: GameState;
-    let mockTimerProvider: ITimerProvider;
 
     beforeEach(() => {
         // Create new mocks for each test
@@ -40,14 +38,7 @@ describe('InputManager', () => {
         // Mock Date.now() for time-sensitive combo tests
         vi.useFakeTimers();
 
-        // Mock timer provider using vitest fake timers
-        mockTimerProvider = {
-            setTimeout: vi.fn((cb, ms) => window.setTimeout(cb, ms) as unknown),
-            clearTimeout: vi.fn((id) => window.clearTimeout(id as number)),
-            now: () => Date.now()
-        };
-
-        inputManager = new InputManager(mockStateManager, mockEventBus, mockTimerProvider, mockLogger);
+        inputManager = new InputManager(mockStateManager, mockEventBus, mockLogger);
     });
 
     afterEach(() => {

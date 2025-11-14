@@ -93,11 +93,7 @@ export class SfxPool {
         const [oldestChain, soundId] = firstEntry.value;
 
         // Stop the chain
-        try {
-            oldestChain.source.stop();
-        } catch (e) {
-            // Ignore errors if already stopped
-        }
+        oldestChain.source.stop();
 
         // Clean up tracking
         this.globalActiveChains.delete(oldestChain);
@@ -174,11 +170,7 @@ export class SfxPool {
         // Stop all active chains
         this.pools.forEach(pool => {
             pool.active.forEach(chain => {
-                try {
-                    chain.source.stop();
-                } catch (e) {
-                    // Ignore errors if already stopped
-                }
+                chain.source.stop();
                 chain.source.disconnect();
             });
             pool.active.clear();

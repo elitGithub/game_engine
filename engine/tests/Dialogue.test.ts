@@ -26,7 +26,7 @@ describe('Dialogue', () => {
     });
 
     it('should iterate with next()', () => {
-        dialogue.lines = [line1, line2];
+        dialogue = new Dialogue([line1, line2]);
 
         expect(dialogue.hasNext()).toBe(true);
         expect(dialogue.next()).toBe(line1);
@@ -39,7 +39,7 @@ describe('Dialogue', () => {
     });
 
     it('should reset progress', () => {
-        dialogue.lines = [line1, line2];
+        dialogue = new Dialogue([line1, line2]);
         dialogue.next();
         expect(dialogue.getProgress().current).toBe(1);
 
@@ -49,7 +49,7 @@ describe('Dialogue', () => {
     });
 
     it('should get progress', () => {
-        dialogue.lines = [line1, line2];
+        dialogue = new Dialogue([line1, line2]);
 
         expect(dialogue.getProgress()).toEqual({ current: 0, total: 2, percentage: 0 });
 

@@ -35,7 +35,7 @@ export class DomEffectTarget implements IEffectTarget {
         }
     }
 
-    getRaw(): any {
+    getRaw(): HTMLElement {
         return this.element;
     }
 

@@ -164,7 +164,12 @@ describe('MusicPlayer', () => {
         await musicPlayer.playMusic('track1', true, 0);
         vi.mocked(mockEventBus.emit).mockClear(); // Clear the 'music.started' call from first play
 
-        await musicPlayer.crossfadeMusic('track2', 2);
+        const crossfadePromise = musicPlayer.crossfadeMusic('track2', 2);
+
+        // Fast-forward time to complete the fade
+        vi.advanceTimersByTime(2000);
+
+        await crossfadePromise;
 
         // Should emit music.stopped, music.started, and music.crossfaded
         expect(mockEventBus.emit).toHaveBeenCalledWith('music.crossfaded', { newTrackId: 'track2', duration: 2 });

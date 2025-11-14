@@ -8,8 +8,8 @@ export class AudioLoader implements IAssetLoader {
     public readonly type: AssetType = 'audio';
 
     constructor(private readonly audioContext: IAudioContext,
-                private networkProvider: INetworkProvider,
-                private logger: ILogger) {
+                private readonly networkProvider: INetworkProvider,
+                private readonly logger: ILogger) {
         if (!audioContext) {
             throw new Error("[AudioLoader] AudioContext is required.");
         }

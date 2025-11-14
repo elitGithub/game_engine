@@ -20,7 +20,8 @@ export type InputAdapterType =
     | 'gamepad'       // Gamepad/controller
     | 'touch'         // Mobile touch
     | 'native'        // Platform-native input
-    | 'mock';         // Testing
+    | 'mock'          // Testing
+    | 'composite';    // Composite adapter (wraps multiple adapters)
 
 /**
  * IInputAdapter - Platform-agnostic input interface

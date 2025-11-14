@@ -1,7 +1,7 @@
-import type {IRenderer, RenderCommand, TextStyleData} from '@engine/types/RenderingTypes.ts';
+import type {IRenderer, RenderCommand, TextStyleData} from '@engine/types/RenderingTypes';
 // Removed unused EventBus and container imports from constructor
-import type {AssetManager} from '@engine/systems/AssetManager.ts';
-import type {IRenderContainer} from '@engine/interfaces';
+import type {AssetManager} from '@engine/systems/AssetManager';
+import type {ILogger, IRenderContainer} from '@engine/interfaces';
 import {isCanvasRenderContainer} from '@engine/interfaces';
 
 /**
@@ -16,7 +16,10 @@ export class CanvasRenderer implements IRenderer {
     private ctx: CanvasRenderingContext2D | null = null;
     private fontStringCache: Map<string, string> = new Map();
 
-    constructor(private readonly assets: AssetManager) {
+    constructor(
+        private readonly assets: AssetManager,
+        private readonly logger: ILogger
+    ) {
     }
 
     init(container: IRenderContainer): void {
@@ -35,7 +38,7 @@ export class CanvasRenderer implements IRenderer {
         if (!this.ctx || !this.canvas) {
             return;
         }
-        this.ctx.clearRect(0, 0, this.canvas.width, this?.canvas?.height);
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     }
 
     flush(commands: RenderCommand[]): void {
@@ -71,6 +74,8 @@ export class CanvasRenderer implements IRenderer {
                             cmd.width || imgAsset.width,
                             cmd.height || imgAsset.height
                         );
+                    } else {
+                        this.logger.warn(`[CanvasRenderer] Asset '${cmd.assetId}' not found`);
                     }
                     break;
                 }
