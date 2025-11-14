@@ -166,6 +166,7 @@ export class LocalizationManager implements ISerializable {
 
     deserialize(data: LocalizationSaveData): void {
         this.currentLanguage = data.currentLanguage || 'en';
-        this.strings.clear();
+        // Strings remain in memory from initial loadLanguage() call
+        // No need to clear - they should persist across save/load
     }
 }
