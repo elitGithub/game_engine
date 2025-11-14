@@ -199,7 +199,7 @@ function createRenderManagerDefinition(
     };
 }
 
-function createInputManagerDefinition(platform: IPlatformAdapter): SystemDefinition {
+function createInputManagerDefinition(platform: IPlatformAdapter): SystemDefinition<InputManager> {
     return {
         key: PLATFORM_SYSTEMS.InputManager,
         dependencies: [CORE_SYSTEMS.StateManager, CORE_SYSTEMS.EventBus, PLATFORM_SYSTEMS.Logger],

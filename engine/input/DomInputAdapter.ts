@@ -35,7 +35,7 @@ import {ILogger, IRenderContainer, IDomRenderContainer, isDomRenderContainer} fr
  */
 export class DomInputAdapter extends BaseInputAdapter {
     private targetElement: HTMLElement | null;
-    private boundListeners: Map<string, (evt: Event) => void>;
+    private boundListeners: Map<string, EventListener>;
 
     constructor(private logger: ILogger) {
         super();
@@ -139,16 +139,16 @@ export class DomInputAdapter extends BaseInputAdapter {
         this.targetElement.addEventListener('touchmove', onTouchMove);
         this.targetElement.addEventListener('touchend', onTouchEnd);
 
-        this.boundListeners.set('keydown', onKeyDown);
-        this.boundListeners.set('keyup', onKeyUp);
-        this.boundListeners.set('mousedown', onMouseDown);
-        this.boundListeners.set('mouseup', onMouseUp);
-        this.boundListeners.set('mousemove', onMouseMove);
-        this.boundListeners.set('wheel', onWheel);
-        this.boundListeners.set('click', onClick);
-        this.boundListeners.set('touchstart', onTouchStart);
-        this.boundListeners.set('touchmove', onTouchMove);
-        this.boundListeners.set('touchend', onTouchEnd);
+        this.boundListeners.set('keydown', onKeyDown as EventListener);
+        this.boundListeners.set('keyup', onKeyUp as EventListener);
+        this.boundListeners.set('mousedown', onMouseDown as EventListener);
+        this.boundListeners.set('mouseup', onMouseUp as EventListener);
+        this.boundListeners.set('mousemove', onMouseMove as EventListener);
+        this.boundListeners.set('wheel', onWheel as EventListener);
+        this.boundListeners.set('click', onClick as EventListener);
+        this.boundListeners.set('touchstart', onTouchStart as EventListener);
+        this.boundListeners.set('touchmove', onTouchMove as EventListener);
+        this.boundListeners.set('touchend', onTouchEnd as EventListener);
     }
 
     // ============================================================================

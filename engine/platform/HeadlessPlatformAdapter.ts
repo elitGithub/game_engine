@@ -14,7 +14,7 @@ import type {
     IInputAdapter,
     ITimerProvider,
 } from '@engine/interfaces';
-import { MockAudioPlatform } from '@engine/interfaces';
+import { MockAudioPlatform } from '@engine/platform/audio';
 import { MockInputAdapter } from '@engine/input';
 import type { StorageAdapter } from '@engine/core/StorageAdapter';
 import { InMemoryStorageAdapter } from '@engine/systems/InMemoryStorageAdapter';
@@ -120,12 +120,12 @@ export class HeadlessPlatformAdapter implements IPlatformAdapter {
     };
 
     // Singletons
-    private logger: ILogger | null = null;
-    private renderContainer: IRenderContainer | null = null;
-    private audioPlatform: IAudioPlatform | null = null;
-    private inputAdapter: IInputAdapter | null = null;
-    private storageAdapter: InMemoryStorageAdapter | null = null;
-    private timerProvider: ITimerProvider | null = null;
+    private logger?: ILogger;
+    private renderContainer?: IRenderContainer;
+    private audioPlatform?: IAudioPlatform;
+    private inputAdapter?: IInputAdapter;
+    private storageAdapter?: InMemoryStorageAdapter;
+    private timerProvider?: ITimerProvider;
 
     constructor(config: HeadlessPlatformConfig = {}) {
         this.config = {
@@ -258,25 +258,25 @@ export class HeadlessPlatformAdapter implements IPlatformAdapter {
         // Dispose audio platform
         if (this.audioPlatform) {
             this.audioPlatform.dispose();
-            this.audioPlatform = null;
+            this.audioPlatform = undefined;
         }
 
         // Dispose input adapter
         if (this.inputAdapter) {
             this.inputAdapter.detach();
-            this.inputAdapter = null;
+            this.inputAdapter = undefined;
         }
 
         // Clear storage
         if (this.storageAdapter) {
             this.storageAdapter.clear();
-            this.storageAdapter = null;
+            this.storageAdapter = undefined;
         }
 
         // Clear singletons
-        this.logger = null;
-        this.renderContainer = null;
-        this.timerProvider = null;
+        this.logger = undefined;
+        this.renderContainer = undefined;
+        this.timerProvider = undefined;
     }
 
     // ========================================================================
