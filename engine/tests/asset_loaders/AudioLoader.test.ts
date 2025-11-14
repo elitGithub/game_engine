@@ -5,6 +5,8 @@ import {AudioLoader} from "@engine/platform/browser/asset_loaders/AudioLoader";
 import type {ILogger, INetworkProvider} from "@engine/interfaces";
 
 
+import type {IAudioBuffer, IAudioContext} from "@engine/interfaces/IAudioPlatform";
+
 // Mock fetch function
 const mockFetch = vi.fn();
 
@@ -13,10 +15,18 @@ const mockNetworkProvider: INetworkProvider = {
     fetch: mockFetch
 };
 
-// Mock AudioContext
-const mockAudioBuffer = {duration: 1.0} as AudioBuffer;
-const mockAudioContext = {
-    decodeAudioData: vi.fn().mockResolvedValue(mockAudioBuffer),
+// Mock IAudioBuffer
+const mockAudioBuffer: IAudioBuffer = {
+    duration: 1.0,
+    numberOfChannels: 2,
+    sampleRate: 44100,
+    length: 44100
+};
+
+// Mock IAudioContext
+const mockDecodeAudioData = vi.fn().mockResolvedValue(mockAudioBuffer);
+const mockAudioContext: Partial<IAudioContext> = {
+    decodeAudioData: mockDecodeAudioData,
 };
 
 const mockLogger: ILogger = {
@@ -30,7 +40,7 @@ describe('AudioLoader', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
-        loader = new AudioLoader(mockAudioContext as any, mockNetworkProvider, mockLogger);
+        loader = new AudioLoader(mockAudioContext as IAudioContext, mockNetworkProvider, mockLogger);
     });
 
     it('should throw if no AudioContext is provided', () => {
@@ -42,7 +52,7 @@ describe('AudioLoader', () => {
     // [NEW TEST]
     it('should throw if no platformFetch is provided', () => {
         // Pass a valid audioContext, but null for the networkProvider
-        expect(() => new AudioLoader(mockAudioContext as any, null as any, mockLogger)).toThrow(
+        expect(() => new AudioLoader(mockAudioContext as IAudioContext, null as any, mockLogger)).toThrow(
             '[AudioLoader] A platform-specific fetch implementation is required.'
         );
     });
@@ -57,7 +67,7 @@ describe('AudioLoader', () => {
         const result = await loader.load('path/to/sound.mp3');
 
         expect(mockFetch).toHaveBeenCalledWith('path/to/sound.mp3');
-        expect(mockAudioContext.decodeAudioData).toHaveBeenCalledWith(mockArrayBuffer);
+        expect(mockDecodeAudioData).toHaveBeenCalledWith(mockArrayBuffer);
         expect(result).toBe(mockAudioBuffer);
     });
 
@@ -81,7 +91,7 @@ describe('AudioLoader', () => {
 
         // Mock decodeAudioData to fail
         const decodeError = new Error('Failed to decode');
-        mockAudioContext.decodeAudioData.mockRejectedValue(decodeError);
+        mockDecodeAudioData.mockRejectedValue(decodeError);
 
         await expect(loader.load('path/to/corrupt.mp3')).rejects.toThrow('Failed to decode');
     });

@@ -403,37 +403,21 @@ export class Engine implements ISerializationRegistry {
     /**
      * Pause the game engine.
      * The game loop continues running but update logic is suspended.
-     * Audio is suspended and the 'engine.paused' event is emitted.
+     * Emits 'engine.paused' event that systems can listen to.
      */
     pause(): void {
         if (this.isPaused) return;
         this.isPaused = true;
-
-        // Suspend audio through platform adapter
-        const audioPlatform = this.platform.getAudioPlatform?.();
-        if (audioPlatform) {
-            const audioContext = audioPlatform.getContext();
-            if (audioContext) {
-                audioContext.suspend();
-            }
-        }
-
         this.eventBus.emit('engine.paused', {});
     }
 
+    /**
+     * Unpause the game engine.
+     * Resumes update logic and emits 'engine.unpaused' event.
+     */
     unpause(): void {
         if (!this.isPaused) return;
         this.isPaused = false;
-
-        // Resume audio through platform adapter
-        const audioPlatform = this.platform.getAudioPlatform?.();
-        if (audioPlatform) {
-            const audioContext = audioPlatform.getContext();
-            if (audioContext) {
-                audioContext.resume();
-            }
-        }
-
         this.lastFrameTime = performance.now();
         this.eventBus.emit('engine.unpaused', {});
     }
