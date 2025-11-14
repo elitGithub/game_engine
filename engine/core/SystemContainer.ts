@@ -52,19 +52,19 @@ export interface ISystemFactoryContext {
      * Register a renderer (optional - provided by SystemContainerBridge)
      * Required for RenderManager initialization
      */
-    registerRenderer?(type: string, renderer: any): void;
+    registerRenderer?(type: string, renderer: unknown): void;
 
     /**
      * Get a registered renderer (optional - provided by SystemContainerBridge)
      * Required for RenderManager initialization
      */
-    getRenderer?(type: string): any;
+    getRenderer?(type: string): unknown;
 }
 
 /**
  * System definition - describes how to create and configure a system
  */
-export interface SystemDefinition<T = any> {
+export interface SystemDefinition<T = unknown> {
     /** Unique key for this system */
     key: SystemKey;
 
@@ -87,7 +87,7 @@ export interface SystemDefinition<T = any> {
 /**
  * System instance metadata
  */
-interface SystemEntry<T = any> {
+interface SystemEntry<T = unknown> {
     definition: SystemDefinition<T>;
     instance?: T;
     lifecycle: SystemLifecycle;
