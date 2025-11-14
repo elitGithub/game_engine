@@ -6,8 +6,8 @@ import {Action} from '@engine/systems/Action';
 import type {ILogger} from "@engine/interfaces";
 
 export class ActionRegistry<TGame = Record<string, unknown>> {
-    private actions: Map<string, Action<TGame>>;
-    private actionsByType: Map<string, Action<TGame>[]>;
+    private readonly actions: Map<string, Action<TGame>>;
+    private readonly actionsByType: Map<string, Action<TGame>[]>;
 
     constructor(private readonly logger: ILogger) {
         this.actions = new Map();

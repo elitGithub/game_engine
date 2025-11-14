@@ -17,8 +17,8 @@ import type { ILogger } from '@engine/interfaces';
  * This maintains clean dependency flow: SaveManager -> Registry -> SceneManager
  */
 export class SerializationRegistry implements ISerializationRegistry {
-    private serializableSystems: Map<string, ISerializable>;
-    private migrationFunctions: Map<string, MigrationFunction>;
+    private readonly serializableSystems: Map<string, ISerializable>;
+    private readonly migrationFunctions: Map<string, MigrationFunction>;
     public readonly gameVersion: string;
     private context?: GameContext;
 

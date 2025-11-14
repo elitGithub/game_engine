@@ -15,13 +15,13 @@ export class EffectManager {
     private readonly logger: ILogger;
 
     // Registries
-    private staticEffects: Map<string, string | string[]>; // DOM-only
-    private dynamicEffects: Map<string, IDynamicEffect>; // Generic
+    private readonly staticEffects: Map<string, string | string[]>; // DOM-only
+    private readonly dynamicEffects: Map<string, IDynamicEffect>; // Generic
 
     // Active effect trackers
     // Use target.id as the key
-    private activeDynamicEffects: Map<string, ActiveDynamicEffect[]>;
-    private timedEffects: Map<string, unknown[]>; // Keyed by target.id
+    private readonly activeDynamicEffects: Map<string, ActiveDynamicEffect[]>;
+    private readonly timedEffects: Map<string, unknown[]>; // Keyed by target.id
 
     constructor(timerProvider: ITimerProvider, logger: ILogger) {
         this.timer = timerProvider;

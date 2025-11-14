@@ -16,10 +16,10 @@ type SceneFactory = (id: string, type: string, data: SceneData) => Scene;
  * No auto-registration, no defaults, no opinions about scene types.
  */
 export class SceneManager {
-    private scenes: Map<string, Scene>;
+    private readonly scenes: Map<string, Scene>;
     private currentScene: Scene | null;
     private history: string[];
-    private sceneFactories: Map<string, SceneFactory>;
+    private readonly sceneFactories: Map<string, SceneFactory>;
 
     constructor(private readonly eventBus: EventBus, private logger: ILogger) {
         this.scenes = new Map();

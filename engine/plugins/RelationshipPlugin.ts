@@ -20,7 +20,7 @@ export class RelationshipPlugin implements IEnginePlugin {
 
     private readonly tracker: ValueTracker;
     private config: Required<RelationshipConfig>;
-    private ranks: Map<string, { threshold: number }>;
+    private readonly ranks: Map<string, { threshold: number }>;
 
     constructor(config: RelationshipConfig = {}) {
         this.config = {

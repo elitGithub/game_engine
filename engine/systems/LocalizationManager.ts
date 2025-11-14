@@ -17,7 +17,7 @@ interface LocalizationSaveData {
 }
 
 export class LocalizationManager implements ISerializable {
-    private strings: Map<string, string> = new Map();
+    private readonly strings: Map<string, string> = new Map();
 
     constructor(private currentLanguage: string = 'en', private readonly logger: ILogger) {
     }

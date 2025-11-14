@@ -5,8 +5,8 @@ import type { InputAction, InputBinding } from '@engine/types/InputEvents';
 
 export class InputActionMapper {
     private readonly eventBus: EventBus;
-    private actions: Map<string, InputAction> = new Map();
-    private inputIndex: Map<string, Set<string>> = new Map();
+    private readonly actions: Map<string, InputAction> = new Map();
+    private readonly inputIndex: Map<string, Set<string>> = new Map();
 
     constructor(eventBus: EventBus) {
         this.eventBus = eventBus;

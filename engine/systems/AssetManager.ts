@@ -26,9 +26,9 @@ interface CacheEntry {
 }
 
 export class AssetManager {
-    private loaders: Map<AssetType, IAssetLoader>;
-    private cache: Map<string, CacheEntry>;
-    private loadingPromises: Map<string, Promise<unknown>>;
+    private readonly loaders: Map<AssetType, IAssetLoader>;
+    private readonly cache: Map<string, CacheEntry>;
+    private readonly loadingPromises: Map<string, Promise<unknown>>;
 
     // LRU tracking
     private accessOrder: string[]; // Most recently used at the end

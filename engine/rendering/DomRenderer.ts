@@ -10,7 +10,7 @@ interface CachedElement {
 
 export class DomRenderer implements IRenderer {
     // Cache elements by ID to avoid recreation
-    private activeElements: Map<string, CachedElement> = new Map();
+    private readonly activeElements: Map<string, CachedElement> = new Map();
     private domContainer: IDomRenderContainer | null = null;
     private containerElement: HTMLElement | null = null;
 
