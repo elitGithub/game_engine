@@ -6,16 +6,12 @@ import { EventBus } from '@engine/core/EventBus';
 import { GameStateManager } from '@engine/core/GameStateManager';
 import type { KeyDownEvent, KeyUpEvent } from '@engine/types/InputEvents';
 import type { GameState } from '@engine/core/GameState';
-import {ILogger} from "@engine/interfaces";
+import { createMockLogger } from './helpers/loggerMocks';
 
 // Mock dependencies
 vi.mock('@engine/core/EventBus');
 vi.mock('@engine/core/GameStateManager');
-const mockLogger: ILogger = {
-    log: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-};
+const mockLogger = createMockLogger();
 describe('InputManager', () => {
     let inputManager: InputManager;
     let mockStateManager: GameStateManager;

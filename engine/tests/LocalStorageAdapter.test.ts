@@ -2,7 +2,7 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { LocalStorageAdapter } from '@engine/platform/browser/LocalStorageAdapter';
-import {ILogger} from "@engine/interfaces";
+import { createMockLogger } from './helpers/loggerMocks';
 
 // Mock global localStorage
 const localStorageMock = (() => {
@@ -25,11 +25,7 @@ const localStorageMock = (() => {
     };
 })();
 
-const mockLogger: ILogger = {
-    log: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-};
+const mockLogger = createMockLogger();
 
 vi.stubGlobal('localStorage', localStorageMock);
 

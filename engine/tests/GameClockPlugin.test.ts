@@ -4,12 +4,8 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { GameClockPlugin } from '@engine/plugins/GameClockPlugin';
 import { EventBus } from '@engine/core/EventBus';
 import type { IEngineHost } from '@engine/types';
-import {ILogger} from "@engine/interfaces";
-const mockLogger: ILogger = {
-    log: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-};
+import { createMockLogger } from './helpers/loggerMocks';
+const mockLogger = createMockLogger();
 
 // Mock dependencies
 vi.mock('@engine/core/EventBus');

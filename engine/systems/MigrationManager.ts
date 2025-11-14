@@ -9,7 +9,7 @@ import type {ILogger} from "@engine/interfaces";
  * This is a pure, stateless class.
  */
 export class MigrationManager {
-    constructor(private readonly migrationFunctions: Map<string, MigrationFunction>, private logger: ILogger) {}
+    constructor(private readonly migrationFunctions: ReadonlyMap<string, MigrationFunction>, private readonly logger: ILogger) {}
 
     /**
      * Migrates save data from its version to the current game version.

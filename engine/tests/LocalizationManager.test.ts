@@ -2,12 +2,8 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { LocalizationManager } from '@engine/systems/LocalizationManager';
-import {ILogger} from "@engine/interfaces";
-const mockLogger: ILogger = {
-    log: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-};
+import { createMockLogger } from './helpers/loggerMocks';
+const mockLogger = createMockLogger();
 const en = {
     ui: {
         title: 'Hello',

@@ -6,7 +6,7 @@ import type { GameContext } from '@engine/types';
 import type { IDynamicEffect, IEffectTarget } from '@engine/types/EffectTypes';
 import type { ITimerProvider } from '@engine/interfaces/ITimerProvider';
 import { DomEffectTarget } from '@engine/rendering/DomEffectTarget';
-import {ILogger} from "@engine/interfaces";
+import { createMockLogger } from './helpers/loggerMocks';
 
 // Mock dependencies
 const mockDynamicEffect: IDynamicEffect = {
@@ -22,11 +22,7 @@ const mockTarget: IEffectTarget = {
     getRaw: vi.fn(() => document.createElement('div')),
 };
 
-const mockLogger: ILogger = {
-    log: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-};
+const mockLogger = createMockLogger();
 
 describe('EffectManager', () => {
     let effectManager: EffectManager;

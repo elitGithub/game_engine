@@ -3,7 +3,7 @@ import { CanvasRenderer } from '@engine/rendering/CanvasRenderer';
 import { AssetManager } from '@engine/systems/AssetManager';
 import type { RenderCommand } from '@engine/types/RenderingTypes';
 import type { ICanvasRenderContainer } from '@engine/interfaces/IRenderContainer';
-import type {ILogger} from "@engine/interfaces";
+import { createMockLogger } from './helpers/loggerMocks';
 
 // Mock AssetManager
 vi.mock('@engine/systems/AssetManager');
@@ -31,11 +31,7 @@ const mockContext = {
     },
 };
 
-const mockLogger: ILogger = {
-    log: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-};
+const mockLogger = createMockLogger();
 
 describe('CanvasRenderer', () => {
     let renderer: CanvasRenderer;

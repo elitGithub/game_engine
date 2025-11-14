@@ -3,12 +3,8 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { MigrationManager } from '@engine/systems/MigrationManager';
 import type { SaveData } from '@engine/systems/SaveManager';
 import type { MigrationFunction } from '@engine/types';
-import {ILogger} from "@engine/interfaces";
-const mockLogger: ILogger = {
-    log: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-};
+import { createMockLogger } from './helpers/loggerMocks';
+const mockLogger = createMockLogger();
 /**
  * This test file now owns all migration-related logic,
  * moved from SaveManager.test.ts

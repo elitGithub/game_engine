@@ -4,13 +4,9 @@ import {beforeEach, describe, expect, it, vi} from 'vitest';
 import {ActionRegistry} from '@engine/systems/ActionRegistry';
 import {Action} from '@engine/systems/Action';
 import type {ActionContext} from '@engine/types';
-import type {ILogger} from "@engine/interfaces";
+import { createMockLogger } from './helpers/loggerMocks';
 
-const mockLogger: ILogger = {
-    log: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-};
+const mockLogger = createMockLogger();
 
 // Create mock actions
 class MockAction extends Action {

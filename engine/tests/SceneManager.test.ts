@@ -6,7 +6,7 @@ import { Scene } from '@engine/systems/Scene';
 import { EventBus } from '@engine/core/EventBus';
 import type { GameContext } from '@engine/types';
 import type { ScenesDataMap, SceneChoice } from '@engine/types/EngineEventMap';
-import {ILogger} from "@engine/interfaces";
+import { createMockLogger } from './helpers/loggerMocks';
 
 // Mock dependencies
 vi.mock('@engine/core/EventBus');
@@ -19,13 +19,7 @@ class MockScene extends Scene {
 }
 
 
-const mockLogger: ILogger = {
-    log: vi.fn(),
-    debug: vi.fn(),
-    info: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-};
+const mockLogger = createMockLogger();
 describe('SceneManager', () => {
     let sceneManager: SceneManager;
     let mockEventBus: EventBus;

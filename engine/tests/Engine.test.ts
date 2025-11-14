@@ -3,11 +3,12 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { Engine, type EngineConfig } from '@engine/Engine';
 import type { ISerializable } from '@engine/types';
+import type { ILogger } from '@engine/interfaces';
 import { GameState } from '@engine/core/GameState';
 import { Scene } from '@engine/systems/Scene';
-import type {ILogger} from "@engine/interfaces";
 import { HeadlessPlatformAdapter } from '@engine/platform/HeadlessPlatformAdapter';
 import { createCoreSystemDefinitions } from '@engine/core/CoreSystemDefs';
+import { createMockLogger } from './helpers/loggerMocks';
 
 // Mock a sample serializable system
 const mockPlayer: ISerializable = {
@@ -15,11 +16,7 @@ const mockPlayer: ISerializable = {
     deserialize: vi.fn(),
 };
 
-const mockLogger: ILogger = {
-    log: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-};
+const mockLogger = createMockLogger();
 
 
 // Test state for testing
@@ -101,7 +98,7 @@ describe('Engine', () => {
         const engine = new Engine(config);
         registerCoreSystemsForTesting(engine);
 
-        const coreSerializable = engine.serializationRegistry.serializableSystems.get('_core');
+        const coreSerializable = engine.serializationRegistry.getSerializable('_core');
         expect(coreSerializable).toBeDefined();
 
         engine.context.flags.add('test_flag');
@@ -115,7 +112,7 @@ describe('Engine', () => {
 
         const newEngine = new Engine(config);
         registerCoreSystemsForTesting(newEngine);
-        const newCore = newEngine.serializationRegistry.serializableSystems.get('_core');
+        const newCore = newEngine.serializationRegistry.getSerializable('_core');
         newCore?.deserialize(serialized);
 
         expect(newEngine.context.flags.has('test_flag')).toBe(true);
@@ -126,7 +123,7 @@ describe('Engine', () => {
         const engine = new Engine(config);
         registerCoreSystemsForTesting(engine);
         engine.registerSerializableSystem('player', mockPlayer);
-        expect(engine.serializationRegistry.serializableSystems.get('player')).toBe(mockPlayer);
+        expect(engine.serializationRegistry.getSerializable('player')).toBe(mockPlayer);
     });
 
     it('should provide SerializationRegistry with getCurrentSceneId', async () => {
