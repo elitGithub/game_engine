@@ -64,7 +64,7 @@ export interface ISystemFactoryContext {
 /**
  * System definition - describes how to create and configure a system
  */
-export interface SystemDefinition<T = unknown> {
+export interface SystemDefinition<T = any> {
     /** Unique key for this system */
     key: SystemKey;
 
@@ -87,7 +87,7 @@ export interface SystemDefinition<T = unknown> {
 /**
  * System instance metadata
  */
-interface SystemEntry<T = unknown> {
+interface SystemEntry<T = any> {
     definition: SystemDefinition<T>;
     instance?: T;
     lifecycle: SystemLifecycle;
