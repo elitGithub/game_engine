@@ -14,6 +14,7 @@ export interface MusicTrack {
     pausedAt: number;
     duration: number;
     fadeOutTimer?: unknown;
+    loop: boolean;
 }
 
 /**
@@ -70,7 +71,8 @@ export class MusicPlayer {
                 gainNode,
                 startTime: this.audioContext.currentTime,
                 pausedAt: 0,
-                duration: buffer.duration
+                duration: buffer.duration,
+                loop
             };
 
             this.musicState = 'playing';
@@ -99,7 +101,7 @@ export class MusicPlayer {
         if (!this.currentMusic || this.musicState !== 'paused') return;
 
         const source = this.audioContext.createSource(this.currentMusic.buffer);
-        source.setLoop(true); // Assuming music always loops, adjust if needed
+        source.setLoop(this.currentMusic.loop);
         source.connect(this.currentMusic.gainNode);
 
         const offset = this.currentMusic.pausedAt;
