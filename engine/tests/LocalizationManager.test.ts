@@ -11,7 +11,10 @@ const mockLogger: ILogger = {
 const en = {
     ui: {
         title: 'Hello',
-        welcome: 'Welcome, {0}!'
+        welcome: 'Welcome, {0}!',
+        multiParam: 'Welcome, {0}! You have {1} new messages.',
+        namedGreeting: 'Hello, {name}!',
+        namedScore: 'Player {playerName} scored {score} points in {time} seconds.'
     },
     items: {
         potion: 'Potion'
@@ -76,5 +79,43 @@ describe('LocalizationManager', () => {
         // Note: Deserialization ONLY sets the language key.
         // The string data is missing, as it's expected to be re-loaded
         expect(loc.getString('ui.title')).toBe('ui.title');
+    });
+
+    // New getStringNamed() tests
+    it('should retrieve a string with named placeholders using getStringNamed', () => {
+        expect(loc.getStringNamed('ui.namedGreeting', { name: 'Alice' }))
+            .toBe('Hello, Alice!');
+    });
+
+    it('should handle multiple named placeholders using getStringNamed', () => {
+        expect(loc.getStringNamed('ui.namedScore', {
+            playerName: 'Bob',
+            score: 1500,
+            time: 42
+        })).toBe('Player Bob scored 1500 points in 42 seconds.');
+    });
+
+    it('should handle missing named parameters gracefully', () => {
+        // Only provides 'name', but template has both {name} and potentially other placeholders
+        expect(loc.getStringNamed('ui.namedGreeting', { name: 'Charlie' }))
+            .toBe('Hello, Charlie!');
+    });
+
+    it('should leave unmatched named placeholders intact', () => {
+        // Provides 'playerName' but not 'score' or 'time'
+        expect(loc.getStringNamed('ui.namedScore', { playerName: 'Dave' }))
+            .toBe('Player Dave scored {score} points in {time} seconds.');
+    });
+
+    it('should handle multiple indexed placeholders with getString', () => {
+        expect(loc.getString('ui.multiParam', 'Alice', 5))
+            .toBe('Welcome, Alice! You have 5 new messages.');
+    });
+
+    it('should return key for missing string with getStringNamed', () => {
+        vi.clearAllMocks();
+        expect(loc.getStringNamed('ui.missing', { name: 'Test' }))
+            .toBe('ui.missing');
+        expect(mockLogger.warn).toHaveBeenCalledWith('[LocalizationManager] Missing key: ui.missing');
     });
 });

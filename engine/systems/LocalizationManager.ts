@@ -44,24 +44,30 @@ export class LocalizationManager implements ISerializable {
     }
 
     /**
-     * Gets a translated string for a given key with placeholder replacement.
+     * Gets a translated string for a given key with indexed placeholder replacement.
      *
-     * Supports two placeholder formats:
-     * 1. Indexed: {0}, {1}, {2} - replaced by positional args
-     * 2. Named: {playerName}, {score} - replaced by properties from params object
+     * Uses indexed placeholders: {0}, {1}, {2}, etc., replaced by positional arguments.
+     * This is the recommended method for simple parameter substitution.
      *
      * @param key - The localization key
-     * @param argsOrParams - Either positional args (for indexed placeholders) or a params object (for named placeholders)
+     * @param args - Positional arguments to replace {0}, {1}, {2}, etc.
+     * @returns The translated string with placeholders replaced
      *
      * @example
-     * // Indexed placeholders
-     * getString("welcome", "Alice")  // "Welcome, {0}!" -> "Welcome, Alice!"
+     * ```typescript
+     * // Template: "Welcome, {0}! You have {1} new messages."
+     * getString("welcome", "Alice", 5)
+     * // Result: "Welcome, Alice! You have 5 new messages."
+     * ```
      *
      * @example
-     * // Named placeholders
-     * getString("score", { playerName: "Bob", score: 100 })  // "Player {playerName} scored {score} points" -> "Player Bob scored 100 points"
+     * ```typescript
+     * // No placeholders
+     * getString("ui.title")
+     * // Result: "My Game"
+     * ```
      */
-    public getString(key: string, ...argsOrParams: Array<string | number | Record<string, string | number>>): string {
+    public getString(key: string, ...args: Array<string | number>): string {
         let str = this.strings.get(key);
 
         if (str === undefined) {
@@ -69,27 +75,62 @@ export class LocalizationManager implements ISerializable {
             return key; // Fallback to the key itself
         }
 
-        // Determine if we're using indexed or named parameters
-        const firstArg = argsOrParams[0];
-        const isNamedParams = argsOrParams.length === 1 && typeof firstArg === 'object' && firstArg !== null;
-
-        if (isNamedParams) {
-            // Named parameter replacement: {playerName}, {score}
-            const params = firstArg as Record<string, string | number>;
-            str = str.replace(/{(\w+)}/g, (match, name) => {
-                return typeof params[name] !== 'undefined'
-                    ? String(params[name])
-                    : match;
-            });
-        } else if (argsOrParams.length > 0) {
-            // Indexed parameter replacement: {0}, {1}, {2}
-            const args = argsOrParams as Array<string | number>;
-            str = str.replace(/{(\d)}/g, (match, number) => {
-                return typeof args[number] !== 'undefined'
-                    ? String(args[number])
+        // Indexed parameter replacement: {0}, {1}, {2}
+        if (args.length > 0) {
+            str = str.replace(/{(\d+)}/g, (match, indexStr) => {
+                const index = parseInt(indexStr, 10);
+                return typeof args[index] !== 'undefined'
+                    ? String(args[index])
                     : match;
             });
         }
+
+        return str;
+    }
+
+    /**
+     * Gets a translated string for a given key with named placeholder replacement.
+     *
+     * Uses named placeholders: {playerName}, {score}, etc., replaced by properties
+     * from the params object. This is useful for complex translations with many
+     * parameters or when parameter order may vary across languages.
+     *
+     * @param key - The localization key
+     * @param params - Object with named parameters to replace in the template
+     * @returns The translated string with placeholders replaced
+     *
+     * @example
+     * ```typescript
+     * // Template: "Player {playerName} scored {score} points in {time} seconds."
+     * getStringNamed("game.score", {
+     *   playerName: "Bob",
+     *   score: 1500,
+     *   time: 42
+     * })
+     * // Result: "Player Bob scored 1500 points in 42 seconds."
+     * ```
+     *
+     * @example
+     * ```typescript
+     * // Handles missing parameters gracefully
+     * getStringNamed("greeting", { name: "Alice" })
+     * // Template with {name} and {title} will only replace {name}
+     * ```
+     */
+    public getStringNamed(key: string, params: Record<string, string | number>): string {
+        let str = this.strings.get(key);
+
+        if (str === undefined) {
+            this.logger.warn(`[LocalizationManager] Missing key: ${key}`);
+            return key; // Fallback to the key itself
+        }
+
+        // Named parameter replacement: {playerName}, {score}
+        str = str.replace(/{(\w+)}/g, (match, name) => {
+            return typeof params[name] !== 'undefined'
+                ? String(params[name])
+                : match;
+        });
 
         return str;
     }
