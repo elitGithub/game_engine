@@ -13,6 +13,12 @@ interface TimeRange {
     endUnit: number;
 }
 
+interface ClockSaveData {
+    absoluteTime: number;
+    unitsPerDay: number;
+    timeRanges: Array<[string, TimeRange]>;
+}
+
 // For type-safe DI:
 export const CLOCK_SYSTEM_KEY = Symbol('ClockPluginSystem');
 
@@ -122,7 +128,7 @@ export class GameClockPlugin implements IEnginePlugin, ISerializable {
         return null;
     }
 
-    serialize(): any {
+    serialize(): ClockSaveData {
         return {
             absoluteTime: this.absoluteTime,
             unitsPerDay: this.unitsPerDay,
@@ -130,9 +136,9 @@ export class GameClockPlugin implements IEnginePlugin, ISerializable {
         };
     }
 
-    deserialize(data: any): void {
-        this.absoluteTime = data.absoluteTime || 0;
-        this.unitsPerDay = data.unitsPerDay || 24;
-        this.timeRanges = new Map(data.timeRanges || []);
+    deserialize(data: ClockSaveData): void {
+        this.absoluteTime = data.absoluteTime ?? 0;
+        this.unitsPerDay = data.unitsPerDay ?? 24;
+        this.timeRanges = new Map(data.timeRanges ?? []);
     }
 }
