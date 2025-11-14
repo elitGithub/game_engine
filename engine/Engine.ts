@@ -1,4 +1,4 @@
-import type {GameContext, ISerializable, ISerializationRegistry, MigrationFunction, StateData} from '@engine/types';
+import type {GameContext, ISerializable, MigrationFunction, StateData} from '@engine/types';
 import {EventBus} from '@engine/core/EventBus';
 import {GameStateManager} from '@engine/core/GameStateManager';
 import {SceneManager} from '@engine/systems/SceneManager';
@@ -86,16 +86,13 @@ export interface EngineConfig {
  * ctx.game.player.health -= 10;
  * ```
  */
-export class Engine implements ISerializationRegistry {
+export class Engine {
     public readonly config: Required<Pick<EngineConfig, 'debug' | 'targetFPS' | 'gameVersion' | 'maxDeltaTime'>>;
     public readonly context: GameContext;
     public readonly container: SystemContainer;
     private readonly platform: IPlatformAdapter;
     private readonly userConfig: EngineConfig;
     private readonly logger: ILogger;
-
-    public serializableSystems: Map<string, ISerializable>;
-    public migrationFunctions: Map<string, MigrationFunction>;
 
     public isRunning: boolean;
     public isPaused: boolean;
@@ -137,26 +134,10 @@ export class Engine implements ISerializationRegistry {
             variables: new Map()
         };
 
-        // Serialization support
-        this.serializableSystems = new Map();
-        this.migrationFunctions = new Map();
         this.isRunning = false;
         this.isPaused = false;
         this.lastFrameTime = 0;
         this.frameCount = 0;
-
-        // Register core engine state as serializable
-        this.registerSerializableSystem('_core', {
-            serialize: () => ({
-                flags: Array.from(this.context.flags),
-                variables: Array.from(this.context.variables.entries()),
-            }),
-            deserialize: (data: unknown) => {
-                const coreData = data as { flags?: string[]; variables?: Array<[string, unknown]> };
-                this.context.flags = new Set(coreData.flags || []);
-                this.context.variables = new Map(coreData.variables || []);
-            },
-        });
 
         // NOTE: Systems are NOT auto-registered.
         // The developer must explicitly register systems using:
@@ -195,6 +176,25 @@ export class Engine implements ISerializationRegistry {
         if (this.container.has(CORE_SYSTEMS.StateManager)) {
             const stateManager = this.container.get<GameStateManager>(CORE_SYSTEMS.StateManager);
             stateManager.setContext(this.context);
+        }
+
+        // Inject context into SerializationRegistry and register core state (if registered)
+        if (this.container.has(CORE_SYSTEMS.SerializationRegistry)) {
+            // Set context so restoreScene works
+            this.serializationRegistry.setContext(this.context);
+
+            // Register core engine state
+            this.serializationRegistry.registerSerializable('_core', {
+                serialize: () => ({
+                    flags: Array.from(this.context.flags),
+                    variables: Array.from(this.context.variables.entries()),
+                }),
+                deserialize: (data: unknown) => {
+                    const coreData = data as { flags?: string[]; variables?: Array<[string, unknown]> };
+                    this.context.flags = new Set(coreData.flags || []);
+                    this.context.variables = new Map(coreData.variables || []);
+                },
+            });
         }
 
         // Load game data if provided
@@ -285,6 +285,13 @@ export class Engine implements ISerializationRegistry {
             throw new Error('[Engine] PluginManager not registered. Call container.register() with core system definitions.');
         }
         return this.container.get<PluginManager>(CORE_SYSTEMS.PluginManager);
+    }
+
+    get serializationRegistry(): import('@engine/core/SerializationRegistry').SerializationRegistry {
+        if (!this.container.has(CORE_SYSTEMS.SerializationRegistry)) {
+            throw new Error('[Engine] SerializationRegistry not registered. Call container.register() with core system definitions.');
+        }
+        return this.container.get<import('@engine/core/SerializationRegistry').SerializationRegistry>(CORE_SYSTEMS.SerializationRegistry);
     }
 
     // ========================================================================
@@ -429,38 +436,43 @@ export class Engine implements ISerializationRegistry {
     }
 
     // ========================================================================
-    // SERIALIZATION SUPPORT (for SaveManager)
+    // SERIALIZATION SUPPORT (Convenience methods that delegate to SerializationRegistry)
     // ========================================================================
 
-    get gameVersion(): string {
-        return this.config.gameVersion;
-    }
-
-    getCurrentSceneId(): string {
-        return this.sceneManager.getCurrentScene()?.sceneId || '';
-    }
-
-    restoreScene(sceneId: string): void {
-        this.sceneManager.goToScene(sceneId, this.context);
-    }
-
+    /**
+     * Register a system as serializable
+     * Delegates to SerializationRegistry system
+     */
     registerSerializableSystem(key: string, system: ISerializable): void {
-        if (this.serializableSystems.has(key)) {
-            this.logger.warn(`[Engine] Serializable system key '${key}' already registered. Overwriting.`);
+        if (!this.container.has(CORE_SYSTEMS.SerializationRegistry)) {
+            this.logger.warn('[Engine] SerializationRegistry not registered. Cannot register serializable system.');
+            return;
         }
-        this.serializableSystems.set(key, system);
+        this.serializationRegistry.registerSerializable(key, system);
     }
 
+    /**
+     * Unregister a serializable system
+     * Delegates to SerializationRegistry system
+     */
     unregisterSerializableSystem(key: string): void {
-        this.serializableSystems.delete(key);
+        if (!this.container.has(CORE_SYSTEMS.SerializationRegistry)) {
+            return;
+        }
+        this.serializationRegistry.serializableSystems.delete(key);
     }
 
+    /**
+     * Register a migration function
+     * Delegates to SerializationRegistry system
+     */
     registerMigration(fromVersion: string, toVersion: string, migration: MigrationFunction): void {
-        const key = `${fromVersion}_to_${toVersion}`;
-        if (this.migrationFunctions.has(key)) {
-            this.logger.warn(`[Engine] Migration function '${key}' already registered. Overwriting.`);
+        if (!this.container.has(CORE_SYSTEMS.SerializationRegistry)) {
+            this.logger.warn('[Engine] SerializationRegistry not registered. Cannot register migration.');
+            return;
         }
-        this.migrationFunctions.set(key, migration);
+        const key = `${fromVersion}_to_${toVersion}`;
+        this.serializationRegistry.registerMigration(key, migration);
     }
 
     // ========================================================================

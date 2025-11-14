@@ -99,7 +99,9 @@ describe('Engine', () => {
 
     it('should register core engine state as serializable', async () => {
         const engine = new Engine(config);
-        const coreSerializable = engine.serializableSystems.get('_core');
+        registerCoreSystemsForTesting(engine);
+
+        const coreSerializable = engine.serializationRegistry.serializableSystems.get('_core');
         expect(coreSerializable).toBeDefined();
 
         engine.context.flags.add('test_flag');
@@ -112,7 +114,8 @@ describe('Engine', () => {
         });
 
         const newEngine = new Engine(config);
-        const newCore = newEngine.serializableSystems.get('_core');
+        registerCoreSystemsForTesting(newEngine);
+        const newCore = newEngine.serializationRegistry.serializableSystems.get('_core');
         newCore?.deserialize(serialized);
 
         expect(newEngine.context.flags.has('test_flag')).toBe(true);
@@ -121,11 +124,12 @@ describe('Engine', () => {
 
     it('should register and return serializable systems', async () => {
         const engine = new Engine(config);
+        registerCoreSystemsForTesting(engine);
         engine.registerSerializableSystem('player', mockPlayer);
-        expect(engine.serializableSystems.get('player')).toBe(mockPlayer);
+        expect(engine.serializationRegistry.serializableSystems.get('player')).toBe(mockPlayer);
     });
 
-    it('should implement ISerializationRegistry: getCurrentSceneId', async () => {
+    it('should provide SerializationRegistry with getCurrentSceneId', async () => {
         const engine = new Engine(config);
         registerCoreSystemsForTesting(engine);
 
@@ -144,10 +148,10 @@ describe('Engine', () => {
 
         engine.sceneManager.goToScene('test_scene', engine.context);
 
-        expect(engine.getCurrentSceneId()).toBe('test_scene');
+        expect(engine.serializationRegistry.getCurrentSceneId()).toBe('test_scene');
     });
 
-    it('should implement ISerializationRegistry: restoreScene', async () => {
+    it('should provide SerializationRegistry with restoreScene', async () => {
         const engine = new Engine(config);
         registerCoreSystemsForTesting(engine);
 
@@ -167,7 +171,7 @@ describe('Engine', () => {
         // Spy on goToScene
         const goToSceneSpy = vi.spyOn(engine.sceneManager, 'goToScene');
 
-        engine.restoreScene('scene_to_load');
+        engine.serializationRegistry.restoreScene('scene_to_load');
 
         expect(goToSceneSpy).toHaveBeenCalledWith('scene_to_load', engine.context);
     });
