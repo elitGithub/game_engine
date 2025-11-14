@@ -12,10 +12,9 @@ export class DialogueLine {
         this.speakerId = speakerId;
         this.text = text;
         this.options = {
+            ...options,
             showPortrait: options.showPortrait !== false,
             showName: options.showName !== false,
-            style: options.style,
-            ...options
         };
     }
 }

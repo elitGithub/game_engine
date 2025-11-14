@@ -38,7 +38,7 @@ export class CanvasRenderer implements IRenderer {
         if (!this.ctx || !this.canvas) {
             return;
         }
-        this.ctx.clearRect(0, 0, this.canvas.width, this?.canvas?.height);
+        this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     }
 
     flush(commands: RenderCommand[]): void {

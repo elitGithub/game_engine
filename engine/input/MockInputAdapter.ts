@@ -41,6 +41,9 @@ export class MockInputAdapter extends BaseInputAdapter {
      * Simulate input event (for testing)
      */
     simulateEvent(event: EngineInputEvent): void {
+        if (!this.enabled) {
+            return;
+        }
         this.emitEvent(event);
     }
 }

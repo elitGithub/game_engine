@@ -2,7 +2,6 @@
 
 import type { EventBus } from '@engine/core/EventBus';
 import type { InputCombo } from '@engine/types/InputEvents';
-import type { ITimerProvider } from '@engine/interfaces/ITimerProvider';
 
 interface BufferedInput {
     input: string;
@@ -15,7 +14,7 @@ export class InputComboTracker {
     private inputBuffer: BufferedInput[] = [];
     private readonly bufferSize: number;
 
-    constructor(eventBus: EventBus, _timer: ITimerProvider, bufferSize: number = 10) {
+    constructor(eventBus: EventBus, bufferSize: number = 10) {
         this.eventBus = eventBus;
         this.bufferSize = bufferSize;
     }

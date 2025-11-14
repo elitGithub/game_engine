@@ -34,7 +34,7 @@ describe('ChoiceLayoutHelper', () => {
         expect(textCmd.text).toBe('Go North');
         expect(textCmd.x).toBe(100);
         expect(textCmd.y).toBe(150);
-        expect(textCmd.zIndex).toBe(101);
+        expect(textCmd.zIndex).toBe(15001);
 
         // Check hotspot command
         expect(hotspotCmd).toBeDefined();
@@ -44,7 +44,7 @@ describe('ChoiceLayoutHelper', () => {
         expect(hotspotCmd.width).toBe(200);
         expect(hotspotCmd.height).toBe(40);
         expect(hotspotCmd.data).toEqual({ target: 'scene_2' });
-        expect(hotspotCmd.zIndex).toBe(102);
+        expect(hotspotCmd.zIndex).toBe(15002);
     });
 
     // --- NEW TEST ---

@@ -208,9 +208,8 @@ function createInputManagerDefinition(platform: IPlatformAdapter): SystemDefinit
         factory: (c) => {
             const stateManager = c.get<GameStateManager>(CORE_SYSTEMS.StateManager);
             const eventBus = c.get<EventBus>(CORE_SYSTEMS.EventBus);
-            const timer = platform.getTimerProvider();
             const logger = c.get<ILogger>(PLATFORM_SYSTEMS.Logger);
-            return new InputManager(stateManager, eventBus, timer, logger);
+            return new InputManager(stateManager, eventBus, logger);
         },
         initialize: (inputManager, c) => {
             const logger = c.get<ILogger>(PLATFORM_SYSTEMS.Logger);

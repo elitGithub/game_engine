@@ -29,7 +29,7 @@ describe('InputComboTracker', () => {
             now: () => Date.now()
         };
 
-        tracker = new InputComboTracker(mockEventBus, mockTimerProvider, 5); // Use a small buffer size for testing
+        tracker = new InputComboTracker(mockEventBus, 5); // Use a small buffer size for testing
     });
 
     afterEach(() => {

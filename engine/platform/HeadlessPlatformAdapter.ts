@@ -268,6 +268,8 @@ export class HeadlessPlatformAdapter implements IPlatformAdapter {
         }
 
         // Clear storage
+        // Note: Calls clear() to remove all stored data before disposal
+        // This ensures test isolation between test runs
         if (this.storageAdapter) {
             this.storageAdapter.clear();
             this.storageAdapter = undefined;

@@ -84,8 +84,8 @@ describe('DialogueLayoutHelper', () => {
         const bg = commands.find(c => 'id' in c && c.id === 'diag3_bg') as Extract<RenderCommand, { type: 'rect' }>;
         const text = commands.find(c => 'id' in c && c.id === 'diag3_text') as Extract<RenderCommand, { type: 'text' }>;
 
-        // Should default to 1000 and 1001
-        expect(bg.zIndex).toBe(1000);
-        expect(text.zIndex).toBe(1001);
+        // Should default to 15000 (UI_DIALOGUE) and 15001
+        expect(bg.zIndex).toBe(15000);
+        expect(text.zIndex).toBe(15001);
     });
 });

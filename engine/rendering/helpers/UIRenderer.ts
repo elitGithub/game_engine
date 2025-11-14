@@ -212,7 +212,7 @@ export class UIRenderer {
         }
 
         // Menu items
-        menuData.items.forEach(item => {
+        menuData.items.forEach((item, index) => {
             // Button text
             commands.push({
                 type: 'text',
@@ -227,7 +227,7 @@ export class UIRenderer {
             // Hotspot with generic data
             commands.push({
                 type: 'hotspot',
-                id: item.id ? `${item.id}_hotspot` : `menu_item_${item.id}_hotspot`,
+                id: item.id ? `${item.id}_hotspot` : `menu_item_${index}_hotspot`,
                 data: item.data,
                 x: item.hotspot.x,
                 y: item.hotspot.y,

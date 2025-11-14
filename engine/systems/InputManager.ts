@@ -9,7 +9,7 @@ import type {
 import type { InputMode } from "@engine/types/EngineEventMap";
 import {InputActionMapper} from "@engine/input/InputActionMapper";
 import {InputComboTracker} from "@engine/input/InputComboTracker";
-import type { ITimerProvider, ILogger } from '@engine/interfaces';
+import type { ILogger } from '@engine/interfaces';
 
 
 
@@ -41,7 +41,6 @@ export class InputManager {
     constructor(
         stateManager: GameStateManager,
         eventBus: EventBus,
-        timer: ITimerProvider,
         logger: ILogger
     ) {
         this.stateManager = stateManager;
@@ -61,7 +60,7 @@ export class InputManager {
 
         // Instantiate helper classes
         this.actionMapper = new InputActionMapper(eventBus);
-        this.comboTracker = new InputComboTracker(eventBus, timer, InputManager.DEFAULT_COMBO_BUFFER_SIZE);
+        this.comboTracker = new InputComboTracker(eventBus, InputManager.DEFAULT_COMBO_BUFFER_SIZE);
 
         this.logger.log('[InputManager] Initialized with action mapper and combo tracker');
     }
