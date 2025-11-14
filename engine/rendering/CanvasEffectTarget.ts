@@ -11,7 +11,7 @@ type AnimatableCommand = Extract<RenderCommand, { type: 'sprite' | 'image' | 'te
  */
 export class CanvasEffectTarget implements IEffectTarget {
 
-    constructor(private command: AnimatableCommand) {}
+    constructor(private readonly command: AnimatableCommand) {}
 
     get id(): string {
         return this.command.id;

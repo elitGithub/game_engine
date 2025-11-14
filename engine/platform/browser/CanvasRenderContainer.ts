@@ -8,7 +8,7 @@ import {IAnimationProvider, ICanvasRenderContainer} from "@engine/interfaces";
 export class CanvasRenderContainer implements ICanvasRenderContainer {
     private context: CanvasRenderingContext2D;
 
-    constructor(private canvas: HTMLCanvasElement, private animationProvider: IAnimationProvider | null = null) {
+    constructor(private readonly canvas: HTMLCanvasElement, private animationProvider: IAnimationProvider | null = null) {
         const ctx = canvas.getContext('2d');
         if (!ctx) {
             throw new Error('Failed to get 2D context from canvas');

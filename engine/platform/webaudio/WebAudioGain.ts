@@ -6,7 +6,7 @@ import type { IAudioGain, IAudioDestination } from '@engine/interfaces/IAudioPla
 import { WebAudioDestination } from '@engine/platform/webaudio/WebAudioDestination';
 
 export class WebAudioGain implements IAudioGain {
-    constructor(private native: GainNode) {}
+    constructor(private readonly native: GainNode) {}
 
     getValue(): number {
         return this.native.gain.value;

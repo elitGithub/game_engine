@@ -4,7 +4,7 @@ import type { EventBus } from '@engine/core/EventBus';
 import type { InputAction, InputBinding } from '@engine/types/InputEvents';
 
 export class InputActionMapper {
-    private eventBus: EventBus;
+    private readonly eventBus: EventBus;
     private actions: Map<string, InputAction> = new Map();
 
     constructor(eventBus: EventBus) {

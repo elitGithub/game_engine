@@ -16,7 +16,7 @@ import { WebAudioGain } from './WebAudioGain';
 import { WebAudioDestination } from './WebAudioDestination';
 
 export class WebAudioContext implements IAudioContext {
-    constructor(private native: AudioContext) {}
+    constructor(private readonly native: AudioContext) {}
 
     get state(): AudioContextState {
         return this.native.state as AudioContextState;

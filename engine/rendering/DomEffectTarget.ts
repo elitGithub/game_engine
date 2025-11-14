@@ -5,7 +5,7 @@ import type { IEffectTarget } from '@engine/types/EffectTypes';
  * Wraps a DOM HTMLElement to be used by the EffectManager.
  */
 export class DomEffectTarget implements IEffectTarget {
-    constructor(private element: HTMLElement) {}
+    constructor(private readonly element: HTMLElement) {}
 
     get id(): string {
         return this.element.id;

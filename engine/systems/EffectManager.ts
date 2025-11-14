@@ -12,7 +12,7 @@ type ActiveDynamicEffect = {
 
 export class EffectManager {
     private timer: ITimerProvider;
-    private logger: ILogger;
+    private readonly logger: ILogger;
 
     // Registries
     private staticEffects: Map<string, string | string[]>; // DOM-only

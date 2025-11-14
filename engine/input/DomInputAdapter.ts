@@ -37,7 +37,7 @@ export class DomInputAdapter extends BaseInputAdapter {
     private targetElement: HTMLElement | null;
     private boundListeners: Map<string, EventListener>;
 
-    constructor(private logger: ILogger) {
+    constructor(private readonly logger: ILogger) {
         super();
         this.targetElement = null;
         this.boundListeners = new Map();

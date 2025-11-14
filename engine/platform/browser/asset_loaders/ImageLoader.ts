@@ -5,7 +5,7 @@ import {IImageLoader} from "@engine/interfaces";
 export class ImageLoader implements IAssetLoader {
     public readonly type: AssetType = 'image';
 
-    constructor(private imageLoader: IImageLoader) {
+    constructor(private readonly imageLoader: IImageLoader) {
         if (!imageLoader) {
             throw new Error("[ImageLoader] A platform-specific loadImage implementation is required.");
         }

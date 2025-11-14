@@ -16,7 +16,7 @@ export class CanvasRenderer implements IRenderer {
     private ctx: CanvasRenderingContext2D | null = null;
     private fontStringCache: Map<string, string> = new Map();
 
-    constructor(private assets: AssetManager) {
+    constructor(private readonly assets: AssetManager) {
     }
 
     init(container: IRenderContainer): void {

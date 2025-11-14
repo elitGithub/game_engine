@@ -22,11 +22,11 @@ export class SaveManager {
     private migrationManager: MigrationManager;
 
     constructor(
-        private eventBus: EventBus,
-        private registry: ISerializationRegistry,
-        private adapter: StorageAdapter,
-        private timeAdapter: ITimerProvider,
-        private logger: ILogger
+        private readonly eventBus: EventBus,
+        private readonly registry: ISerializationRegistry,
+        private readonly adapter: StorageAdapter,
+        private readonly timeAdapter: ITimerProvider,
+        private readonly logger: ILogger
     ) {
         this.migrationManager = new MigrationManager(this.registry.migrationFunctions, this.logger);
     }
