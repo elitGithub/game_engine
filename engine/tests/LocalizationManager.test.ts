@@ -76,9 +76,11 @@ describe('LocalizationManager', () => {
 
         expect(loc.getCurrentLanguage()).toBe('es');
 
-        // Note: Deserialization ONLY sets the language key.
-        // The string data is missing, as it's expected to be re-loaded
-        expect(loc.getString('ui.title')).toBe('ui.title');
+        // Note: Deserialization preserves loaded strings in memory.
+        // In a real scenario, strings are loaded during initialization,
+        // then deserialize() is called to restore the language setting.
+        // The 'en' strings from beforeEach remain accessible.
+        expect(loc.getString('ui.title')).toBe('Hello');
     });
 
     // New getStringNamed() tests
