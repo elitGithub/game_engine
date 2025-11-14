@@ -147,7 +147,13 @@ export class GamepadInputAdapter extends BaseInputAdapter {
             return;
         }
 
-        const gamepads = navigator.getGamepads();
+        let gamepads: (Gamepad | null)[];
+        try {
+            gamepads = navigator.getGamepads();
+        } catch (error) {
+            this.logger.error('[GamepadInputAdapter] Failed to get gamepads:', error);
+            return;
+        }
 
         for (let i = 0; i < gamepads.length; i++) {
             const gamepad = gamepads[i];

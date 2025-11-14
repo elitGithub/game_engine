@@ -20,13 +20,24 @@ export class WebAudioSource implements IAudioSource {
     }
 
     start(when: number = 0, offset?: number, duration?: number): void {
-        this.native.start(when, offset, duration);
-        this.playing = true;
+        try {
+            this.native.start(when, offset, duration);
+            this.playing = true;
+        } catch (e) {
+            // Expected if already started - ignore
+        }
     }
 
     stop(when: number = 0): void {
-        this.native.stop(when);
-        this.playing = false;
+        try {
+            this.native.stop(when);
+            this.playing = false;
+        } catch (e) {
+            // Only log unexpected errors
+            if (!(e instanceof DOMException && e.name === 'InvalidStateError')) {
+                console.warn('[WebAudioSource] Unexpected error on stop():', e);
+            }
+        }
     }
 
     setLoop(loop: boolean): void {

@@ -4,11 +4,11 @@ import type { EventBus } from '@engine/core/EventBus';
 import type {
     EngineInputEvent,
     InputBinding,
+    InputState,
 } from '@engine/types/InputEvents';
 import type { InputMode } from "@engine/types/EngineEventMap";
 import {InputActionMapper} from "@engine/input/InputActionMapper";
 import {InputComboTracker} from "@engine/input/InputComboTracker";
-import type {InputState} from "@engine/input/InputState";
 import type { ITimerProvider, ILogger } from '@engine/interfaces';
 
 

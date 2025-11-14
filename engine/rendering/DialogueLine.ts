@@ -4,9 +4,9 @@
 import type { DialogueLineOptions } from '@engine/types';
 
 export class DialogueLine {
-    public speakerId: string;
-    public text: string;
-    public options: DialogueLineOptions;
+    public readonly speakerId: string;
+    public readonly text: string;
+    public readonly options: Readonly<DialogueLineOptions>;
 
     constructor(speakerId: string, text: string, options: DialogueLineOptions = {}) {
         this.speakerId = speakerId;

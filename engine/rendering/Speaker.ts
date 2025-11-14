@@ -4,16 +4,16 @@
 import type { SpeakerConfig, TextStyleData } from '@engine/types';
 
 export class Speaker {
-    public id: string;
-    public name: string;
-    public displayName: string;
-    public color: string;
-    public portrait: string | null; // This is an Asset ID
-    public portraitPosition: 'left' | 'right';
-    public textStyle: TextStyleData | null;
-    public voiceId: string | null;
-    public voicePitch: number;
-    public voiceSpeed: number;
+    public readonly id: string;
+    public readonly name: string;
+    public readonly displayName: string;
+    public readonly color: string;
+    public readonly portrait: string | null; // This is an Asset ID
+    public readonly portraitPosition: 'left' | 'right';
+    public readonly textStyle: TextStyleData | null;
+    public readonly voiceId: string | null;
+    public readonly voicePitch: number;
+    public readonly voiceSpeed: number;
 
     constructor(config: SpeakerConfig) {
         this.id = config.id;

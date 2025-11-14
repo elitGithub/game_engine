@@ -4,19 +4,27 @@
 import { DialogueLine } from './DialogueLine';
 
 export class Dialogue {
-    public lines: DialogueLine[];
-    public currentIndex: number;
+    private _lines: DialogueLine[];
+    private currentIndex: number;
 
     constructor(lines: DialogueLine[] = []) {
-        this.lines = lines;
+        this._lines = lines;
         this.currentIndex = 0;
+    }
+
+    public get lines(): readonly DialogueLine[] {
+        return this._lines;
+    }
+
+    public getCurrentIndex(): number {
+        return this.currentIndex;
     }
 
     /**
      * Add a line to the dialogue
      */
     addLine(line: DialogueLine): void {
-        this.lines.push(line);
+        this._lines.push(line);
     }
 
     /**

@@ -7,6 +7,7 @@ import {IAnimationProvider, ICanvasRenderContainer} from "@engine/interfaces";
 
 export class CanvasRenderContainer implements ICanvasRenderContainer {
     private context: CanvasRenderingContext2D;
+    private pendingFrameId?: number;
 
     constructor(private readonly canvas: HTMLCanvasElement, private animationProvider: IAnimationProvider | null = null) {
         const ctx = canvas.getContext('2d');
@@ -47,6 +48,19 @@ export class CanvasRenderContainer implements ICanvasRenderContainer {
 
     requestAnimationFrame(callback: () => void): () => void {
         const id = this.animationProvider?.requestAnimationFrame(callback);
-        return () => id ? this.animationProvider?.cancelAnimationFrame(id) : null;
+        this.pendingFrameId = id;
+        return () => {
+            if (id) {
+                this.animationProvider?.cancelAnimationFrame(id);
+                this.pendingFrameId = undefined;
+            }
+        };
+    }
+
+    dispose(): void {
+        if (this.pendingFrameId) {
+            this.animationProvider?.cancelAnimationFrame(this.pendingFrameId);
+            this.pendingFrameId = undefined;
+        }
     }
 }

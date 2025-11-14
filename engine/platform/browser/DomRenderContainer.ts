@@ -6,6 +6,8 @@
 import {IAnimationProvider, IDomRenderContainer} from "@engine/interfaces";
 
 export class DomRenderContainer implements IDomRenderContainer {
+    private pendingFrameId?: number;
+
     constructor(private readonly element: HTMLElement, private animationProvider: IAnimationProvider | null = null) {}
 
     getType(): 'dom' {
@@ -39,6 +41,19 @@ export class DomRenderContainer implements IDomRenderContainer {
 
     requestAnimationFrame(callback: () => void): () => void {
         const id = this.animationProvider?.requestAnimationFrame(callback);
-        return () => id ? this.animationProvider?.cancelAnimationFrame(id) : null;
+        this.pendingFrameId = id;
+        return () => {
+            if (id) {
+                this.animationProvider?.cancelAnimationFrame(id);
+                this.pendingFrameId = undefined;
+            }
+        };
+    }
+
+    dispose(): void {
+        if (this.pendingFrameId) {
+            this.animationProvider?.cancelAnimationFrame(this.pendingFrameId);
+            this.pendingFrameId = undefined;
+        }
     }
 }

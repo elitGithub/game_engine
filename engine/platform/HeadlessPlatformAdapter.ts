@@ -273,6 +273,11 @@ export class HeadlessPlatformAdapter implements IPlatformAdapter {
             this.storageAdapter = undefined;
         }
 
+        // Dispose render container
+        if (this.renderContainer) {
+            this.renderContainer.dispose?.();
+        }
+
         // Clear singletons
         this.logger = undefined;
         this.renderContainer = undefined;

@@ -12,4 +12,3 @@ export { DomInputAdapter } from './DomInputAdapter';
 
 export { InputActionMapper } from './InputActionMapper';
 export { InputComboTracker } from './InputComboTracker';
-export { InputState } from './InputState';

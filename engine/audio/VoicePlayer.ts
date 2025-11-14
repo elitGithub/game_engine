@@ -54,11 +54,7 @@ export class VoicePlayer {
 
     stopAll(): void {
         this.activeVoices.forEach(({ source, gain }) => {
-            try {
-                source.stop();
-            } catch (e) {
-                // Ignore if already stopped
-            }
+            source.stop();
             source.disconnect();
             gain.disconnect();
         });
