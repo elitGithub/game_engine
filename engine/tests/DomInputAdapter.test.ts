@@ -19,6 +19,7 @@ const mockElement = {
 const createMockDomContainer = (): IDomRenderContainer => ({
     getType: () => 'dom' as const,
     getElement: () => mockElement as any,
+    createElement: (tagName: string) => document.createElement(tagName),
     getDimensions: () => ({ width: 800, height: 600 }),
     requestAnimationFrame: (callback: () => void) => {
         const id = requestAnimationFrame(callback);

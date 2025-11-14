@@ -40,6 +40,7 @@ describe('RenderManager', () => {
         renderContainer = {
             getType: () => 'dom',
             getElement: () => mockContainer,
+            createElement: (tagName: string) => document.createElement(tagName),
             getDimensions: () => ({ width: 800, height: 600 }),
             setDimensions: (_width: number, _height: number) => true,
             getPixelRatio: () => 1.0,
