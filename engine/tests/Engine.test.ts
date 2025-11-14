@@ -259,14 +259,12 @@ describe('Engine', () => {
         timeValue = 0;
 
         // Manually trigger one loop iteration to set lastFrameTime
-        // @ts-ignore - accessing private method for testing
-        engine.gameLoop();
+        engine.tickGameLoopOnce();
 
         // Simulate 5 second gap (tab lost focus)
         timeValue = 5000;
 
-        // @ts-ignore - accessing private method for testing
-        engine.gameLoop();
+        engine.tickGameLoopOnce();
 
         // Verify deltaTime was clamped to max (0.1s by default, not 5.0s)
         expect(updateSpy).toHaveBeenCalledWith(0.1);
@@ -293,13 +291,11 @@ describe('Engine', () => {
         engine.start('test');
 
         timeValue = 0;
-        // @ts-ignore - accessing private method for testing
-        engine.gameLoop();
+        engine.tickGameLoopOnce();
 
         // Simulate large gap
         timeValue = 2000;
-        // @ts-ignore - accessing private method for testing
-        engine.gameLoop();
+        engine.tickGameLoopOnce();
 
         // Verify deltaTime was clamped to custom max (0.05s, not 2.0s)
         expect(updateSpy).toHaveBeenCalledWith(0.05);

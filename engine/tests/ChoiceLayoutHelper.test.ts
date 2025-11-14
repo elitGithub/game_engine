@@ -74,7 +74,7 @@ describe('ChoiceLayoutHelper', () => {
         expect(commands.filter(c => c.type === 'text')).toHaveLength(2);
         expect(commands.filter(c => c.type === 'hotspot')).toHaveLength(2);
 
-        const text2 = commands.find(c => (c as any).id === 'choice_2_text') as Extract<RenderCommand, { type: 'text' }>;
+        const text2 = commands.find(c => c.type !== 'clear' && c.id === 'choice_2_text') as Extract<RenderCommand, { type: 'text' }>;
         expect(text2).toBeDefined();
         expect(text2.y).toBe(200);
     });

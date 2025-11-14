@@ -1,7 +1,6 @@
 import type { IRenderer, RenderCommand, TextStyleData } from '@engine/types/RenderingTypes';
 import type { AssetManager } from '@engine/systems/AssetManager';
 import type { ILogger } from '@engine/interfaces';
-import { isDomRenderContainer } from '@engine/interfaces';
 import type { IDomRenderContainer } from "@engine/interfaces";
 
 interface CachedElement {
@@ -21,10 +20,6 @@ export class DomRenderer implements IRenderer {
     ) {}
 
     init(container: IDomRenderContainer): void {
-        if (!isDomRenderContainer(container)) {
-            throw new Error('[DomRenderer] Requires IDomRenderContainer (DOM platform)');
-        }
-
         this.domContainer = container;
         this.containerElement = container.getElement();
         this.containerElement.style.position = 'relative';

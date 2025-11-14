@@ -488,4 +488,13 @@ export class Engine {
     getCurrentScene(): Scene | null {
         return this.sceneManager.getCurrentScene();
     }
+
+    /**
+     * @internal
+     * Manually trigger a single game loop iteration
+     * Used for testing deltaTime clamping behavior
+     */
+    tickGameLoopOnce(): void {
+        this.gameLoop();
+    }
 }

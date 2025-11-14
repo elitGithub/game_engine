@@ -38,6 +38,14 @@ export abstract class GameState<TGame = Record<string, unknown>> {
     }
 
     /**
+     * Check if context has been injected
+     * @internal
+     */
+    hasContext(): boolean {
+        return this.context !== undefined;
+    }
+
+    /**
      * Called by the GameStateManager when this state is first pushed onto the stack.
      * Override this to set up your state (e.g., load UI, start music).
      *

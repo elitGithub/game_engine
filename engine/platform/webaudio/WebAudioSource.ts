@@ -5,12 +5,16 @@
 import type { IAudioSource, IAudioDestination, IAudioGain } from '@engine/interfaces/IAudioPlatform';
 import { WebAudioDestination } from '@engine/platform/webaudio/WebAudioDestination';
 import { WebAudioGain } from './WebAudioGain';
+import type { ILogger } from '@engine/interfaces';
 
 export class WebAudioSource implements IAudioSource {
     private playing = false;
     private endedCallback: (() => void) | null = null;
 
-    constructor(private readonly native: AudioBufferSourceNode) {
+    constructor(
+        private readonly native: AudioBufferSourceNode,
+        private readonly logger: ILogger
+    ) {
         this.native.onended = () => {
             this.playing = false;
             if (this.endedCallback) {
@@ -35,7 +39,7 @@ export class WebAudioSource implements IAudioSource {
         } catch (e) {
             // Only log unexpected errors
             if (!(e instanceof DOMException && e.name === 'InvalidStateError')) {
-                console.warn('[WebAudioSource] Unexpected error on stop():', e);
+                this.logger.warn('[WebAudioSource] Unexpected error on stop():', e);
             }
         }
     }

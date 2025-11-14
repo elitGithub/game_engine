@@ -169,7 +169,7 @@ describe('SceneManager', () => {
         sceneManager.loadScenes({ 'middle': scenesData['middle'] });
         sceneManager.goToScene('middle', mockContext);
         // Manually restore history to simulate the edge case
-        (sceneManager as any).history = ['start'];
+        sceneManager.setHistoryForTesting(['start']);
 
         // Attempt to go back to 'start' which no longer exists
         const success = sceneManager.goBack(mockContext);

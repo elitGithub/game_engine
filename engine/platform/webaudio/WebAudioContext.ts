@@ -14,9 +14,13 @@ import { WebAudioBuffer } from './WebAudioBuffer';
 import { WebAudioSource } from './WebAudioSource';
 import { WebAudioGain } from './WebAudioGain';
 import { WebAudioDestination } from './WebAudioDestination';
+import type { ILogger } from '@engine/interfaces';
 
 export class WebAudioContext implements IAudioContext {
-    constructor(private readonly native: AudioContext) {}
+    constructor(
+        private readonly native: AudioContext,
+        private readonly logger: ILogger
+    ) {}
 
     get state(): AudioContextState {
         return this.native.state as AudioContextState;
@@ -59,7 +63,7 @@ export class WebAudioContext implements IAudioContext {
     createSource(buffer: IAudioBuffer): IAudioSource {
         const source = this.native.createBufferSource();
         source.buffer = (buffer as WebAudioBuffer).getNative();
-        return new WebAudioSource(source);
+        return new WebAudioSource(source, this.logger);
     }
 
     createGain(): IAudioGain {
