@@ -18,7 +18,7 @@ import {CORE_SYSTEMS} from './core/CoreSystemDefs';
 import {PLATFORM_SYSTEMS} from './core/PlatformSystemDefs';
 import type {IPlatformAdapter,} from '@engine/interfaces';
 import type {Scene} from "@engine/systems/Scene";
-import { ConsoleLogger } from '@engine/platform/ConsoleLogger';
+import {ConsoleLogger} from '@engine/platform/ConsoleLogger';
 import type {ILogger} from "@engine/interfaces/ILogger";
 
 /**
@@ -458,9 +458,10 @@ export class Engine {
      */
     unregisterSerializableSystem(key: string): void {
         if (!this.container.has(CORE_SYSTEMS.SerializationRegistry)) {
+            this.logger.warn('[Engine] SerializationRegistry not registered. Cannot unregister serializable system.');
             return;
         }
-        this.serializationRegistry.serializableSystems.delete(key);
+        this.serializationRegistry.unregisterSerializable(key);  // ✅ Use proper method
     }
 
     /**

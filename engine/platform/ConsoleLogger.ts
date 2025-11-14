@@ -7,6 +7,12 @@ import type { ILogger } from '@engine/interfaces/ILogger';
  * This is suitable for both browser and Node.js environments.
  */
 export class ConsoleLogger implements ILogger {
+  debug(...args: unknown[]): void {
+      console.log(...args);
+  }
+  info(...args: unknown[]): void {
+      console.log(...args);
+  }
   log(...args: unknown[]): void {
     console.log(...args);
   }

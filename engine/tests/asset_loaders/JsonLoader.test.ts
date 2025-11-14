@@ -2,18 +2,13 @@
 
 import {beforeEach, describe, expect, it, vi} from 'vitest';
 import {JsonLoader} from "@engine/platform/browser/asset_loaders/JsonLoader";
-import {ILogger} from "@engine/interfaces";
+import {createMockLogger} from "@engine/tests/helpers/loggerMocks";
 
 
 // Mock global fetch
 const mockFetch = vi.fn();
 vi.stubGlobal('fetch', mockFetch);
-const mockLogger: ILogger = {
-    log: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-};
-
+const mockLogger = createMockLogger();
 describe('JsonLoader', () => {
     let loader: JsonLoader;
 

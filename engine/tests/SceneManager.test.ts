@@ -21,6 +21,8 @@ class MockScene extends Scene {
 
 const mockLogger: ILogger = {
     log: vi.fn(),
+    debug: vi.fn(),
+    info: vi.fn(),
     warn: vi.fn(),
     error: vi.fn(),
 };

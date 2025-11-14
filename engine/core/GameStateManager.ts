@@ -9,8 +9,8 @@ import type {ILogger} from "@engine/interfaces";
 import {EngineInputEvent} from "@engine/types/InputEvents";
 
 export class GameStateManager<TGame = Record<string, unknown>> {
-    public states: Map<string, GameState<TGame>>;
-    private stateStack: GameState<TGame>[];
+    private readonly states: Map<string, GameState<TGame>>;
+    private readonly stateStack: GameState<TGame>[];
     private context!: TypedGameContext<TGame>;
 
     constructor(private readonly logger: ILogger) {
@@ -109,6 +109,10 @@ export class GameStateManager<TGame = Record<string, unknown>> {
 
     getStateStack(): readonly GameState<TGame>[] {
         return this.stateStack;
+    }
+
+    getStates(): ReadonlyMap<string, GameState<TGame>> {
+        return this.states;
     }
 
     dispose(): void {

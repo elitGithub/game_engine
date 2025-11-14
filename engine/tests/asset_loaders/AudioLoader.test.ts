@@ -2,10 +2,11 @@
 
 import {beforeEach, describe, expect, it, vi} from 'vitest';
 import {AudioLoader} from "@engine/platform/browser/asset_loaders/AudioLoader";
-import type {ILogger, INetworkProvider} from "@engine/interfaces";
+import type {INetworkProvider} from "@engine/interfaces";
 
 
 import type {IAudioBuffer, IAudioContext} from "@engine/interfaces/IAudioPlatform";
+import {createMockLogger} from "@engine/tests/helpers/loggerMocks";
 
 // Mock fetch function
 const mockFetch = vi.fn();
@@ -29,11 +30,7 @@ const mockAudioContext: Partial<IAudioContext> = {
     decodeAudioData: mockDecodeAudioData,
 };
 
-const mockLogger: ILogger = {
-    log: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-};
+const mockLogger = createMockLogger();
 
 describe('AudioLoader', () => {
     let loader: AudioLoader;

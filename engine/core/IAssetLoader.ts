@@ -12,5 +12,5 @@ export interface IAssetLoader {
      * @param url - The URL (or path) to the asset.
      * @returns A promise that resolves to the loaded asset.
      */
-    load(url: string): Promise<any>;
+    load(url: string): Promise<unknown>;
 }

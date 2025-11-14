@@ -5,7 +5,9 @@
  * to route engine logs to native logging services, files, or UI.
  */
 export interface ILogger {
-  log(...args: any[]): void;
-  warn(...args: any[]): void;
-  error(...args: any[]): void;
+  debug(...args: unknown[]): void;
+  info(...args: unknown[]): void;
+  warn(...args: unknown[]): void;
+  error(...args: unknown[]): void;
+  log(...args: unknown[]): void;
 }

@@ -13,17 +13,21 @@
  * }
  * ```
  */
-import type { StateData, TypedGameContext } from '@engine/types';
-import type { EngineInputEvent } from '@engine/types/InputEvents';
+import type {StateData, TypedGameContext} from '@engine/types';
+import type {EngineInputEvent} from '@engine/types/InputEvents';
 import type {ILogger} from "@engine/interfaces";
 
 export abstract class GameState<TGame = Record<string, unknown>> {
-    public isActive: boolean;
+    private _isActive: boolean = false;
     protected context!: TypedGameContext<TGame>;
 
     constructor(public readonly name: string, private readonly logger: ILogger) {
-        this.isActive = false;
     }
+
+    public get isActive(): boolean {
+        return this._isActive;
+    }
+
 
     /**
      * Set the context (called by StateManager)
@@ -40,7 +44,7 @@ export abstract class GameState<TGame = Record<string, unknown>> {
      * You can now access: this.context.game.X with full type safety!
      */
     enter(_data: StateData = {}): void {
-        this.isActive = true;
+        this._isActive = true;
         this.logger.log(`[State] Entering: ${this.name}`);
     }
 
@@ -49,7 +53,7 @@ export abstract class GameState<TGame = Record<string, unknown>> {
      * Override this to clean up your state (e.g., destroy UI, stop sounds).
      */
     exit(): void {
-        this.isActive = false;
+        this._isActive = false;
         this.logger.log(`[State] Exiting: ${this.name}`);
     }
 
