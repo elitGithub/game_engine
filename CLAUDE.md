@@ -135,7 +135,7 @@ The following performance optimizations have been implemented to ensure producti
 - **Unused Parameters**: Cleaned up InputManager and RenderManager - logger/eventBus now properly used
 - **Type Safety**: Added proper return types to all ISerializable implementations (LocalizationManager, ValueTracker, CollectionTracker)
 - **Logging Abstraction**: Fixed SceneRenderer to use injected ILogger instead of console.warn
-- **API Implementation**: Implemented customCSS feature in DomRenderer (was defined but ignored)
+- **API Refactor**: Removed customCSS from TextStyleData to enforce a purely semantic, platform-agnostic style interface. This resolves the previous implementation gap.
 - **Type System**: Fixed InputMode to remove | string (preserved IDE autocomplete)
 - **Symbol Constants**: Defined SaveManager symbol constant in CORE_SYSTEMS
 - **Engine.log**: Changed from any[] to unknown[] for better type safety
