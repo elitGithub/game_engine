@@ -154,12 +154,12 @@ describe('CanvasRenderer', () => {
     it('should flush and render a text command', () => {
         const cmd: RenderCommand = {
             type: 'text', id: 'txt1', text: 'Hello', x: 10, y: 20,
-            style: { color: 'red', font: '16px Arial', align: 'center' }
+            style: { color: 'red', fontSize: '16px', fontFamily: 'Arial', textAlign: 'center' }
         };
         renderer.flush([cmd]);
 
         expect(mockContext.save).toHaveBeenCalledOnce();
-        expect(fontSpy).toHaveBeenCalledWith('16px Arial');
+        expect(fontSpy).toHaveBeenCalledWith('normal normal 16px Arial');
         expect(fillStyleSpy).toHaveBeenCalledWith('red');
         expect(textAlignSpy).toHaveBeenCalledWith('center');
         expect(mockContext.fillText).toHaveBeenCalledWith('Hello', 10, 20);

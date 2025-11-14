@@ -158,7 +158,8 @@ export class UIRenderer {
             x: position.x,
             y: position.y,
             style: {
-                font: '14px Arial',
+                fontSize: '14px',
+                fontFamily: 'Arial',
                 color: 'white',
                 ...style
             },

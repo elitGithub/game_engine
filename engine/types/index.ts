@@ -8,7 +8,7 @@ import type {InputManager} from '../systems/InputManager';
 import {EventBus} from "@engine/core/EventBus";
 import {AssetManager} from "@engine/systems/AssetManager";
 import {EngineEventMap} from "@engine/types/EngineEventMap";
-import {IRenderer} from "@engine/types/RenderingTypes";
+import {IRenderer, TextStyleData} from "@engine/types/RenderingTypes";
 import {LocalizationManager} from "@engine/systems/LocalizationManager";
 import {RenderManager} from "@engine/core/RenderManager";
 
@@ -77,43 +77,13 @@ export type EffectStep =
     | { wait: number };
 
 export interface RenderOptions {
-    style?: string | TextStyleConfig;
+    style?: string | TextStyleData;
     animate?: boolean;
     speed?: number;
     speaker?: string;
 }
 
-export interface TextStyleConfig {
-    fontFamily?: string;
-    fontSize?: string;
-    fontWeight?: string;
-    fontStyle?: string;
-    lineHeight?: string;
-    letterSpacing?: string;
-    color?: string;
-    backgroundColor?: string;
-    textShadow?: string;
-    textAlign?: 'left' | 'center' | 'right';
-    textTransform?: string;
-    textDecoration?: string;
-    margin?: string;
-    padding?: string;
-    border?: string;
-    borderRadius?: string;
-    position?: string;
-    top?: string;
-    right?: string;
-    bottom?: string;
-    left?: string;
-    width?: string;
-    maxWidth?: string;
-    transition?: string;
-    animation?: string;
-    boxShadow?: string;
-    opacity?: string;
-    customCSS?: Record<string, string>;
-}
-
+export type { IRenderer, TextStyleData } from '@engine/types/RenderingTypes';
 export { DomRenderContainer } from '@engine/platform/browser/DomRenderContainer';
 export { CanvasRenderContainer } from '@engine/platform/browser/CanvasRenderContainer';
 export { HeadlessRenderContainer } from '@engine/interfaces/HeadlessRenderContainer';
@@ -133,7 +103,7 @@ export interface SpeakerConfig {
     color?: string;
     portrait?: string;
     portraitPosition?: 'left' | 'right';
-    textStyle?: TextStyleConfig;
+    textStyle?: TextStyleData;
     voiceId?: string;
     voicePitch?: number;
     voiceSpeed?: number;
@@ -142,7 +112,7 @@ export interface SpeakerConfig {
 export interface DialogueLineOptions {
     showPortrait?: boolean;
     showName?: boolean;
-    style?: string | TextStyleConfig;
+    style?: string | TextStyleData;
 }
 
 export interface ActionContext<TGame = Record<string, unknown>> extends TypedGameContext<TGame> {

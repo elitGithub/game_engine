@@ -106,30 +106,28 @@ export class CanvasRenderer implements IRenderer {
     private applyTextStyle(style: TextStyleData): void {
         if (!this.ctx) return;
 
-        // Use explicit font string if provided, otherwise build from properties
-        if (style.font) {
-            this.ctx.font = style.font;
-        } else {
-            // Build cache key from font properties
-            const cacheKey = `${style.italic ? '1' : '0'}|${style.bold ? '1' : '0'}`;
+        // Build font string from semantic properties
+        const fontStyle = style.fontStyle || 'normal';
+        const fontWeight = style.fontWeight || 'normal';
+        const fontSize = style.fontSize || '16px';
+        const fontFamily = style.fontFamily || 'Arial';
 
-            // Check cache first to avoid string allocation
-            let fontString = this.fontStringCache.get(cacheKey);
-            if (!fontString) {
-                // Cache miss - generate and store
-                const fontStyle = style.italic ? 'italic' : 'normal';
-                const fontWeight = style.bold ? 'bold' : 'normal';
-                const fontSize = '16px'; // Default
-                const fontFamily = 'Arial'; // Default
-                fontString = `${fontStyle} ${fontWeight} ${fontSize} ${fontFamily}`;
-                this.fontStringCache.set(cacheKey, fontString);
-            }
+        // Build cache key from all font properties
+        const cacheKey = `${fontStyle}|${fontWeight}|${fontSize}|${fontFamily}`;
 
-            this.ctx.font = fontString;
+        // Check cache first to avoid string allocation
+        let fontString = this.fontStringCache.get(cacheKey);
+        if (!fontString) {
+            // Cache miss - generate and store
+            fontString = `${fontStyle} ${fontWeight} ${fontSize} ${fontFamily}`;
+            this.fontStringCache.set(cacheKey, fontString);
         }
 
+        this.ctx.font = fontString;
+
+        // Apply color and alignment
         if (style.color) this.ctx.fillStyle = style.color;
-        if (style.align) this.ctx.textAlign = style.align;
+        if (style.textAlign) this.ctx.textAlign = style.textAlign;
     }
 
     resize(width: number, height: number): void {

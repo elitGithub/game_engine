@@ -1,7 +1,7 @@
 /**
  * Speaker - Represents a character or narrator in dialogue
  */
-import type { SpeakerConfig, TextStyleConfig } from '@engine/types';
+import type { SpeakerConfig, TextStyleData } from '@engine/types';
 
 export class Speaker {
     public id: string;
@@ -10,7 +10,7 @@ export class Speaker {
     public color: string;
     public portrait: string | null; // This is an Asset ID
     public portraitPosition: 'left' | 'right';
-    public textStyle: TextStyleConfig | null; // Use config, not class
+    public textStyle: TextStyleData | null;
     public voiceId: string | null;
     public voicePitch: number;
     public voiceSpeed: number;

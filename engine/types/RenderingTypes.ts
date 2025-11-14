@@ -10,13 +10,22 @@ export interface IRenderer {
     dispose(): void;
 }
 
+/**
+ * TextStyleData - Platform-agnostic semantic text styling
+ *
+ * This interface defines text styling using semantic properties that can be
+ * interpreted by any renderer (DOM, Canvas, native, terminal, etc.).
+ *
+ * Each renderer is responsible for converting these semantic properties to
+ * platform-specific format.
+ */
 export interface TextStyleData {
-    font?: string;
-    color?: string;
-    align?: 'left' | 'center' | 'right';
-    bold?: boolean;
-    italic?: boolean;
-    customCSS?: Record<string, string>;
+    fontFamily?: string;     // e.g., "Arial", "Times New Roman", "monospace"
+    fontSize?: string;       // e.g., "16px", "12pt", "1.2em"
+    fontWeight?: string;     // e.g., "normal", "bold", "400", "700"
+    fontStyle?: string;      // e.g., "normal", "italic", "oblique"
+    color?: string;          // e.g., "#000000", "rgb(255,0,0)", "red"
+    textAlign?: 'left' | 'center' | 'right';
 }
 
 export type RenderCommand =
