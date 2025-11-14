@@ -21,12 +21,12 @@ import {WebAudioPlatform} from '@engine/interfaces';
 import {LocalStorageAdapter} from '@engine/platform/browser/LocalStorageAdapter';
 import type {StorageAdapter} from '@engine/core/StorageAdapter';
 import {GamepadInputAdapter} from '@engine/platform/GamepadInputAdapter';
-import {CompositeInputAdapter} from '@engine/interfaces';
+import {CompositeInputAdapter} from '@engine/input';
 import {CanvasRenderContainer} from "@engine/platform/browser/CanvasRenderContainer";
 import {DomRenderContainer} from "@engine/platform/browser/DomRenderContainer";
 import { ConsoleLogger } from './ConsoleLogger';
 import type {ILogger} from "@engine/interfaces/ILogger";
-import {DomInputAdapter} from "@engine/input/DomInputAdapter";
+import {DomInputAdapter} from "@engine/input";
 
 /**
  * Extended Window interface for webkit vendor prefix support

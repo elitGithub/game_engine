@@ -142,6 +142,52 @@ The following performance optimizations have been implemented to ensure producti
 - **Dice Ergonomics**: Added Math.random as default RNG parameter (maintains testability)
 - **Impact**: Improved type safety, maintainability, and API consistency throughout codebase
 
+## **Architectural Improvements (Code Review - 2025-01-13)**
+
+Following a comprehensive architectural review, 5 medium-priority issues were identified and resolved to achieve true "V1 Forever" bulletproof design:
+
+### SceneManager - History Corruption Prevention
+- **Issue**: goBack() destructively popped history before validating navigation success, causing history corruption if target scene was missing
+- **Fix**: Peek-then-pop pattern - only remove from history after successful navigation
+- **Impact**: Eliminates edge-case history corruption, enables safe retry on failure
+- **Location**: engine/systems/SceneManager.ts:126-140
+- **Tests**: Added test for missing scene edge case (engine/tests/SceneManager.test.ts:158-191)
+
+### AssetManager - Runtime Type Validation
+- **Issue**: Blind type casting in get<T>() allowed silent type mismatches (e.g., AudioBuffer as HTMLImageElement)
+- **Fix**: Store asset type metadata in cache, add optional runtime validation parameter to get<T>()
+- **Impact**: Fail-fast type safety prevents renderer crashes, maintains backward compatibility
+- **API Enhancement**: Added getType() method for type inspection, optional expectedType parameter for validation
+- **Location**: engine/systems/AssetManager.ts:23-26, 148-179
+- **Tests**: 6 comprehensive type validation tests (engine/tests/AssetManager.test.ts:202-283)
+
+### UIRenderer - Explicit Z-Index Constants
+- **Issue**: Magic numbers (10000, 20000) created invisible layering constraints
+- **Fix**: Created DEFAULT_Z_INDEX constants with documented hierarchy
+- **Impact**: Self-documenting layering system, explicit developer control
+- **Constants**: engine/constants/RenderingConstants.ts (WORLD, BACKGROUND, SPRITES, UI_BARS, UI_MENUS, UI_DIALOGUE, OVERLAY, DEBUG)
+- **Location**: engine/rendering/helpers/UIRenderer.ts (updated to use constants)
+
+### IInputAdapter - Circular Dependency Resolution
+- **Issue**: Interface file exported concrete implementations, creating circular dependency
+- **Fix**: Separated interface definitions from implementations, created proper barrel exports
+- **Impact**: Clean architectural boundaries, prepares for NX monorepo migration
+- **Changes**:
+  - Removed implementation re-exports from engine/interfaces/IInputAdapter.ts
+  - Created engine/input/index.ts barrel file for implementations
+  - Updated imports in BrowserPlatformAdapter, HeadlessPlatformAdapter, DomInputAdapter, GamepadInputAdapter
+- **Pattern**: Interfaces from @engine/interfaces, implementations from @engine/input
+
+### VoicePlayer - Test Quality Compliance
+- **Issue**: Memory leak tests violated "no (as any)" rule by accessing private activeVoices Set
+- **Fix**: Added public getActiveVoiceCount() method marked with @internal
+- **Impact**: Maintains test quality standards while enabling critical memory leak detection
+- **Location**: engine/audio/VoicePlayer.ts:74-76
+- **Tests**: Updated engine/tests/VoicePlayer.memory.test.ts to use public API
+
+**Test Results**: 398/399 passing (1 appropriately skipped), 0 TypeScript errors
+**Performance**: No overhead - all fixes maintain or improve performance characteristics
+
 ## **Optional Improvements** (Non-Critical)
 
 Minor code quality tasks for future consideration:

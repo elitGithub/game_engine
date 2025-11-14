@@ -115,15 +115,28 @@ export class SceneManager {
 
     /**
      * Navigate back to the previous scene in the history stack.
-     * Does nothing if history is empty.
+     * Does nothing if history is empty or if the previous scene no longer exists.
+     *
+     * Only removes the scene from history if navigation succeeds, preventing
+     * history corruption if the target scene has been unloaded.
      *
      * @param context - Game context to pass to scene lifecycle methods
-     * @returns True if navigation succeeded, false if history was empty
+     * @returns True if navigation succeeded, false if history was empty or scene not found
      */
     goBack(context: GameContext): boolean {
-        const previousSceneId = this.history.pop();
+        // Peek at history without modifying it
+        const previousSceneId = this.history[this.history.length - 1];
         if (!previousSceneId) return false;
-        return this.goToScene(previousSceneId, context, true);
+
+        // Attempt navigation
+        const success = this.goToScene(previousSceneId, context, true);
+
+        // Only remove from history if navigation succeeded
+        if (success) {
+            this.history.pop();
+        }
+
+        return success;
     }
 
     /**

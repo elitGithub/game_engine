@@ -84,23 +84,19 @@ describe('VoicePlayer - Memory Leak Verification', () => {
     });
 
     it('should remove voice from activeVoices when playback completes', async () => {
-        // Use reflection to check internal state (only for memory leak verification)
-        const getActiveCount = () => (voicePlayer as any).activeVoices.size;
-
         // Play voice
         await voicePlayer.playVoice('voice_greeting');
-        expect(getActiveCount()).toBe(1);
+        expect(voicePlayer.getActiveVoiceCount()).toBe(1);
 
         // Simulate completion
         createdSources[0].simulateEnd();
 
         // Should be removed from active set
-        expect(getActiveCount()).toBe(0);
+        expect(voicePlayer.getActiveVoiceCount()).toBe(0);
     });
 
     it('should not leak memory with many sequential voice plays', async () => {
         const playCount = 50;
-        const getActiveCount = () => (voicePlayer as any).activeVoices.size;
 
         for (let i = 0; i < playCount; i++) {
             await voicePlayer.playVoice('voice_greeting');
@@ -109,15 +105,13 @@ describe('VoicePlayer - Memory Leak Verification', () => {
         }
 
         // activeVoices should be empty after all voices finish
-        expect(getActiveCount()).toBe(0);
+        expect(voicePlayer.getActiveVoiceCount()).toBe(0);
 
         // All sources should have been created (no pooling for voices)
         expect(mockAudioContext.createSource).toHaveBeenCalledTimes(playCount);
     });
 
     it('should handle concurrent voices and clean them up', async () => {
-        const getActiveCount = () => (voicePlayer as any).activeVoices.size;
-
         // Play 5 voices concurrently
         await Promise.all([
             voicePlayer.playVoice('voice1'),
@@ -127,20 +121,20 @@ describe('VoicePlayer - Memory Leak Verification', () => {
             voicePlayer.playVoice('voice5'),
         ]);
 
-        expect(getActiveCount()).toBe(5);
+        expect(voicePlayer.getActiveVoiceCount()).toBe(5);
 
         // Finish first 3
         createdSources[0].simulateEnd();
         createdSources[1].simulateEnd();
         createdSources[2].simulateEnd();
 
-        expect(getActiveCount()).toBe(2);
+        expect(voicePlayer.getActiveVoiceCount()).toBe(2);
 
         // Finish remaining 2
         createdSources[3].simulateEnd();
         createdSources[4].simulateEnd();
 
-        expect(getActiveCount()).toBe(0);
+        expect(voicePlayer.getActiveVoiceCount()).toBe(0);
     });
 
     it('should emit voice.ended event when voice completes naturally', async () => {
