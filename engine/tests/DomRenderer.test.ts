@@ -92,7 +92,7 @@ describe('DomRenderer', () => {
             text: 'Hello',
             x: 10,
             y: 20,
-            style: {color: 'red', font: '16px Arial'}
+            style: {color: 'red', fontSize: '16px', fontFamily: 'Arial'}
         };
 
         renderer.flush([cmd]);
@@ -102,7 +102,8 @@ describe('DomRenderer', () => {
         expect(el.textContent).toBe('Hello');
         expect(el.style.transform).toBe('translate3d(10px, 20px, 0)');
         expect(el.style.color).toBe('red');
-        expect(el.style.font).toBe('16px Arial');
+        expect(el.style.fontSize).toBe('16px');
+        expect(el.style.fontFamily).toBe('Arial');
     });
 
     it('should render a rect command', () => {

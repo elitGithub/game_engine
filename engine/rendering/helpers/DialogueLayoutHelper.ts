@@ -19,8 +19,8 @@ import type {PositionedDialogue, RenderCommand, } from '../../types/RenderingTyp
  * const positionedDialogue: PositionedDialogue = {
  *   id: 'dialogue_01',
  *   background: { x: 50, y: 400, width: 700, height: 150, fill: '#000000cc' },
- *   speaker: { x: 60, y: 415, text: 'Hero', style: { font: '20px Arial', color: '#ffffff' } },
- *   text: { x: 60, y: 450, text: 'Hello, world!', style: { font: '16px Arial', color: '#ffffff' } },
+ *   speaker: { x: 60, y: 415, text: 'Hero', style: { fontSize: '20px', fontFamily: 'Arial', color: '#ffffff' } },
+ *   text: { x: 60, y: 450, text: 'Hello, world!', style: { fontSize: '16px', fontFamily: 'Arial', color: '#ffffff' } },
  *   zIndex: 1000
  * };
  * const commands = helper.buildCommands(positionedDialogue);

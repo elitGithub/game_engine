@@ -50,7 +50,7 @@ describe('SceneRenderer', () => {
                 { type: 'sprite', assetId: 'bg', x: 0, y: 0, zIndex: 0 },
                 { type: 'sprite', assetId: 'char', x: 100, y: 50, zIndex: 10 },
                 { type: 'rect', x: 200, y: 100, width: 300, height: 200, fill: 'rgba(0,0,0,0.5)', stroke: 'white', zIndex: 5 },
-                { type: 'text', text: 'Hello World', x: 250, y: 150, style: { color: 'white', font: '24px Arial' }, zIndex: 15 }
+                { type: 'text', text: 'Hello World', x: 250, y: 150, style: { color: 'white', fontSize: '24px', fontFamily: 'Arial' }, zIndex: 15 }
             ]
         });
 
@@ -94,7 +94,8 @@ describe('SceneRenderer', () => {
         expect(textCmd.x).toBe(250);
         expect(textCmd.y).toBe(150);
         expect(textCmd.style.color).toBe('white');
-        expect(textCmd.style.font).toBe('24px Arial');
+        expect(textCmd.style.fontSize).toBe('24px');
+        expect(textCmd.style.fontFamily).toBe('Arial');
         expect(textCmd.zIndex).toBe(15);
     });
 

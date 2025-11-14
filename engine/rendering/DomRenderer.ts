@@ -247,19 +247,13 @@ export class DomRenderer implements IRenderer {
     }
 
     private applyTextStyle(el: HTMLElement, style: TextStyleData): void {
-        // We can optimize this further by diffing specific style props
-        if (style.font) el.style.font = style.font;
+        // Apply semantic text style properties to DOM element
+        if (style.fontFamily) el.style.fontFamily = style.fontFamily;
+        if (style.fontSize) el.style.fontSize = style.fontSize;
+        if (style.fontWeight) el.style.fontWeight = style.fontWeight;
+        if (style.fontStyle) el.style.fontStyle = style.fontStyle;
         if (style.color) el.style.color = style.color;
-        if (style.align) el.style.textAlign = style.align;
-        if (style.bold) el.style.fontWeight = 'bold';
-        if (style.italic) el.style.fontStyle = 'italic';
-
-        // Apply custom CSS properties
-        if (style.customCSS) {
-            for (const [key, value] of Object.entries(style.customCSS)) {
-                (el.style as any)[key] = value;
-            }
-        }
+        if (style.textAlign) el.style.textAlign = style.textAlign;
     }
 
     dispose(): void {

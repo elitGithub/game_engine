@@ -23,7 +23,7 @@ import type { PositionedChoice } from '../../types/RenderingTypes';
  *     textPos: { x: 100, y: 300 },
  *     hotspot: { x: 90, y: 285, width: 200, height: 30 },
  *     data: { action: 'select', choiceIndex: 0 },
- *     style: { color: '#34d399', font: '18px Arial' }
+ *     style: { color: '#34d399', fontSize: '18px', fontFamily: 'Arial' }
  *   }
  * ];
  * const commands = helper.buildCommands(positionedChoices);
@@ -43,7 +43,7 @@ export class ChoiceLayoutHelper {
      */
     buildCommands(choices: PositionedChoice[]): RenderCommand[] {
         const commands: RenderCommand[] = [];
-        const defaultStyle: TextStyleData = { color: '#34d399', font: '18px Arial' };
+        const defaultStyle: TextStyleData = { color: '#34d399', fontSize: '18px', fontFamily: 'Arial' };
 
         choices.forEach(choice => {
             // Text for the choice (uses pre-calculated positions)
