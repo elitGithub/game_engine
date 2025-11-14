@@ -20,6 +20,9 @@ export class InputComboTracker {
     }
 
     public registerCombo(name: string, inputs: string[], timeWindow: number = 1000): void {
+        if (inputs.length === 0) {
+            throw new Error(`[InputComboTracker] Cannot register combo '${name}': inputs array is empty`);
+        }
         this.combos.set(name, { inputs, timeWindow });
     }
 
@@ -35,7 +38,17 @@ export class InputComboTracker {
     }
 
     public checkCombos(): void {
+        // Early exit if buffer is empty
+        if (this.inputBuffer.length === 0) {
+            return;
+        }
+
         this.combos.forEach((combo, name) => {
+            // Skip if buffer is too small for this combo
+            if (this.inputBuffer.length < combo.inputs.length) {
+                return;
+            }
+
             if (this.isComboTriggered(combo)) {
                 this.eventBus.emit('input.combo', { combo: name });
             }

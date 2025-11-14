@@ -6,6 +6,7 @@ import type { InputAction, InputBinding } from '@engine/types/InputEvents';
 export class InputActionMapper {
     private readonly eventBus: EventBus;
     private actions: Map<string, InputAction> = new Map();
+    private inputIndex: Map<string, Set<string>> = new Map();
 
     constructor(eventBus: EventBus) {
         this.eventBus = eventBus;
@@ -13,6 +14,15 @@ export class InputActionMapper {
 
     public registerAction(name: string, bindings: InputBinding[]): void {
         this.actions.set(name, { name, bindings });
+
+        // Build index for O(1) lookup
+        bindings.forEach(binding => {
+            const key = `${binding.type}:${binding.input}`;
+            if (!this.inputIndex.has(key)) {
+                this.inputIndex.set(key, new Set());
+            }
+            this.inputIndex.get(key)!.add(name);
+        });
     }
 
     public getActions(): ReadonlyMap<string, InputAction> {
@@ -24,7 +34,19 @@ export class InputActionMapper {
         input: string | number,
         modifiers?: { shift: boolean; ctrl: boolean; alt: boolean; meta: boolean }
     ): void {
-        this.actions.forEach((action, name) => {
+        // O(1) lookup using index
+        const key = `${type}:${input}`;
+        const candidateActions = this.inputIndex.get(key);
+
+        if (!candidateActions) {
+            return; // No actions bound to this input
+        }
+
+        // Check only the actions bound to this specific input
+        candidateActions.forEach(name => {
+            const action = this.actions.get(name);
+            if (!action) return;
+
             const triggered = action.bindings.some(binding => {
                 if (binding.type !== type) return false;
                 if (binding.input !== input) return false;

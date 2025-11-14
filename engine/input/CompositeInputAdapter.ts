@@ -31,6 +31,50 @@ export class CompositeInputAdapter extends BaseInputAdapter {
         return 'composite';
     }
 
+    /**
+     * Add an adapter dynamically
+     */
+    addAdapter(adapter: IInputAdapter): void {
+        if (this.adapters.includes(adapter)) {
+            return; // Already added
+        }
+
+        this.adapters.push(adapter);
+
+        // Forward events from this adapter
+        adapter.onEvent((event) => this.emitEvent(event));
+
+        // If composite is attached, attach the new adapter too
+        if (this.attached) {
+            adapter.attach();
+        }
+
+        // Sync enabled state
+        adapter.setEnabled?.(this.enabled);
+    }
+
+    /**
+     * Remove an adapter dynamically
+     */
+    removeAdapter(adapter: IInputAdapter): void {
+        const index = this.adapters.indexOf(adapter);
+        if (index === -1) {
+            return; // Not found
+        }
+
+        // Detach before removing
+        adapter.detach();
+
+        this.adapters.splice(index, 1);
+    }
+
+    /**
+     * Get all managed adapters
+     */
+    getAdapters(): readonly IInputAdapter[] {
+        return this.adapters;
+    }
+
     attach(container?: IRenderContainer, options?: InputAttachOptions): boolean {
         let anyAttached = false;
         this.adapters.forEach(adapter => {

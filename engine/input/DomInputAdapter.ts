@@ -37,10 +37,34 @@ export class DomInputAdapter extends BaseInputAdapter {
     private targetElement: HTMLElement | null;
     private boundListeners: Map<string, EventListener>;
 
+    // Cached bound event handlers
+    private readonly onKeyDownBound: EventListener;
+    private readonly onKeyUpBound: EventListener;
+    private readonly onMouseDownBound: EventListener;
+    private readonly onMouseUpBound: EventListener;
+    private readonly onMouseMoveBound: EventListener;
+    private readonly onWheelBound: EventListener;
+    private readonly onClickBound: EventListener;
+    private readonly onTouchStartBound: EventListener;
+    private readonly onTouchMoveBound: EventListener;
+    private readonly onTouchEndBound: EventListener;
+
     constructor(private readonly logger: ILogger) {
         super();
         this.targetElement = null;
         this.boundListeners = new Map();
+
+        // Cache bound functions to avoid creating new functions on each attach
+        this.onKeyDownBound = this.onKeyDown.bind(this) as EventListener;
+        this.onKeyUpBound = this.onKeyUp.bind(this) as EventListener;
+        this.onMouseDownBound = this.onMouseDown.bind(this) as EventListener;
+        this.onMouseUpBound = this.onMouseUp.bind(this) as EventListener;
+        this.onMouseMoveBound = this.onMouseMove.bind(this) as EventListener;
+        this.onWheelBound = this.onWheel.bind(this) as EventListener;
+        this.onClickBound = this.onClick.bind(this) as EventListener;
+        this.onTouchStartBound = this.onTouchStart.bind(this) as EventListener;
+        this.onTouchMoveBound = this.onTouchMove.bind(this) as EventListener;
+        this.onTouchEndBound = this.onTouchEnd.bind(this) as EventListener;
     }
 
     getType(): InputAdapterType {
@@ -117,16 +141,17 @@ export class DomInputAdapter extends BaseInputAdapter {
     private attachListeners(): void {
         if (!this.targetElement) return;
 
-        const onKeyDown = this.onKeyDown.bind(this);
-        const onKeyUp = this.onKeyUp.bind(this);
-        const onMouseDown = this.onMouseDown.bind(this);
-        const onMouseUp = this.onMouseUp.bind(this);
-        const onMouseMove = this.onMouseMove.bind(this);
-        const onWheel = this.onWheel.bind(this);
-        const onClick = this.onClick.bind(this);
-        const onTouchStart = this.onTouchStart.bind(this);
-        const onTouchMove = this.onTouchMove.bind(this);
-        const onTouchEnd = this.onTouchEnd.bind(this);
+        // Use cached bound functions
+        const onKeyDown = this.onKeyDownBound;
+        const onKeyUp = this.onKeyUpBound;
+        const onMouseDown = this.onMouseDownBound;
+        const onMouseUp = this.onMouseUpBound;
+        const onMouseMove = this.onMouseMoveBound;
+        const onWheel = this.onWheelBound;
+        const onClick = this.onClickBound;
+        const onTouchStart = this.onTouchStartBound;
+        const onTouchMove = this.onTouchMoveBound;
+        const onTouchEnd = this.onTouchEndBound;
 
         this.targetElement.addEventListener('keydown', onKeyDown);
         this.targetElement.addEventListener('keyup', onKeyUp);
