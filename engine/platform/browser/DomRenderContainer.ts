@@ -16,6 +16,10 @@ export class DomRenderContainer implements IDomRenderContainer {
         return this.element;
     }
 
+    createElement(tagName: string): HTMLElement {
+        return document.createElement(tagName);
+    }
+
     getDimensions(): { width: number; height: number } {
         return {
             width: this.element.clientWidth,

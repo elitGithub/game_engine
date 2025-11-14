@@ -11,7 +11,8 @@ interface CachedElement {
 export class DomRenderer implements IRenderer {
     // Cache elements by ID to avoid recreation
     private activeElements: Map<string, CachedElement> = new Map();
-    private container: HTMLElement | null = null;
+    private domContainer: DomRenderContainer | null = null;
+    private containerElement: HTMLElement | null = null;
 
     constructor(private assets: AssetManager) {}
 
@@ -20,9 +21,10 @@ export class DomRenderer implements IRenderer {
             throw new Error('[DomRenderer] Requires IDomRenderContainer (DOM platform)');
         }
 
-        this.container = container.getElement();
-        this.container.style.position = 'relative';
-        this.container.style.overflow = 'hidden';
+        this.domContainer = container;
+        this.containerElement = container.getElement();
+        this.containerElement.style.position = 'relative';
+        this.containerElement.style.overflow = 'hidden';
     }
 
     clear(): void {
@@ -31,7 +33,7 @@ export class DomRenderer implements IRenderer {
     }
 
     flush(commands: RenderCommand[]): void {
-        if (!this.container) return;
+        if (!this.containerElement) return;
 
         // 1. Identify which IDs are present in this frame
         const currentFrameIds = new Set<string>();
@@ -68,7 +70,7 @@ export class DomRenderer implements IRenderer {
             if (entry) entry.el.remove();
 
             const newEl = this.createElement(cmd);
-            this.container!.appendChild(newEl);
+            this.containerElement!.appendChild(newEl);
 
             // For new elements, set all properties without diffing
             this.setInitialProperties(newEl, cmd);
@@ -85,17 +87,21 @@ export class DomRenderer implements IRenderer {
     }
 
     private createElement(cmd: Exclude<RenderCommand, { type: 'clear' }>): HTMLElement {
+        if (!this.domContainer) {
+            throw new Error('[DomRenderer] Container not initialized');
+        }
+
         let el: HTMLElement;
 
         switch (cmd.type) {
             case 'image':
             case 'sprite':
-                el = document.createElement('img');
+                el = this.domContainer.createElement('img');
                 break;
             case 'text':
             case 'rect':
             case 'hotspot':
-                el = document.createElement('div');
+                el = this.domContainer.createElement('div');
                 break;
         }
 

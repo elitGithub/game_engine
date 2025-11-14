@@ -55,8 +55,11 @@ export interface IRenderContainer {
 /**
  * DOM Container - For DOM-based renderers
  *
- * Type-safe access to HTMLElement.
+ * Type-safe access to HTMLElement and DOM manipulation methods.
  * Use this in DOM renderer implementations.
+ *
+ * This interface provides platform-agnostic DOM manipulation methods,
+ * ensuring that renderers never directly access browser globals like 'document'.
  */
 export interface IDomRenderContainer extends IRenderContainer {
     getType(): 'dom';
@@ -65,6 +68,20 @@ export interface IDomRenderContainer extends IRenderContainer {
      * Get the DOM element - type-safe!
      */
     getElement(): HTMLElement;
+
+    /**
+     * Create a DOM element - platform-agnostic alternative to document.createElement()
+     *
+     * @param tagName - The HTML tag name (e.g., 'div', 'img', 'span')
+     * @returns A newly created HTMLElement
+     *
+     * @example
+     * ```typescript
+     * const div = container.createElement('div');
+     * const img = container.createElement('img');
+     * ```
+     */
+    createElement(tagName: string): HTMLElement;
 
     /**
      * Request animation frame (browser-specific)
