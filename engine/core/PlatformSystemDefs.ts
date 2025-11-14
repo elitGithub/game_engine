@@ -86,7 +86,7 @@ function createAssetManagerDefinition(platform: IPlatformAdapter): SystemDefinit
 
             const audioPlatform = platform.getAudioPlatform?.();
             if (audioPlatform && networkProvider) {
-                const audioContext = audioPlatform.getNativeContext?.();
+                const audioContext = audioPlatform.getContext();
                 if (audioContext) {
                     assetManager.registerLoader(new AudioLoader(audioContext, networkProvider, logger));
                 }

@@ -1,12 +1,13 @@
 // engine/systems/asset_loaders/AudioLoader.ts
 import type {AssetType, IAssetLoader} from '@engine/core/IAssetLoader';
-import {ILogger, INetworkProvider} from "@engine/interfaces";
+import type {ILogger, INetworkProvider} from "@engine/interfaces";
+import type {IAudioBuffer, IAudioContext} from "@engine/interfaces/IAudioPlatform";
 
 
 export class AudioLoader implements IAssetLoader {
     public readonly type: AssetType = 'audio';
 
-    constructor(private audioContext: AudioContext,
+    constructor(private audioContext: IAudioContext,
                 private networkProvider: INetworkProvider,
                 private logger: ILogger) {
         if (!audioContext) {
@@ -17,7 +18,7 @@ export class AudioLoader implements IAssetLoader {
         }
     }
 
-    async load(url: string): Promise<AudioBuffer> {
+    async load(url: string): Promise<IAudioBuffer> {
         try {
             const response = await this.networkProvider.fetch(url);
             if (!response.ok) {
