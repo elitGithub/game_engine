@@ -179,4 +179,13 @@ export class SceneManager {
         this.history = [];
         this.sceneFactories.clear();
     }
+
+    /**
+     * @internal
+     * Set navigation history for testing edge cases
+     * Only use this for testing history corruption scenarios
+     */
+    setHistoryForTesting(history: string[]): void {
+        this.history = [...history];
+    }
 }

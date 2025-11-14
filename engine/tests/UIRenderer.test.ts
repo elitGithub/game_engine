@@ -53,9 +53,9 @@ describe('UIRenderer', () => {
         const commands = uiRenderer.buildBarCommands(barData);
 
         expect(commands).toHaveLength(3);
-        const bgCmd = commands.find(c => (c as any).id === 'health_bar_bg') as Extract<RenderCommand, { type: 'rect' }>;
-        const fgCmd = commands.find(c => (c as any).id === 'health_bar_fg') as Extract<RenderCommand, { type: 'rect' }>;
-        const textCmd = commands.find(c => (c as any).id === 'health_bar_text') as Extract<RenderCommand, { type: 'text' }>;
+        const bgCmd = commands.find(c => c.type !== 'clear' && c.id === 'health_bar_bg') as Extract<RenderCommand, { type: 'rect' }>;
+        const fgCmd = commands.find(c => c.type !== 'clear' && c.id === 'health_bar_fg') as Extract<RenderCommand, { type: 'rect' }>;
+        const textCmd = commands.find(c => c.type !== 'clear' && c.id === 'health_bar_text') as Extract<RenderCommand, { type: 'text' }>;
 
         expect(bgCmd).toBeDefined();
         expect(fgCmd).toBeDefined();
@@ -98,10 +98,10 @@ describe('UIRenderer', () => {
 
         expect(commands).toHaveLength(4); // bg, title, item1_text, item1_hotspot
 
-        const bg = commands.find(c => (c as any).id === 'main_menu_bg') as Extract<RenderCommand, { type: 'rect' }>;
-        const title = commands.find(c => (c as any).id === 'main_menu_title') as Extract<RenderCommand, { type: 'text' }>;
-        const itemText = commands.find(c => (c as any).id === 'item1_text') as Extract<RenderCommand, { type: 'text' }>;
-        const itemHotspot = commands.find(c => (c as any).id === 'item1_hotspot') as Extract<RenderCommand, { type: 'hotspot' }>;
+        const bg = commands.find(c => c.type !== 'clear' && c.id === 'main_menu_bg') as Extract<RenderCommand, { type: 'rect' }>;
+        const title = commands.find(c => c.type !== 'clear' && c.id === 'main_menu_title') as Extract<RenderCommand, { type: 'text' }>;
+        const itemText = commands.find(c => c.type !== 'clear' && c.id === 'item1_text') as Extract<RenderCommand, { type: 'text' }>;
+        const itemHotspot = commands.find(c => c.type !== 'clear' && c.id === 'item1_hotspot') as Extract<RenderCommand, { type: 'hotspot' }>;
 
         expect(bg.zIndex).toBe(DEFAULT_Z_INDEX.UI_MENUS);
         expect(title.zIndex).toBe(DEFAULT_Z_INDEX.UI_MENUS + 1);

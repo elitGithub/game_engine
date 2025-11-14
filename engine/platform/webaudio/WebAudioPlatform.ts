@@ -57,7 +57,7 @@ export class WebAudioPlatform implements IAudioPlatform {
             try {
                 const AudioContextClass = window.AudioContext || (window as WindowWithWebkit).webkitAudioContext;
                 const nativeContext = new AudioContextClass();
-                this.context = new WebAudioContext(nativeContext);
+                this.context = new WebAudioContext(nativeContext, this.logger);
             } catch (error) {
                 this.logger.error('[WebAudioPlatform] Failed to create AudioContext:', error);
                 return null;

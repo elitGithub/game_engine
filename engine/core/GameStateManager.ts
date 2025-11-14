@@ -52,7 +52,7 @@ export class GameStateManager<TGame = Record<string, unknown>> {
         const newState = this.states.get(stateName)!;
 
         // Ensure context is injected
-        if (this.context && !newState['context']) {
+        if (this.context && !newState.hasContext()) {
             newState.setContext(this.context);
         }
 
