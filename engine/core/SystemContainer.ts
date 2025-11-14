@@ -21,6 +21,7 @@ export type SystemKey = symbol;
 export enum SystemLifecycle {
     REGISTERED = 'registered',     // System definition is registered
     INSTANTIATED = 'instantiated', // System instance created
+    INITIALIZING = 'initializing', // System is performing async initialization
     INITIALIZED = 'initialized',   // System initialized (dependencies resolved)
     READY = 'ready',              // System fully configured and ready to use
     DISPOSED = 'disposed'          // System disposed
@@ -155,7 +156,8 @@ export class SystemContainer implements ISystemFactoryContext {
      * @template T - The type of the system instance
      * @param key - The unique key identifying the system
      * @returns The system instance
-     * @throws Error if the system is not registered or if a circular dependency is detected
+     * @throws Error if the system is not registered, if a circular dependency is detected,
+     *         or if the system is currently initializing asynchronously
      */
     get<T>(key: SystemKey): T {
         const entry = this.systems.get(key);
@@ -164,8 +166,15 @@ export class SystemContainer implements ISystemFactoryContext {
             throw new Error(`[SystemContainer] System '${String(key)}' not found. Did you forget to register it?`);
         }
 
-        // If already instantiated, return it
+        // If already instantiated, check if it's still initializing
         if (entry.instance) {
+            // Prevent synchronous access during async initialization
+            if (entry.lifecycle === SystemLifecycle.INITIALIZING) {
+                throw new Error(
+                    `[SystemContainer] System '${String(key)}' is currently initializing asynchronously. ` +
+                    `Use 'await container.waitForReady(${String(key)})' instead of synchronous get().`
+                );
+            }
             return entry.instance as T;
         }
 
@@ -181,6 +190,51 @@ export class SystemContainer implements ISystemFactoryContext {
             return undefined;
         }
         return this.get<T>(key);
+    }
+
+    /**
+     * Wait for a system to complete asynchronous initialization.
+     *
+     * Use this method instead of synchronous get() when a system has
+     * async initialization. If the system is already ready, returns immediately.
+     *
+     * @template T - The type of the system instance
+     * @param key - System key to wait for
+     * @returns Promise that resolves to the fully initialized system
+     * @throws Error if system not found or initialization fails
+     *
+     * @example
+     * ```typescript
+     * // Safe async system access:
+     * const audioManager = await container.waitForReady<AudioManager>(PLATFORM_SYSTEMS.AudioManager);
+     * ```
+     */
+    async waitForReady<T>(key: SystemKey): Promise<T> {
+        const entry = this.systems.get(key);
+
+        if (!entry) {
+            throw new Error(`[SystemContainer] System '${String(key)}' not found. Did you forget to register it?`);
+        }
+
+        // Trigger creation if not yet created
+        if (!entry.instance) {
+            this.createSystem<T>(entry);
+        }
+
+        // Wait for async initialization to complete (if any)
+        if (entry.initPromise) {
+            await entry.initPromise;
+        }
+
+        // Verify system is ready
+        if (entry.lifecycle !== SystemLifecycle.READY) {
+            throw new Error(
+                `[SystemContainer] System '${String(key)}' failed to initialize. ` +
+                `Current state: ${entry.lifecycle}`
+            );
+        }
+
+        return entry.instance as T;
     }
 
     /**
@@ -219,15 +273,30 @@ export class SystemContainer implements ISystemFactoryContext {
 
             // Call initialize if defined
             if (definition.initialize) {
+                entry.lifecycle = SystemLifecycle.INITIALIZING;
+
                 const initResult = definition.initialize(instance, this);
+
                 if (initResult instanceof Promise) {
-                    entry.initPromise = initResult.then(() => {
-                        entry.lifecycle = SystemLifecycle.READY;
-                    });
+                    // Async initialization
+                    entry.initPromise = initResult
+                        .then(() => {
+                            entry.lifecycle = SystemLifecycle.READY;
+                        })
+                        .catch(err => {
+                            this.logger.error(
+                                `[SystemContainer] Async initialization failed for '${String(definition.key)}'`,
+                                err
+                            );
+                            entry.lifecycle = SystemLifecycle.DISPOSED;
+                            throw err;
+                        });
                 } else {
+                    // Sync initialization completed
                     entry.lifecycle = SystemLifecycle.READY;
                 }
             } else {
+                // No initialization needed
                 entry.lifecycle = SystemLifecycle.READY;
             }
 
