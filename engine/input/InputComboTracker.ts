@@ -11,14 +11,12 @@ interface BufferedInput {
 
 export class InputComboTracker {
     private eventBus: EventBus;
-    private timer: ITimerProvider;
     private combos: Map<string, InputCombo> = new Map();
     private inputBuffer: BufferedInput[] = [];
     private readonly bufferSize: number;
 
-    constructor(eventBus: EventBus, timer: ITimerProvider, bufferSize: number = 10) {
+    constructor(eventBus: EventBus, _timer: ITimerProvider, bufferSize: number = 10) {
         this.eventBus = eventBus;
-        this.timer = timer;
         this.bufferSize = bufferSize;
     }
 
@@ -49,12 +47,14 @@ export class InputComboTracker {
         if (this.inputBuffer.length < combo.inputs.length) return false;
 
         const recent = this.inputBuffer.slice(-combo.inputs.length);
-        const now = this.timer.now();
 
-        return combo.inputs.every((input, i) => {
-            const buffered = recent[i];
-            return buffered.input === input && (now - buffered.timestamp) <= combo.timeWindow;
-        });
+        // Check if the sequence matches
+        const sequenceMatches = combo.inputs.every((input, i) => recent[i].input === input);
+        if (!sequenceMatches) return false;
+
+        // Check if the time between first and last input is within the time window
+        const sequenceDuration = recent[recent.length - 1].timestamp - recent[0].timestamp;
+        return sequenceDuration <= combo.timeWindow;
     }
 
     public getInputBuffer(): string[] {

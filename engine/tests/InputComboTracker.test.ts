@@ -98,4 +98,40 @@ describe('InputComboTracker', () => {
         tracker.clearBuffer();
         expect(tracker.getInputBuffer()).toEqual([]);
     });
+
+    it('should detect combo even when checkCombos is called after time window elapsed', () => {
+        // This test verifies the fix for the time window logic bug.
+        // The combo should check the duration between first and last key,
+        // NOT the time from each key to "now".
+        tracker.registerCombo('test', ['a', 'b'], 1000);
+
+        const startTime = mockTimerProvider.now();
+        tracker.addToBuffer('a', startTime);
+        vi.advanceTimersByTime(500); // 500ms later
+        tracker.addToBuffer('b', mockTimerProvider.now());
+
+        // Advance time way past the time window (2 seconds after first input)
+        vi.advanceTimersByTime(1500);
+
+        // Even though we're now 2000ms after the first key press,
+        // the combo should still be detected because the sequence
+        // duration (b.timestamp - a.timestamp = 500ms) is within the 1000ms window
+        tracker.checkCombos();
+        expect(mockEventBus.emit).toHaveBeenCalledWith('input.combo', { combo: 'test' });
+    });
+
+    it('should NOT detect combo when sequence duration exceeds time window', () => {
+        // This ensures the fix correctly validates sequence duration
+        tracker.registerCombo('test', ['a', 'b'], 500);
+
+        const startTime = mockTimerProvider.now();
+        tracker.addToBuffer('a', startTime);
+        vi.advanceTimersByTime(600); // 600ms later (exceeds 500ms window)
+        tracker.addToBuffer('b', mockTimerProvider.now());
+
+        // Even if checkCombos is called immediately, the combo should fail
+        // because the sequence duration (600ms) exceeds the window (500ms)
+        tracker.checkCombos();
+        expect(mockEventBus.emit).not.toHaveBeenCalled();
+    });
 });
