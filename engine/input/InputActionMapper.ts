@@ -15,7 +15,7 @@ export class InputActionMapper {
         this.actions.set(name, { name, bindings });
     }
 
-    public getActions(): Map<string, InputAction> {
+    public getActions(): ReadonlyMap<string, InputAction> {
         return this.actions;
     }
 

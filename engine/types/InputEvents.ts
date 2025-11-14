@@ -73,7 +73,7 @@ export interface ClickEvent extends BaseInputEvent {
     button: number;
     x: number;
     y: number;
-    target: EventTarget | null;
+    target: unknown;
     data?: Record<string, string>; // Generic data (e.g., dataset from HTMLElement)
 }
 

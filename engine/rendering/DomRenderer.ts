@@ -1,7 +1,7 @@
 import type { IRenderer, RenderCommand, TextStyleData } from '@engine/types/RenderingTypes';
 import type { AssetManager } from '@engine/systems/AssetManager';
 import { isDomRenderContainer } from '@engine/interfaces';
-import type { DomRenderContainer } from "@engine/platform/browser/DomRenderContainer";
+import type { IDomRenderContainer } from "@engine/interfaces";
 
 interface CachedElement {
     el: HTMLElement;
@@ -11,12 +11,12 @@ interface CachedElement {
 export class DomRenderer implements IRenderer {
     // Cache elements by ID to avoid recreation
     private activeElements: Map<string, CachedElement> = new Map();
-    private domContainer: DomRenderContainer | null = null;
+    private domContainer: IDomRenderContainer | null = null;
     private containerElement: HTMLElement | null = null;
 
     constructor(private readonly assets: AssetManager) {}
 
-    init(container: DomRenderContainer): void {
+    init(container: IDomRenderContainer): void {
         if (!isDomRenderContainer(container)) {
             throw new Error('[DomRenderer] Requires IDomRenderContainer (DOM platform)');
         }
