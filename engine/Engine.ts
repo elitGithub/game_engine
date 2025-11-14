@@ -13,8 +13,8 @@ import type {GameData} from "@engine/types/EngineEventMap";
 import type {RenderManager} from "@engine/core/RenderManager";
 import type {PluginManager} from './core/PluginManager';
 import {SystemContainer} from './core/SystemContainer';
-import {createCoreSystemDefinitions, CORE_SYSTEMS} from './core/CoreSystemDefs';
-import {createPlatformSystemDefinitions, PLATFORM_SYSTEMS, type PlatformSystemConfig} from './core/PlatformSystemDefs';
+import {CORE_SYSTEMS} from './core/CoreSystemDefs';
+import {PLATFORM_SYSTEMS} from './core/PlatformSystemDefs';
 import type {IPlatformAdapter,} from '@engine/interfaces';
 import type {Scene} from "@engine/systems/Scene";
 import { ConsoleLogger } from '@engine/platform/ConsoleLogger';
@@ -217,47 +217,6 @@ export class Engine implements ISerializationRegistry {
             const audioManager = this.container.get<AudioManager>(PLATFORM_SYSTEMS.AudioManager);
             await audioManager.unlockAudio();
         }
-    }
-
-    /**
-     * Static factory - THE ONLY WAY to create an Engine
-     *
-     * This creates an engine and auto-registers systems based on config.
-     * For manual system registration, use: new Engine(config) [when constructor becomes public]
-     */
-    static async create(config: EngineConfig): Promise<Engine> {
-        const engine = new Engine(config);
-
-        // Auto-register systems for backward compatibility
-        // Register core systems (platform-agnostic)
-        const coreDefinitions = createCoreSystemDefinitions();
-        for (const def of coreDefinitions) {
-            engine.container.register(def);
-        }
-
-        // Register platform-aware systems (use defaults if systems config not provided)
-        const systemsConfig = config.systems ?? {};
-        const platformConfig: PlatformSystemConfig = {
-            assets: systemsConfig.assets,
-            audio: systemsConfig.audio,
-            effects: systemsConfig.effects,
-            renderer: systemsConfig.renderer,
-            input: systemsConfig.input
-        };
-        const platformDefinitions = createPlatformSystemDefinitions(engine.platform, platformConfig);
-        for (const def of platformDefinitions) {
-            engine.container.register(def);
-        }
-
-        // Initialize all systems
-        engine.initializeSystems();
-
-        // Unlock audio if AudioManager is enabled
-        await engine.unlockAudio();
-
-        engine.log('Engine created successfully');
-
-        return engine;
     }
 
     // ========================================================================

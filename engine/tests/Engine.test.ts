@@ -70,7 +70,7 @@ describe('Engine', () => {
     });
 
     it('should be created via static async factory Engine.create', async () => {
-        const engine = await Engine.create(config);
+        const engine = new Engine(config);
         expect(engine).toBeInstanceOf(Engine);
         expect(engine.context.game.player).toBe(mockPlayer);
     });
@@ -83,14 +83,14 @@ describe('Engine', () => {
     it('should NOT unlock audio if AudioManager is disabled', async () => {
         config.systems = config.systems ?? {};
         config.systems.audio = false;
-        const engine = await Engine.create(config);
+        const engine = new Engine(config);
 
         // audio getter should throw or return undefined when disabled
         expect(() => engine.audio).toThrow();
     });
 
     it('should register core engine state as serializable', async () => {
-        const engine = await Engine.create(config);
+        const engine = new Engine(config);
         const coreSerializable = engine.serializableSystems.get('_core');
         expect(coreSerializable).toBeDefined();
 
@@ -103,7 +103,7 @@ describe('Engine', () => {
             variables: [['test_var', 123]],
         });
 
-        const newEngine = await Engine.create(config);
+        const newEngine = new Engine(config);
         const newCore = newEngine.serializableSystems.get('_core');
         newCore?.deserialize(serialized);
 
@@ -112,13 +112,13 @@ describe('Engine', () => {
     });
 
     it('should register and return serializable systems', async () => {
-        const engine = await Engine.create(config);
+        const engine = new Engine(config);
         engine.registerSerializableSystem('player', mockPlayer);
         expect(engine.serializableSystems.get('player')).toBe(mockPlayer);
     });
 
     it('should implement ISerializationRegistry: getCurrentSceneId', async () => {
-        const engine = await Engine.create(config);
+        const engine = new Engine(config);
 
         // Register scene factory before loading scenes
         engine.sceneManager.registerSceneFactory('story', (id, type, data) => new Scene(id, type, data));
@@ -139,7 +139,7 @@ describe('Engine', () => {
     });
 
     it('should implement ISerializationRegistry: restoreScene', async () => {
-        const engine = await Engine.create(config);
+        const engine = new Engine(config);
 
         // Register scene factory before loading scenes
         engine.sceneManager.registerSceneFactory('story', (id, type, data) => new Scene(id, type, data));
@@ -164,7 +164,7 @@ describe('Engine', () => {
 
     it('should start the game and change to initial state', async () => {
         vi.useFakeTimers();
-        const engine = await Engine.create(config);
+        const engine = new Engine(config);
 
         // Register a state
         const testState = new TestState('initialState', mockLogger);
@@ -188,7 +188,7 @@ describe('Engine', () => {
     });
 
     it('should stop the game', async () => {
-        const engine = await Engine.create(config);
+        const engine = new Engine(config);
 
         // Register a state
         const testState = new TestState('initialState', mockLogger);
@@ -205,7 +205,7 @@ describe('Engine', () => {
     });
 
     it('should pause and unpause the game', async () => {
-        const engine = await Engine.create(config);
+        const engine = new Engine(config);
 
         // Register a state
         const testState = new TestState('initialState', mockLogger);
@@ -228,7 +228,7 @@ describe('Engine', () => {
     });
 
     it('should clamp deltaTime to prevent physics tunneling', async () => {
-        const engine = await Engine.create(config);
+        const engine = new Engine(config);
 
         const testState = new TestState('test', mockLogger);
         const updateSpy = vi.spyOn(testState, 'update');
@@ -264,7 +264,7 @@ describe('Engine', () => {
             ...config,
             maxDeltaTime: 0.05, // Custom 50ms max
         };
-        const engine = await Engine.create(customConfig);
+        const engine = new Engine(customConfig);
 
         const testState = new TestState('test', mockLogger);
         const updateSpy = vi.spyOn(testState, 'update');
