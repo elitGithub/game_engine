@@ -7,6 +7,7 @@ import { GameState } from '@engine/core/GameState';
 import { Scene } from '@engine/systems/Scene';
 import type {ILogger} from "@engine/interfaces";
 import { HeadlessPlatformAdapter } from '@engine/platform/HeadlessPlatformAdapter';
+import { createCoreSystemDefinitions } from '@engine/core/CoreSystemDefs';
 
 // Mock a sample serializable system
 const mockPlayer: ISerializable = {
@@ -49,6 +50,13 @@ class TestState extends GameState {
     handleEvent(event: any): void {
         this.handleEventFn(event);
     }
+}
+
+// Helper function to register core systems for tests
+function registerCoreSystemsForTesting(engine: Engine): void {
+    const coreDefs = createCoreSystemDefinitions();
+    coreDefs.forEach(def => engine.container.register(def));
+    engine.initializeSystems();
 }
 
 describe('Engine', () => {
@@ -119,6 +127,7 @@ describe('Engine', () => {
 
     it('should implement ISerializationRegistry: getCurrentSceneId', async () => {
         const engine = new Engine(config);
+        registerCoreSystemsForTesting(engine);
 
         // Register scene factory before loading scenes
         engine.sceneManager.registerSceneFactory('story', (id, type, data) => new Scene(id, type, data));
@@ -140,6 +149,7 @@ describe('Engine', () => {
 
     it('should implement ISerializationRegistry: restoreScene', async () => {
         const engine = new Engine(config);
+        registerCoreSystemsForTesting(engine);
 
         // Register scene factory before loading scenes
         engine.sceneManager.registerSceneFactory('story', (id, type, data) => new Scene(id, type, data));
@@ -165,6 +175,7 @@ describe('Engine', () => {
     it('should start the game and change to initial state', async () => {
         vi.useFakeTimers();
         const engine = new Engine(config);
+        registerCoreSystemsForTesting(engine);
 
         // Register a state
         const testState = new TestState('initialState', mockLogger);
@@ -189,6 +200,7 @@ describe('Engine', () => {
 
     it('should stop the game', async () => {
         const engine = new Engine(config);
+        registerCoreSystemsForTesting(engine);
 
         // Register a state
         const testState = new TestState('initialState', mockLogger);
@@ -206,6 +218,7 @@ describe('Engine', () => {
 
     it('should pause and unpause the game', async () => {
         const engine = new Engine(config);
+        registerCoreSystemsForTesting(engine);
 
         // Register a state
         const testState = new TestState('initialState', mockLogger);
@@ -229,6 +242,7 @@ describe('Engine', () => {
 
     it('should clamp deltaTime to prevent physics tunneling', async () => {
         const engine = new Engine(config);
+        registerCoreSystemsForTesting(engine);
 
         const testState = new TestState('test', mockLogger);
         const updateSpy = vi.spyOn(testState, 'update');
@@ -265,6 +279,7 @@ describe('Engine', () => {
             maxDeltaTime: 0.05, // Custom 50ms max
         };
         const engine = new Engine(customConfig);
+        registerCoreSystemsForTesting(engine);
 
         const testState = new TestState('test', mockLogger);
         const updateSpy = vi.spyOn(testState, 'update');
