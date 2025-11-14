@@ -14,6 +14,7 @@ import {GameStateManager} from '@engine/core/GameStateManager';
 import {SceneManager} from '@engine/systems/SceneManager';
 import {ActionRegistry} from '@engine/systems/ActionRegistry';
 import {PluginManager} from '@engine/core/PluginManager';
+import {SerializationRegistry} from '@engine/core/SerializationRegistry';
 import type {ILogger} from '@engine/interfaces';
 import {PLATFORM_SYSTEMS} from "@engine/core/PlatformSystemDefs";
 
@@ -26,6 +27,7 @@ export const CORE_SYSTEMS = {
     SceneManager: Symbol('SceneManager'),
     ActionRegistry: Symbol('ActionRegistry'),
     PluginManager: Symbol('PluginManager'),
+    SerializationRegistry: Symbol('SerializationRegistry'),
     SaveManager: Symbol('SaveManager'),
 } as const;
 
@@ -35,9 +37,10 @@ export const CORE_SYSTEMS = {
  * These systems are 100% platform-agnostic.
  * No window, document, navigator, AudioContext, or platform globals.
  *
+ * @param gameVersion - Version string for save/load migration system
  * Returns an array of SystemDefinition that can be registered with SystemContainer.
  */
-export function createCoreSystemDefinitions(): SystemDefinition[] {
+export function createCoreSystemDefinitions(gameVersion: string = '1.0.0'): SystemDefinition[] {
     return [
         // EventBus - no dependencies
         {
@@ -78,6 +81,18 @@ export function createCoreSystemDefinitions(): SystemDefinition[] {
             factory: (c) => {
                 const logger = c.get<ILogger>(PLATFORM_SYSTEMS.Logger); // <-- 2. GET the dependency
                 return new ActionRegistry(logger)
+            },
+            lazy: false
+        },
+
+        // SerializationRegistry - depends on SceneManager for scene state coordination
+        {
+            key: CORE_SYSTEMS.SerializationRegistry,
+            dependencies: [CORE_SYSTEMS.SceneManager, PLATFORM_SYSTEMS.Logger],
+            factory: (c) => {
+                const sceneManager = c.get<SceneManager>(CORE_SYSTEMS.SceneManager);
+                const logger = c.get<ILogger>(PLATFORM_SYSTEMS.Logger);
+                return new SerializationRegistry(sceneManager, gameVersion, logger);
             },
             lazy: false
         },
