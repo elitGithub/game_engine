@@ -3,8 +3,8 @@ import type { IEngineHost, IEnginePlugin, TypedGameContext } from '@engine/types
 import type {ILogger} from "@engine/interfaces";
 
 export class PluginManager<TGame = Record<string, unknown>> {
-    private plugins: Map<string, IEnginePlugin<TGame>>;
-    private installed: Set<string>;
+    private readonly plugins: Map<string, IEnginePlugin<TGame>>;
+    private readonly installed: Set<string>;
 
     constructor(private readonly logger: ILogger) {
         this.plugins = new Map();

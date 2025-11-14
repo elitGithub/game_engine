@@ -9,7 +9,7 @@ import { AudioUtils } from '@engine/audio/AudioUtils';
  * VoicePlayer - Handles simple, non-pooled playback for voice lines.
  */
 export class VoicePlayer {
-    private activeVoices: Set<{ source: IAudioSource; gain: IAudioGain }> = new Set();
+    private readonly activeVoices: Set<{ source: IAudioSource; gain: IAudioGain }> = new Set();
 
     constructor(
         private audioContext: IAudioContext,

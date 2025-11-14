@@ -101,8 +101,8 @@ interface SystemEntry<T = any> {
  * Renderer methods are optional and added by SystemContainerBridge.
  */
 export class SystemContainer implements ISystemFactoryContext {
-    private systems: Map<SystemKey, SystemEntry> = new Map();
-    private initializing: Set<SystemKey> = new Set();
+    private readonly systems: Map<SystemKey, SystemEntry> = new Map();
+    private readonly initializing: Set<SystemKey> = new Set();
     private logger: ILogger;
 
     constructor(logger: ILogger) {

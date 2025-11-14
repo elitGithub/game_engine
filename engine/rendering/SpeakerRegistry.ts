@@ -5,7 +5,7 @@ import type { SpeakerConfig } from '@engine/types';
 import { Speaker } from './Speaker';
 
 export class SpeakerRegistry {
-    private speakers: Map<string, Speaker>;
+    private readonly speakers: Map<string, Speaker>;
 
     constructor() {
         this.speakers = new Map();

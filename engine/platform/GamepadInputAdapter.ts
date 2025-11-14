@@ -55,7 +55,7 @@ export class GamepadInputAdapter extends BaseInputAdapter {
     private static readonly AXIS_DEADZONE_THRESHOLD = 0.1; // 10% deadzone to filter noise
 
     private pollingTimerId: unknown | null = null;
-    private lastGamepadStates: Map<number, GamepadState> = new Map();
+    private readonly lastGamepadStates: Map<number, GamepadState> = new Map();
     private readonly pollRate: number;
     private readonly timer: ITimerProvider;
 

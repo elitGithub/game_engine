@@ -10,7 +10,7 @@ interface BufferedInput {
 
 export class InputComboTracker {
     private readonly eventBus: EventBus;
-    private combos: Map<string, InputCombo> = new Map();
+    private readonly combos: Map<string, InputCombo> = new Map();
     private inputBuffer: BufferedInput[] = [];
     private readonly bufferSize: number;
 

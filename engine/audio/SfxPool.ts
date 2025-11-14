@@ -23,8 +23,8 @@ interface SFXPoolItem {
  * SfxPool - Handles playback and pooling of short sound effects.
  */
 export class SfxPool {
-    private pools: Map<string, SFXPoolItem> = new Map();
-    private globalActiveChains: Map<AudioChain, string> = new Map(); // Track all active chains globally
+    private readonly pools: Map<string, SFXPoolItem> = new Map();
+    private readonly globalActiveChains: Map<AudioChain, string> = new Map(); // Track all active chains globally
 
     constructor(
         private audioContext: IAudioContext,

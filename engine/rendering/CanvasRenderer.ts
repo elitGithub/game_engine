@@ -14,7 +14,7 @@ import {isCanvasRenderContainer} from '@engine/interfaces';
 export class CanvasRenderer implements IRenderer {
     private canvas: HTMLCanvasElement | null = null;
     private ctx: CanvasRenderingContext2D | null = null;
-    private fontStringCache: Map<string, string> = new Map();
+    private readonly fontStringCache: Map<string, string> = new Map();
 
     constructor(
         private readonly assets: AssetManager,
