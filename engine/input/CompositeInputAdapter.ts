@@ -28,7 +28,7 @@ export class CompositeInputAdapter extends BaseInputAdapter {
     }
 
     getType(): InputAdapterType {
-        return 'composite' as InputAdapterType;
+        return 'composite';
     }
 
     attach(container?: IRenderContainer, options?: InputAttachOptions): boolean {
