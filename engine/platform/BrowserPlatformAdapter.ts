@@ -17,7 +17,7 @@ import type {
     INetworkProvider,
     IImageLoader,
 } from '@engine/interfaces';
-import {WebAudioPlatform} from '@engine/interfaces';
+import { WebAudioPlatform } from '@engine/platform/audio';
 import {LocalStorageAdapter} from '@engine/platform/browser/LocalStorageAdapter';
 import type {StorageAdapter} from '@engine/core/StorageAdapter';
 import {GamepadInputAdapter} from '@engine/platform/GamepadInputAdapter';

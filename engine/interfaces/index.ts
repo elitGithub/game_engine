@@ -41,8 +41,6 @@ export type {
 
 
 export { supportsAudioFormat } from '@engine/interfaces/IAudioPlatform';
-export { WebAudioPlatform } from '@engine/platform/webaudio/WebAudioPlatform';
-export { MockAudioPlatform } from '@engine/platform/mock/MockAudioPlatform';
 
 export type {
     IInputAdapter,
