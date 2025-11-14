@@ -21,7 +21,7 @@ export class SpeakerRegistry {
     /**
      * Get a speaker by ID
      */
-    get(speakerId: string): Speaker | null | undefined {
+    get(speakerId: string): Speaker | undefined {
         return this.speakers.get(speakerId);
     }
 

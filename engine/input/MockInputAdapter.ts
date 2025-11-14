@@ -19,7 +19,7 @@ export class MockInputAdapter extends BaseInputAdapter {
         return 'mock';
     }
 
-    attach(_container: IRenderContainer, _options?: InputAttachOptions): boolean {
+    attach(_container?: IRenderContainer, _options?: InputAttachOptions): boolean {
         this.attached = true;
         return true;
     }

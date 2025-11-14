@@ -1,5 +1,6 @@
 import type { IRenderer, RenderCommand, TextStyleData } from '@engine/types/RenderingTypes';
 import type { AssetManager } from '@engine/systems/AssetManager';
+import type { ILogger } from '@engine/interfaces';
 import { isDomRenderContainer } from '@engine/interfaces';
 import type { IDomRenderContainer } from "@engine/interfaces";
 
@@ -14,7 +15,10 @@ export class DomRenderer implements IRenderer {
     private domContainer: IDomRenderContainer | null = null;
     private containerElement: HTMLElement | null = null;
 
-    constructor(private readonly assets: AssetManager) {}
+    constructor(
+        private readonly assets: AssetManager,
+        private readonly logger: ILogger
+    ) {}
 
     init(container: IDomRenderContainer): void {
         if (!isDomRenderContainer(container)) {
@@ -33,7 +37,10 @@ export class DomRenderer implements IRenderer {
     }
 
     flush(commands: RenderCommand[]): void {
-        if (!this.containerElement) return;
+        if (!this.containerElement) {
+            this.logger.warn('[DomRenderer] flush() called before successful init()');
+            return;
+        }
 
         // 1. Identify which IDs are present in this frame
         const currentFrameIds = new Set<string>();
@@ -122,7 +129,11 @@ export class DomRenderer implements IRenderer {
             case 'sprite': {
                 const imgEl = el as HTMLImageElement;
                 const imgAsset = this.assets.get<HTMLImageElement>(cmd.assetId);
-                if (imgAsset) imgEl.src = imgAsset.src;
+                if (imgAsset) {
+                    imgEl.src = imgAsset.src;
+                } else {
+                    this.logger.warn(`[DomRenderer] Asset '${cmd.assetId}' not found`);
+                }
 
                 imgEl.style.width = cmd.width ? `${cmd.width}px` : 'auto';
                 imgEl.style.height = cmd.height ? `${cmd.height}px` : 'auto';
@@ -182,7 +193,11 @@ export class DomRenderer implements IRenderer {
                 // Only touch DOM if values changed
                 if (oldCmd.type !== newCmd.type || oldCmd.assetId !== newCmd.assetId) {
                     const imgAsset = this.assets.get<HTMLImageElement>(newCmd.assetId);
-                    if (imgAsset) imgEl.src = imgAsset.src;
+                    if (imgAsset) {
+                        imgEl.src = imgAsset.src;
+                    } else {
+                        this.logger.warn(`[DomRenderer] Asset '${newCmd.assetId}' not found`);
+                    }
                 }
 
                 if (oldCmd.width !== newCmd.width) {

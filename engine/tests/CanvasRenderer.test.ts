@@ -97,7 +97,7 @@ describe('CanvasRenderer', () => {
             }
         };
 
-        renderer = new CanvasRenderer(mockAssets);
+        renderer = new CanvasRenderer(mockAssets, mockLogger);
         renderer.init(renderContainer); // Use render container instead of raw HTMLElement
 
         // Spy on the *instance* of the canvas

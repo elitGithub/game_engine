@@ -31,7 +31,7 @@ export class CompositeInputAdapter extends BaseInputAdapter {
         return 'composite' as InputAdapterType;
     }
 
-    attach(container: IRenderContainer, options?: InputAttachOptions): boolean {
+    attach(container?: IRenderContainer, options?: InputAttachOptions): boolean {
         let anyAttached = false;
         this.adapters.forEach(adapter => {
             if (adapter.attach(container, options)) {

@@ -50,7 +50,7 @@ export class Dialogue {
         return {
             current: this.currentIndex,
             total: this.lines.length,
-            percentage: (this.currentIndex / this.lines.length) * 100
+            percentage: this.lines.length === 0 ? 0 : (this.currentIndex / this.lines.length) * 100
         };
     }
 }
