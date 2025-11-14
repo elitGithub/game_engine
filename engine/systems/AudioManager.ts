@@ -73,6 +73,15 @@ export class AudioManager {
         this.setMusicVolume(volumes.music);
         this.setSFXVolume(volumes.sfx);
         this.setVoiceVolume(volumes.voice);
+
+        // Listen for engine pause/unpause events to suspend/resume audio context
+        this.eventBus.on('engine.paused', () => {
+            this.audioContext.suspend();
+        });
+
+        this.eventBus.on('engine.unpaused', () => {
+            this.audioContext.resume();
+        });
     }
 
     /**
