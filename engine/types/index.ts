@@ -1,177 +1,99 @@
 /**
- * Engine types only - no game-specific types
- */
-import type {EffectManager} from '../systems/EffectManager';
-import type {AudioManager} from '../systems/AudioManager';
-import type {SaveManager} from '../systems/SaveManager';
-import type {InputManager} from '../systems/InputManager';
-import {EventBus} from "@engine/core/EventBus";
-import {AssetManager} from "@engine/systems/AssetManager";
-import {EngineEventMap} from "@engine/types/EngineEventMap";
-import {IRenderer, TextStyleData} from "@engine/types/RenderingTypes";
-import {LocalizationManager} from "@engine/systems/LocalizationManager";
-import {RenderManager} from "@engine/core/RenderManager";
-
-export interface GameConfig {
-    debug?: boolean;
-    targetFPS?: number;
-    gameVersion?: string;
-}
-
-/**
- * GameContext - Engine layer context (untyped)
+ * Engine Types - Central barrel export
  *
- * The engine layer doesn't need to know about game-specific types.
- * Game developers can cast this to a typed version in their game layer.
- */
-export interface GameContext {
-    game: Record<string, unknown>;
-    flags: Set<string>;
-    variables: Map<string, unknown>;
-    assets?: AssetManager;
-    audio?: AudioManager;
-    saveManager?: SaveManager;
-    effects?: EffectManager;
-    input?: InputManager;
-    renderManager?: RenderManager;
-    renderer?: IRenderer;
-    localization?: LocalizationManager;
-
-    // Allow plugins to add properties dynamically
-    [key: string]: unknown;
-}
-
-/**
- * Typed GameContext for game layer use
+ * This file re-exports all engine type definitions from their specialized files.
+ * Types are organized by domain for better maintainability:
  *
- * Example:
- * ```ts
- * interface MyGameState {
- *   player: Player;
- *   inventory: Item[];
- * }
- *
- * class MyGameState extends GameState<MyGameState> {
- *   enter() {
- *     const ctx = this.context as TypedGameContext<MyGameState>;
- *     ctx.game.player.health -= 10;
- *   }
- * }
- * ```
+ * - CoreTypes: Engine configuration and game context
+ * - StateTypes: Serialization and save/load system
+ * - DialogueTypes: Dialogue and text rendering
+ * - PluginTypes: Plugin system and extensibility
+ * - EffectTypes: Effect animation system
+ * - ItemTypes: Optional game-specific helpers
+ * - RenderingTypes: Rendering commands and interfaces
+ * - EngineEventMap: Event system definitions
  */
-export type TypedGameContext<TGame> = Omit<GameContext, 'game'> & {
-    game: TGame;
-};
 
-export type StateData = Record<string, unknown>;
+// Core engine types
+export type { GameConfig, GameContext, TypedGameContext } from './CoreTypes';
 
-export interface ISerializable {
-    serialize(): unknown;
-    deserialize(data: unknown): void;
-}
+// State management and serialization
+export type {
+    StateData,
+    ISerializable,
+    MigrationFunction,
+    ISerializationRegistry
+} from './StateTypes';
 
-export type MigrationFunction = (data: unknown) => unknown;
+// Dialogue and text rendering
+export type {
+    TypewriterConfig,
+    SpeakerConfig,
+    DialogueLineOptions,
+    RenderOptions
+} from './DialogueTypes';
 
-export type EffectStep =
-    | { name: string; duration: number }
-    | { wait: number };
+// Plugin system
+export type {
+    IEngineHost,
+    IEnginePlugin,
+    ActionContext
+} from './PluginTypes';
 
-export interface RenderOptions {
-    style?: string | TextStyleData;
-    animate?: boolean;
-    speed?: number;
-    speaker?: string;
-}
+// Effect system
+export type { EffectStep, IEffectTarget, IDynamicEffect } from './EffectTypes';
 
+// Optional game-specific types
+export type { BaseItem } from './ItemTypes';
+
+// Rendering types
 export type { IRenderer, TextStyleData } from '@engine/types/RenderingTypes';
+
+// Render container implementations
 export { DomRenderContainer } from '@engine/platform/browser/DomRenderContainer';
 export { CanvasRenderContainer } from '@engine/platform/browser/CanvasRenderContainer';
 export { HeadlessRenderContainer } from '@engine/interfaces/HeadlessRenderContainer';
 
-
-export interface TypewriterConfig {
-    charsPerSecond?: number;
-    punctuationDelay?: number;
-    skipKey?: string;
-    skipMultiplier?: number;
-}
-
-export interface SpeakerConfig {
-    id: string;
-    name: string;
-    displayName?: string;
-    color?: string;
-    portrait?: string;
-    portraitPosition?: 'left' | 'right';
-    textStyle?: TextStyleData;
-    voiceId?: string;
-    voicePitch?: number;
-    voiceSpeed?: number;
-}
-
-export interface DialogueLineOptions {
-    showPortrait?: boolean;
-    showName?: boolean;
-    style?: string | TextStyleData;
-}
-
-export interface ActionContext<TGame = Record<string, unknown>> extends TypedGameContext<TGame> {
-    player: unknown;
-}
-
-export interface ISerializationRegistry {
-    serializableSystems: Map<string, ISerializable>;
-    migrationFunctions: Map<string, MigrationFunction>;
-    readonly gameVersion: string;
-
-    getCurrentSceneId(): string;
-    restoreScene(sceneId: string): void;
-}
-
-export interface IEngineHost<TGame = Record<string, unknown>> {
-    context: TypedGameContext<TGame>;
-    eventBus: EventBus;
-
-    registerSerializableSystem(key: string, system: ISerializable): void;
-    unregisterSerializableSystem(key: string): void;
-}
-
-export interface IEnginePlugin<TGame = Record<string, unknown>> {
-    name: string;
-    version?: string;
-
-    install(engine: IEngineHost<TGame>): void;
-    uninstall?(engine: IEngineHost<TGame>): void;
-    update?(deltaTime: number, context: TypedGameContext<TGame>): void;
-}
+// Event system types
+import { EngineEventMap } from '@engine/types/EngineEventMap';
 
 /**
- * Optional base interface for items.
- * Games can extend this or ignore it entirely.
+ * ListenerMap - Type helper for event listener collections
+ *
+ * Maps event names to arrays of listener functions with proper typing.
+ * Used internally by EventBus for type-safe event handling.
  */
-export interface BaseItem {
-    id: string;
-    name: string;
-    description?: string;
-    stackable?: boolean;
-}
-
 export type ListenerMap = {
-  [K in keyof EventMap]?: ((data: EventMap[K]) => void)[];
+    [K in keyof EventMap]?: ((data: EventMap[K]) => void)[];
 };
 
 /**
- * This is the final, extensible EventMap.
- * Game-specific code can extend this interface using declaration merging.
+ * EventMap - Extensible event type registry
+ *
+ * This interface uses declaration merging to allow game-specific code
+ * to register custom event types. The EventBus uses this for type-safe
+ * event publishing and subscription.
+ *
+ * IMPORTANT: This interface MUST remain in this file (index.ts) to support
+ * declaration merging. Moving it to a separate file would break the ability
+ * for game code to extend it via module augmentation.
  *
  * @example
+ * ```typescript
  * // In your game's types file:
  * declare module '@engine/types' {
  *   interface EventMap {
  *     'player.tookDamage': { amount: number };
+ *     'quest.completed': { questId: string; reward: number };
  *   }
  * }
+ *
+ * // Now these events are fully typed:
+ * eventBus.on('player.tookDamage', (data) => {
+ *   console.log(`Player took ${data.amount} damage`);
+ * });
+ * ```
  */
 export interface EventMap extends EngineEventMap {
+    // Game-specific events added via declaration merging
 }
-
