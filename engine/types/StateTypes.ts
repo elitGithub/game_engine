@@ -92,27 +92,64 @@ export type MigrationFunction = (data: unknown) => unknown;
  */
 export interface ISerializationRegistry {
     /**
-     * Map of all registered serializable systems
-     *
-     * Key: System identifier (e.g., "gameState", "inventory")
-     * Value: System implementing ISerializable
-     */
-    serializableSystems: Map<string, ISerializable>;
-
-    /**
-     * Map of version migration functions
-     *
-     * Key: Target version string (e.g., "1.1.0")
-     * Value: Migration function to transform data to that version
-     */
-    migrationFunctions: Map<string, MigrationFunction>;
-
-    /**
      * Current game version
      *
      * Used to determine if save data needs migration
      */
     readonly gameVersion: string;
+
+    /**
+     * Register a system as serializable
+     *
+     * @param key - System identifier (e.g., "gameState", "inventory")
+     * @param system - System implementing ISerializable
+     */
+    registerSerializable(key: string, system: ISerializable): void;
+
+    /**
+     * Unregister a serializable system
+     *
+     * @param key - System identifier to unregister
+     */
+    unregisterSerializable(key: string): void;
+
+    /**
+     * Register a migration function for a specific version
+     *
+     * @param version - Target version string (e.g., "1.1.0")
+     * @param migrationFn - Migration function to transform data to that version
+     */
+    registerMigration(version: string, migrationFn: MigrationFunction): void;
+
+    /**
+     * Get a serializable system by key
+     *
+     * @param key - System identifier
+     * @returns The system or undefined if not found
+     */
+    getSerializable(key: string): ISerializable | undefined;
+
+    /**
+     * Check if a serializable system is registered
+     *
+     * @param key - System identifier
+     * @returns True if the system is registered
+     */
+    hasSerializable(key: string): boolean;
+
+    /**
+     * Get all registered serializable systems as a read-only map
+     *
+     * @returns ReadonlyMap view of registered systems (prevents external mutation)
+     */
+    getAllSerializables(): ReadonlyMap<string, ISerializable>;
+
+    /**
+     * Get all registered migration functions as a read-only map
+     *
+     * @returns ReadonlyMap view of migrations (prevents external mutation)
+     */
+    getAllMigrations(): ReadonlyMap<string, MigrationFunction>;
 
     /**
      * Get the current scene ID from the scene manager

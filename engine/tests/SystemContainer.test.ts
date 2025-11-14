@@ -2,15 +2,11 @@
 
 import {describe, it, expect, beforeEach, vi} from 'vitest';
 import {SystemContainer, SystemLifecycle, type SystemDefinition} from '@engine/core/SystemContainer';
-import {ILogger} from "@engine/interfaces";
+import { createMockLogger } from './helpers/loggerMocks';
 
 describe('SystemContainer', () => {
     let container: SystemContainer;
-    const mockLogger: ILogger = {
-        log: vi.fn(),
-        warn: vi.fn(),
-        error: vi.fn(),
-    };
+    const mockLogger = createMockLogger();
 
     beforeEach(() => {
         container = new SystemContainer(mockLogger);

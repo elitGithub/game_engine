@@ -3,7 +3,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { TypewriterEffect } from '@engine/rendering/helpers/TypewriterEffect';
 import type { IEffectTarget } from '@engine/types/EffectTypes';
-import {ILogger} from "@engine/interfaces";
+import { createMockLogger } from './helpers/loggerMocks';
 
 // Mock IEffectTarget
 const mockTarget: IEffectTarget = {
@@ -12,11 +12,7 @@ const mockTarget: IEffectTarget = {
     setProperty: vi.fn(),
     getRaw: vi.fn(),
 };
-    const mockLogger: ILogger = {
-        log: vi.fn(),
-        warn: vi.fn(),
-        error: vi.fn(),
-    };
+    const mockLogger = createMockLogger();
 describe('TypewriterEffect', () => {
     let effect: TypewriterEffect;
     // 5 chars per second = 200ms (0.2s) per char

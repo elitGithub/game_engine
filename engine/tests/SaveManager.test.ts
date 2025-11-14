@@ -6,18 +6,14 @@ import type {SaveData} from '@engine/systems/SaveManager';
 import {EventBus} from '@engine/core/EventBus';
 import type {ISerializationRegistry, ISerializable, MigrationFunction} from '@engine/types';
 import type {StorageAdapter} from '@engine/core/StorageAdapter';
-import type { ILogger } from '@engine/interfaces';
+import { createMockLogger } from './helpers/loggerMocks';
 // Mock dependencies
 vi.mock('@engine/core/EventBus');
 vi.mock('@engine/systems/LocalStorageAdapter'); // Mock the default adapter
 
 // Create mock plugins
 
-const mockLogger: ILogger = {
-    log: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-};
+const mockLogger = createMockLogger();
 // Mock a sample serializable system (like a Player class)
 const mockPlayer: ISerializable = {
     serialize: vi.fn(() => ({health: 100})),
@@ -45,12 +41,26 @@ describe('SaveManager', () => {
         mockEventBus = new EventBus(mockLogger);
 
         // Create a fully-functional mock for the ISerializationRegistry
+        const serializableSystems = new Map<string, ISerializable>([
+            ['player', mockPlayer]
+        ]);
+        const migrationFunctions = new Map<string, MigrationFunction>();
+
         mockRegistry = {
-            serializableSystems: new Map<string, ISerializable>([
-                ['player', mockPlayer]
-            ]),
-            migrationFunctions: new Map<string, MigrationFunction>(),
             gameVersion: '1.0.0',
+            registerSerializable: vi.fn((key: string, system: ISerializable) => {
+                serializableSystems.set(key, system);
+            }),
+            unregisterSerializable: vi.fn((key: string) => {
+                serializableSystems.delete(key);
+            }),
+            registerMigration: vi.fn((version: string, migrationFn: MigrationFunction) => {
+                migrationFunctions.set(version, migrationFn);
+            }),
+            getSerializable: vi.fn((key: string) => serializableSystems.get(key)),
+            hasSerializable: vi.fn((key: string) => serializableSystems.has(key)),
+            getAllSerializables: vi.fn(() => serializableSystems as ReadonlyMap<string, ISerializable>),
+            getAllMigrations: vi.fn(() => migrationFunctions as ReadonlyMap<string, MigrationFunction>),
             getCurrentSceneId: vi.fn(() => 'scene_start'),
             restoreScene: vi.fn(),
         };
@@ -173,7 +183,7 @@ describe('SaveManager', () => {
                 delete data.systems.player.oldHealth;
                 return data;
             });
-            mockRegistry.migrationFunctions.set('1.0.0_to_1.1.0', migrationV1toV2);
+            mockRegistry.registerMigration('1.0.0_to_1.1.0', migrationV1toV2);
             const mockTimerProvider = {
                 setTimeout: vi.fn((cb, ms) => window.setTimeout(cb, ms) as unknown),
                 clearTimeout: vi.fn((id) => window.clearTimeout(id as number)),
@@ -202,7 +212,7 @@ describe('SaveManager', () => {
                 deserialize: vi.fn(),
             };
 
-            mockRegistry.serializableSystems.set('inventory', mockInventorySystem);
+            mockRegistry.registerSerializable('inventory', mockInventorySystem);
 
             // Save
             vi.mocked(mockStorageAdapter.save).mockResolvedValue(true);
@@ -237,7 +247,7 @@ describe('SaveManager', () => {
                 deserialize: vi.fn(),
             };
 
-            mockRegistry.serializableSystems.set('flags', mockFlagsSystem);
+            mockRegistry.registerSerializable('flags', mockFlagsSystem);
 
             // Save
             vi.mocked(mockStorageAdapter.save).mockResolvedValue(true);
@@ -281,7 +291,7 @@ describe('SaveManager', () => {
                 deserialize: vi.fn(),
             };
 
-            mockRegistry.serializableSystems.set('complex', mockComplexSystem);
+            mockRegistry.registerSerializable('complex', mockComplexSystem);
 
             // Save and load
             vi.mocked(mockStorageAdapter.save).mockResolvedValue(true);
@@ -314,7 +324,7 @@ describe('SaveManager', () => {
                 deserialize: vi.fn(),
             };
 
-            mockRegistry.serializableSystems.set('plain', mockPlainSystem);
+            mockRegistry.registerSerializable('plain', mockPlainSystem);
 
             // Save and load
             vi.mocked(mockStorageAdapter.save).mockResolvedValue(true);

@@ -17,15 +17,15 @@ import type { ILogger } from '@engine/interfaces';
  * This maintains clean dependency flow: SaveManager -> Registry -> SceneManager
  */
 export class SerializationRegistry implements ISerializationRegistry {
-    public readonly serializableSystems: Map<string, ISerializable>;
-    public readonly migrationFunctions: Map<string, MigrationFunction>;
+    private serializableSystems: Map<string, ISerializable>;
+    private migrationFunctions: Map<string, MigrationFunction>;
     public readonly gameVersion: string;
     private context?: GameContext;
 
     constructor(
-        private sceneManager: SceneManager,
+        private readonly sceneManager: SceneManager,
         gameVersion: string,
-        private logger: ILogger
+        private readonly logger: ILogger
     ) {
         this.gameVersion = gameVersion;
         this.serializableSystems = new Map();
@@ -73,6 +73,18 @@ export class SerializationRegistry implements ISerializationRegistry {
     }
 
     /**
+     * Unregister a serializable system
+     */
+    unregisterSerializable(key: string): void {
+        if (this.serializableSystems.has(key)) {
+            this.serializableSystems.delete(key);
+            this.logger.log(`[SerializationRegistry] Unregistered: ${key}`);
+        } else {
+            this.logger.warn(`[SerializationRegistry] Cannot unregister '${key}' - not found`);
+        }
+    }
+
+    /**
      * Register a migration function for a specific version
      */
     registerMigration(version: string, migrationFn: MigrationFunction): void {
@@ -80,5 +92,39 @@ export class SerializationRegistry implements ISerializationRegistry {
             this.logger.warn(`[SerializationRegistry] Migration for version '${version}' already registered. Overwriting.`);
         }
         this.migrationFunctions.set(version, migrationFn);
+    }
+
+    /**
+     * Get a serializable system by key
+     */
+    getSerializable(key: string): ISerializable | undefined {
+        return this.serializableSystems.get(key);
+    }
+
+    /**
+     * Check if a serializable system is registered
+     */
+    hasSerializable(key: string): boolean {
+        return this.serializableSystems.has(key);
+    }
+
+    /**
+     * Get all registered serializable systems as a read-only map
+     *
+     * Returns a ReadonlyMap view that prevents external mutation while
+     * allowing iteration and lookup operations.
+     */
+    getAllSerializables(): ReadonlyMap<string, ISerializable> {
+        return this.serializableSystems;
+    }
+
+    /**
+     * Get all registered migration functions as a read-only map
+     *
+     * Returns a ReadonlyMap view that prevents external mutation while
+     * allowing iteration and lookup operations.
+     */
+    getAllMigrations(): ReadonlyMap<string, MigrationFunction> {
+        return this.migrationFunctions;
     }
 }

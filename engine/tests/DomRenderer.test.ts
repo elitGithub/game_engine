@@ -5,7 +5,7 @@ import {DomRenderer} from '@engine/rendering/DomRenderer';
 import {AssetManager} from '@engine/systems/AssetManager';
 import type {RenderCommand} from '@engine/types/RenderingTypes';
 import {DomRenderContainer} from '@engine/platform/browser/DomRenderContainer';
-import type {ILogger} from "@engine/interfaces";
+import { createMockLogger } from './helpers/loggerMocks';
 
 // Mock dependencies
 vi.mock('@engine/systems/AssetManager');
@@ -13,11 +13,7 @@ vi.mock('@engine/systems/AssetManager');
 // Mock browser Image
 const mockImage = {src: 'mock-src.png', width: 100, height: 100};
 vi.stubGlobal('Image', vi.fn(() => mockImage));
-const mockLogger: ILogger = {
-    log: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-};
+const mockLogger = createMockLogger();
 describe('DomRenderer', () => {
     let renderer: DomRenderer;
     let mockAssets: AssetManager;

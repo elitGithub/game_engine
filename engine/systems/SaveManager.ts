@@ -28,7 +28,7 @@ export class SaveManager {
         private readonly timeAdapter: ITimerProvider,
         private readonly logger: ILogger
     ) {
-        this.migrationManager = new MigrationManager(this.registry.migrationFunctions, this.logger);
+        this.migrationManager = new MigrationManager(this.registry.getAllMigrations(), this.logger);
     }
 
     /**
@@ -110,7 +110,7 @@ export class SaveManager {
             // Identify which systems will be modified
             if (saveData.systems) {
                 for (const key of Object.keys(saveData.systems)) {
-                    if (this.registry.serializableSystems.has(key)) {
+                    if (this.registry.hasSerializable(key)) {
                         systemsToModify.add(key);
                     }
                 }
@@ -118,7 +118,7 @@ export class SaveManager {
 
             // Only snapshot systems that will be modified
             for (const key of systemsToModify) {
-                const system = this.registry.serializableSystems.get(key);
+                const system = this.registry.getSerializable(key);
                 if (system) {
                     try {
                         // structuredClone creates true memory barrier - no shared references
@@ -135,7 +135,7 @@ export class SaveManager {
             // Deserialize all systems
             if (saveData.systems) {
                 for (const [key, data] of Object.entries(saveData.systems)) {
-                    const system = this.registry.serializableSystems.get(key);
+                    const system = this.registry.getSerializable(key);
                     if (system) {
                         system.deserialize(data);
                     }
@@ -161,7 +161,7 @@ export class SaveManager {
             // PHASE 4: ROLLBACK - Restore from snapshot
             try {
                 for (const [key, snapshotData] of snapshot.entries()) {
-                    const system = this.registry.serializableSystems.get(key);
+                    const system = this.registry.getSerializable(key);
                     if (system) {
                         system.deserialize(snapshotData);
                     }
@@ -251,7 +251,7 @@ export class SaveManager {
     private serializeGameState(metadata?: Record<string, unknown>): SaveData {
         const systemsData: Record<string, unknown> = {};
 
-        for (const [key, system] of this.registry.serializableSystems.entries()) {
+        for (const [key, system] of this.registry.getAllSerializables().entries()) {
             try {
                 // Plugins can now just return { myMap: this.map } directly!
                 systemsData[key] = system.serialize();

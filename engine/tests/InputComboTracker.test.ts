@@ -4,14 +4,10 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { InputComboTracker } from '@engine/input/InputComboTracker';
 import { EventBus } from '@engine/core/EventBus';
 import type { ITimerProvider } from '@engine/interfaces/ITimerProvider';
-import {ILogger} from "@engine/interfaces";
+import { createMockLogger } from './helpers/loggerMocks';
 
 vi.mock('@engine/core/EventBus');
-const mockLogger: ILogger = {
-    log: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-};
+const mockLogger = createMockLogger();
 describe('InputComboTracker', () => {
     let tracker: InputComboTracker;
     let mockEventBus: EventBus;

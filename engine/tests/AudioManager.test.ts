@@ -6,9 +6,10 @@ import { AssetManager } from '@engine/systems/AssetManager';
 import { MusicPlayer } from '@engine/audio/MusicPlayer';
 import { SfxPool } from '@engine/audio/SfxPool';
 import { VoicePlayer } from '@engine/audio/VoicePlayer';
-import type {ILogger, ITimerProvider} from '@engine/interfaces';
+import type { ITimerProvider } from '@engine/interfaces';
 import type { IAudioContext } from '@engine/interfaces/IAudioPlatform';
 import { createMockAudioContext } from './helpers/audioMocks';
+import { createMockLogger } from './helpers/loggerMocks';
 
 // Mock the new helper classes
 vi.mock('@engine/audio/MusicPlayer');
@@ -19,11 +20,7 @@ vi.mock('@engine/audio/VoicePlayer');
 vi.mock('@engine/core/EventBus');
 vi.mock('@engine/systems/AssetManager');
 
-const mockLogger: ILogger = {
-    log: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-};
+const mockLogger = createMockLogger();
 
 describe('AudioManager (Facade)', () => {
     let audioManager: AudioManager;

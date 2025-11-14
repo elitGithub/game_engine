@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { EventBus } from '@engine/core/EventBus';
 import type { EventMap } from '@engine/types';
-import { ILogger } from "@engine/interfaces";
+import { createMockLogger } from './helpers/loggerMocks';
 
 // Extend the EventMap for testing purposes
 declare module '@engine/types' {
@@ -11,11 +11,7 @@ declare module '@engine/types' {
     }
 }
 
-const mockLogger: ILogger = {
-    log: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-};
+const mockLogger = createMockLogger();
 
 
 describe('EventBus', () => {

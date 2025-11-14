@@ -3,17 +3,14 @@ import {describe, it, expect, beforeEach, vi, afterEach} from 'vitest';
 import {MusicPlayer} from '@engine/audio/MusicPlayer';
 import {EventBus} from '@engine/core/EventBus';
 import {AssetManager} from '@engine/systems/AssetManager';
-import {ILogger, ITimerProvider} from '@engine/interfaces';
+import type { ITimerProvider } from '@engine/interfaces';
 import type { IAudioContext, IAudioBuffer, IAudioSource, IAudioGain, IAudioDestination } from '@engine/interfaces/IAudioPlatform';
+import { createMockLogger } from './helpers/loggerMocks';
 
 // Mock dependencies
 vi.mock('@engine/core/EventBus');
 vi.mock('@engine/systems/AssetManager');
-const mockLogger: ILogger = {
-    log: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-};
+const mockLogger = createMockLogger();
 
 // Mock IAudioSource
 const createMockSource = (): IAudioSource => ({

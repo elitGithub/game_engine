@@ -5,7 +5,7 @@ import {RenderManager} from '@engine/core/RenderManager';
 import {EventBus} from '@engine/core/EventBus';
 import type {IRenderer, RenderCommand} from '@engine/types/RenderingTypes';
 import type { IDomRenderContainer } from '@engine/interfaces/IRenderContainer';
-import {ILogger} from "@engine/interfaces";
+import { createMockLogger } from './helpers/loggerMocks';
 
 // Mock dependencies
 vi.mock('@engine/core/EventBus');
@@ -18,11 +18,7 @@ const mockRenderer: IRenderer = {
     dispose: vi.fn(),
 };
 
-const mockLogger: ILogger = {
-    log: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-};
+const mockLogger = createMockLogger();
 
 describe('RenderManager', () => {
     let renderManager: RenderManager;

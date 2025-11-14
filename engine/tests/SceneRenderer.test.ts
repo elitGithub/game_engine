@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { SceneRenderer } from '@engine/rendering/helpers/SceneRenderer';
 import { Scene } from '@engine/systems/Scene';
 import type { RenderCommand } from '@engine/types/RenderingTypes';
-import type { ILogger } from '@engine/interfaces';
+import { createMockLogger } from './helpers/loggerMocks';
 
 // Mock the Scene class
 class MockScene extends Scene {
@@ -11,11 +11,7 @@ class MockScene extends Scene {
     }
 }
 
-const mockLogger: ILogger = {
-    log: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-};
+const mockLogger = createMockLogger();
 
 describe('SceneRenderer', () => {
     let renderer: SceneRenderer;

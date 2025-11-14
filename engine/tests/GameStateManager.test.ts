@@ -2,12 +2,8 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { GameStateManager } from '@engine/core/GameStateManager';
 import { GameState } from '@engine/core/GameState';
 import type { GameContext } from '@engine/types';
-import {ILogger} from "@engine/interfaces";
-const mockLogger: ILogger = {
-    log: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-};
+import { createMockLogger } from './helpers/loggerMocks';
+const mockLogger = createMockLogger();
 // Create a mock GameState class
 // We will spy on its methods AFTER instantiation
 class MockState extends GameState {
@@ -54,9 +50,13 @@ describe('GameStateManager', () => {
     });
 
     it('should register states and inject context', () => {
-        expect(gsm.states.get('stateA')).toBe(stateA);
-        // The real GameState.setContext is called
+        // Test registration indirectly by successfully pushing the state
+        // If registration failed, pushState would log an error
+        gsm.pushState('stateA');
+        expect(stateA.enter).toHaveBeenCalledOnce();
+        // The real GameState.setContext is called during registration
         expect(stateA['context']).toBe(mockContext);
+        gsm.popState(); // Clean up for other tests
     });
 
     it('should push a state', () => {

@@ -5,16 +5,12 @@ import { InventoryManagerPlugin } from '@engine/plugins/InventoryManagerPlugin';
 import { CollectionTracker } from '@engine/utils/CollectionTracker';
 import { EventBus } from '@engine/core/EventBus';
 import type { IEngineHost } from '@engine/types';
-import {ILogger} from "@engine/interfaces";
+import { createMockLogger } from './helpers/loggerMocks';
 
 // Mock dependencies
 vi.mock('@engine/utils/CollectionTracker');
 vi.mock('@engine/core/EventBus');
-const mockLogger: ILogger = {
-    log: vi.fn(),
-    warn: vi.fn(),
-    error: vi.fn(),
-};
+const mockLogger = createMockLogger();
 describe('InventoryManagerPlugin', () => {
     let plugin: InventoryManagerPlugin;
     let mockHost: IEngineHost;
