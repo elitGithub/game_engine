@@ -35,7 +35,7 @@ import {ILogger, IRenderContainer, IDomRenderContainer, isDomRenderContainer} fr
  */
 export class DomInputAdapter extends BaseInputAdapter {
     private targetElement: HTMLElement | null;
-    private boundListeners: Map<string, (evt: any) => void>;
+    private boundListeners: Map<string, (evt: Event) => void>;
 
     constructor(private logger: ILogger) {
         super();

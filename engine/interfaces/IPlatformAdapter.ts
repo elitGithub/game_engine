@@ -257,6 +257,31 @@ export interface IPlatformAdapter {
     getImageLoader?(): IImageLoader | undefined;
 
     // ========================================================================
+    // ASSET LOADING (OPTIONAL)
+    // ========================================================================
+
+    /**
+     * Register platform-specific asset loaders with the AssetManager.
+     *
+     * Called after AssetManager is created to allow platforms to register
+     * their own asset loaders (ImageLoader, AudioLoader, JsonLoader, etc.).
+     *
+     * This keeps platform-specific loader registration logic in the platform
+     * adapter rather than hardcoding it in system definitions.
+     *
+     * @param assetManager - AssetManager instance to register loaders with
+     *
+     * @example
+     * ```typescript
+     * registerAssetLoaders(assetManager: AssetManager): void {
+     *     assetManager.registerLoader(new ImageLoader(this.getImageLoader()));
+     *     assetManager.registerLoader(new AudioLoader(...));
+     * }
+     * ```
+     */
+    registerAssetLoaders?(assetManager: unknown): void;
+
+    // ========================================================================
     // PLATFORM CAPABILITIES
     // ========================================================================
 

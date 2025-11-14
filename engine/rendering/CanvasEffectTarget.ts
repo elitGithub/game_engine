@@ -83,7 +83,7 @@ export class CanvasEffectTarget implements IEffectTarget {
         }
     }
 
-    getRaw(): any {
+    getRaw(): AnimatableCommand {
         return this.command;
     }
 }

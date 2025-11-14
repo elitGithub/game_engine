@@ -4,6 +4,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { UIRenderer } from '@engine/rendering/helpers/UIRenderer';
 import { TextRenderer } from '@engine/rendering/helpers/TextRenderer';
 import type { PositionedBar, PositionedDialogue, PositionedChoice, RenderCommand } from '@engine/types/RenderingTypes';
+import { DEFAULT_Z_INDEX } from '@engine/constants/RenderingConstants';
 
 
 // Mock dependencies
@@ -60,9 +61,9 @@ describe('UIRenderer', () => {
         expect(fgCmd).toBeDefined();
         expect(textCmd).toBeDefined();
 
-        expect(bgCmd.zIndex).toBe(10000);
-        expect(fgCmd.zIndex).toBe(10001);
-        expect(textCmd.zIndex).toBe(10002);
+        expect(bgCmd.zIndex).toBe(DEFAULT_Z_INDEX.UI_BARS);
+        expect(fgCmd.zIndex).toBe(DEFAULT_Z_INDEX.UI_BARS + 1);
+        expect(textCmd.zIndex).toBe(DEFAULT_Z_INDEX.UI_BARS + 2);
     });
 
     it('should build commands for a text display', () => {
@@ -102,9 +103,9 @@ describe('UIRenderer', () => {
         const itemText = commands.find(c => (c as any).id === 'item1_text') as Extract<RenderCommand, { type: 'text' }>;
         const itemHotspot = commands.find(c => (c as any).id === 'item1_hotspot') as Extract<RenderCommand, { type: 'hotspot' }>;
 
-        expect(bg.zIndex).toBe(20000);
-        expect(title.zIndex).toBe(20001);
-        expect(itemText.zIndex).toBe(20001);
-        expect(itemHotspot.zIndex).toBe(20002);
+        expect(bg.zIndex).toBe(DEFAULT_Z_INDEX.UI_MENUS);
+        expect(title.zIndex).toBe(DEFAULT_Z_INDEX.UI_MENUS + 1);
+        expect(itemText.zIndex).toBe(DEFAULT_Z_INDEX.UI_MENUS + 1);
+        expect(itemHotspot.zIndex).toBe(DEFAULT_Z_INDEX.UI_MENUS + 2);
     });
 });

@@ -17,7 +17,7 @@ import type {
     INetworkProvider,
     IImageLoader,
 } from '@engine/interfaces';
-import {WebAudioPlatform} from '@engine/interfaces';
+import { WebAudioPlatform } from '@engine/platform/audio';
 import {LocalStorageAdapter} from '@engine/platform/browser/LocalStorageAdapter';
 import type {StorageAdapter} from '@engine/core/StorageAdapter';
 import {GamepadInputAdapter} from '@engine/platform/GamepadInputAdapter';
@@ -27,6 +27,10 @@ import {DomRenderContainer} from "@engine/platform/browser/DomRenderContainer";
 import { ConsoleLogger } from './ConsoleLogger';
 import type {ILogger} from "@engine/interfaces/ILogger";
 import {DomInputAdapter} from "@engine/input";
+import type { AssetManager } from '@engine/systems/AssetManager';
+import { ImageLoader } from '@engine/platform/browser/asset_loaders/ImageLoader';
+import { JsonLoader } from '@engine/platform/browser/asset_loaders/JsonLoader';
+import { AudioLoader } from '@engine/platform/browser/asset_loaders/AudioLoader';
 
 /**
  * Extended Window interface for webkit vendor prefix support
@@ -276,6 +280,34 @@ export class BrowserPlatformAdapter implements IPlatformAdapter {
             };
         }
         return this.imageLoader;
+    }
+
+    // ========================================================================
+    // ASSET LOADING
+    // ========================================================================
+
+    registerAssetLoaders(assetManager: AssetManager): void {
+        const networkProvider = this.getNetworkProvider();
+        const imageLoader = this.getImageLoader();
+        const audioPlatform = this.getAudioPlatform();
+
+        // Register image loader if available
+        if (imageLoader) {
+            assetManager.registerLoader(new ImageLoader(imageLoader));
+        }
+
+        // Register JSON loader if network available
+        if (networkProvider) {
+            assetManager.registerLoader(new JsonLoader(networkProvider, this.getLogger()));
+        }
+
+        // Register audio loader if audio platform and network available
+        if (audioPlatform && networkProvider) {
+            const audioContext = audioPlatform.getContext();
+            if (audioContext) {
+                assetManager.registerLoader(new AudioLoader(audioContext, networkProvider, this.getLogger()));
+            }
+        }
     }
 
     // ========================================================================

@@ -78,7 +78,7 @@ export class TypewriterEffect implements IDynamicEffect {
      * @param _context - Game context (unused)
      * @param _logger - Logger instance (unused)
      */
-    onStart(target: IEffectTarget, _context: TypedGameContext<any>, _logger: ILogger): void {
+    onStart(target: IEffectTarget, _context: TypedGameContext<unknown>, _logger: ILogger): void {
         // Use the IEffectTarget interface, not getRaw()
         const fullText = target.getProperty<string>('textContent');
 
@@ -117,7 +117,7 @@ export class TypewriterEffect implements IDynamicEffect {
      * @param deltaTime - Time elapsed since last frame in seconds
      * @param _logger - Logger instance (unused)
      */
-    onUpdate(target: IEffectTarget, _context: TypedGameContext<any>, deltaTime: number, _logger: ILogger): void {
+    onUpdate(target: IEffectTarget, _context: TypedGameContext<unknown>, deltaTime: number, _logger: ILogger): void {
         // Instant mode: Skip animation loop (text already displayed in onStart)
         if (this.charsPerSecond === Infinity) {
             return;
@@ -165,7 +165,7 @@ export class TypewriterEffect implements IDynamicEffect {
      * @param _context - Game context (unused)
      * @param _logger - Logger instance (unused)
      */
-    onStop(target: IEffectTarget, _context: TypedGameContext<any>, _logger: ILogger): void {
+    onStop(target: IEffectTarget, _context: TypedGameContext<unknown>, _logger: ILogger): void {
         // When stopped, instantly complete the text
         target.setProperty('textContent', this.fullText);
         // Mark as complete

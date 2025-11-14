@@ -23,9 +23,6 @@ import {CanvasRenderer} from '@engine/rendering/CanvasRenderer';
 import type {IPlatformAdapter} from '@engine/interfaces';
 import type {IRenderer} from '@engine/types/RenderingTypes';
 import {CORE_SYSTEMS} from "@engine/core/CoreSystemDefs";
-import {ImageLoader} from "@engine/platform/browser/asset_loaders/ImageLoader";
-import {JsonLoader} from "@engine/platform/browser/asset_loaders/JsonLoader";
-import {AudioLoader} from "@engine/platform/browser/asset_loaders/AudioLoader";
 import type {ILogger} from "@engine/interfaces/ILogger";
 
 
@@ -72,27 +69,11 @@ function createAssetManagerDefinition(platform: IPlatformAdapter): SystemDefinit
         factory: (c) => {
             const eventBus = c.get<EventBus>(CORE_SYSTEMS.EventBus);
             const logger = c.get<ILogger>(PLATFORM_SYSTEMS.Logger);
-            const assetManager = new AssetManager(eventBus, logger);
-
-            const networkProvider = platform.getNetworkProvider?.();
-            const imageLoader = platform.getImageLoader?.();
-
-            if (imageLoader) {
-                assetManager.registerLoader(new ImageLoader(imageLoader));
-            }
-            if (networkProvider) {
-                assetManager.registerLoader(new JsonLoader(networkProvider, logger));
-            }
-
-            const audioPlatform = platform.getAudioPlatform?.();
-            if (audioPlatform && networkProvider) {
-                const audioContext = audioPlatform.getContext();
-                if (audioContext) {
-                    assetManager.registerLoader(new AudioLoader(audioContext, networkProvider, logger));
-                }
-            }
-
-            return assetManager;
+            return new AssetManager(eventBus, logger);
+        },
+        initialize: (assetManager) => {
+            // Let platform register its own asset loaders
+            platform.registerAssetLoaders?.(assetManager);
         },
         lazy: false
     };
