@@ -21,7 +21,7 @@ export class SceneManager {
     private history: string[];
     private sceneFactories: Map<string, SceneFactory>;
 
-    constructor(private eventBus: EventBus, private logger: ILogger) {
+    constructor(private readonly eventBus: EventBus, private logger: ILogger) {
         this.scenes = new Map();
         this.currentScene = null;
         this.history = [];

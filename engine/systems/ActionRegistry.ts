@@ -9,7 +9,7 @@ export class ActionRegistry<TGame = Record<string, unknown>> {
     private actions: Map<string, Action<TGame>>;
     private actionsByType: Map<string, Action<TGame>[]>;
 
-    constructor(private logger: ILogger) {
+    constructor(private readonly logger: ILogger) {
         this.actions = new Map();
         this.actionsByType = new Map();
     }

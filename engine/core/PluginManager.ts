@@ -6,7 +6,7 @@ export class PluginManager<TGame = Record<string, unknown>> {
     private plugins: Map<string, IEnginePlugin<TGame>>;
     private installed: Set<string>;
 
-    constructor(private logger: ILogger) {
+    constructor(private readonly logger: ILogger) {
         this.plugins = new Map();
         this.installed = new Set();
     }

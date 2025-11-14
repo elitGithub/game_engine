@@ -41,7 +41,7 @@ interface SceneLayer {
  * ```
  */
 export class SceneRenderer {
-    constructor(private logger: ILogger) {}
+    constructor(private readonly logger: ILogger) {}
 
     /**
      * Generates all render commands needed to display a complete scene.

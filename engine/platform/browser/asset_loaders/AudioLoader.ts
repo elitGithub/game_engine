@@ -7,7 +7,7 @@ import type {IAudioBuffer, IAudioContext} from "@engine/interfaces/IAudioPlatfor
 export class AudioLoader implements IAssetLoader {
     public readonly type: AssetType = 'audio';
 
-    constructor(private audioContext: IAudioContext,
+    constructor(private readonly audioContext: IAudioContext,
                 private networkProvider: INetworkProvider,
                 private logger: ILogger) {
         if (!audioContext) {
@@ -18,17 +18,20 @@ export class AudioLoader implements IAssetLoader {
         }
     }
 
-    async load(url: string): Promise<IAudioBuffer> {
-        try {
-            const response = await this.networkProvider.fetch(url);
-            if (!response.ok) {
-                throw new Error(`[AudioLoader] HTTP error ${response.status} for ${url}`);
-            }
-            const arrayBuffer = await response.arrayBuffer();
-            return await this.audioContext.decodeAudioData(arrayBuffer);
-        } catch (error) {
-            this.logger.error(`[AudioLoader] Failed to load '${url}':`, error);
-            throw error;
-        }
+    load(url: string): Promise<IAudioBuffer> {
+        return this.networkProvider.fetch(url)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`[AudioLoader] HTTP error ${response.status} for ${url}`);
+                }
+                return response.arrayBuffer();
+            })
+            .then(arrayBuffer => {
+                return this.audioContext.decodeAudioData(arrayBuffer);
+            })
+            .catch(error => {
+                this.logger.error(`[AudioLoader] Failed to load '${url}':`, error);
+                throw error;
+            });
     }
 }

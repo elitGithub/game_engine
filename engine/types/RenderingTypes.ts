@@ -16,6 +16,7 @@ export interface TextStyleData {
     align?: 'left' | 'center' | 'right';
     bold?: boolean;
     italic?: boolean;
+    customCSS?: Record<string, string>;
 }
 
 export type RenderCommand =

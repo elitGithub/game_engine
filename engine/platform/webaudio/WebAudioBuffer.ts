@@ -5,7 +5,7 @@
 import type { IAudioBuffer } from '@engine/interfaces/IAudioPlatform';
 
 export class WebAudioBuffer implements IAudioBuffer {
-    constructor(private native: AudioBuffer) {}
+    constructor(private readonly native: AudioBuffer) {}
 
     get duration(): number {
         return this.native.duration;

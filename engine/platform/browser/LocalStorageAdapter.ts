@@ -8,7 +8,7 @@ import type {ILogger} from "@engine/interfaces";
 
 export class LocalStorageAdapter implements StorageAdapter {
 
-    constructor(private keyPrefix: string = 'game_save_', private logger: ILogger) {
+    constructor(private readonly keyPrefix: string = 'game_save_', private logger: ILogger) {
 
     }
 

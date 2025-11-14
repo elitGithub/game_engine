@@ -10,7 +10,7 @@ export class WebAudioSource implements IAudioSource {
     private playing = false;
     private endedCallback: (() => void) | null = null;
 
-    constructor(private native: AudioBufferSourceNode) {
+    constructor(private readonly native: AudioBufferSourceNode) {
         this.native.onended = () => {
             this.playing = false;
             if (this.endedCallback) {

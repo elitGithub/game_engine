@@ -34,7 +34,7 @@ export class AssetManager {
     private accessOrder: string[]; // Most recently used at the end
     private maxCacheSize: number;
 
-    constructor(private eventBus: EventBus, private logger: ILogger, options: AssetManagerOptions = {}) {
+    constructor(private readonly eventBus: EventBus, private logger: ILogger, options: AssetManagerOptions = {}) {
         this.loaders = new Map();
         this.cache = new Map();
         this.loadingPromises = new Map();

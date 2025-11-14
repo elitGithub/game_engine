@@ -13,7 +13,7 @@ export class GameStateManager<TGame = Record<string, unknown>> {
     private stateStack: GameState<TGame>[];
     private context!: TypedGameContext<TGame>;
 
-    constructor(private logger: ILogger) {
+    constructor(private readonly logger: ILogger) {
         this.states = new Map();
         this.stateStack = [];
     }

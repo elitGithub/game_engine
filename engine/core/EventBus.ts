@@ -6,7 +6,7 @@ export class EventBus {
     private listeners: ListenerMap;
     private suppressionEnabled: boolean = false;
 
-    constructor(private logger: ILogger) {
+    constructor(private readonly logger: ILogger) {
         this.listeners = {};
     }
 

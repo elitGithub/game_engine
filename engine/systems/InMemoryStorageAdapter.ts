@@ -16,7 +16,7 @@ import type { StorageAdapter, SaveSlotMetadata } from '../core/StorageAdapter';
 export class InMemoryStorageAdapter implements StorageAdapter {
     private storage = new Map<string, string>();
 
-    constructor(private prefix: string = 'headless_') {}
+    constructor(private readonly prefix: string = 'headless_') {}
 
     async save(slotId: string, data: string): Promise<boolean> {
         try {

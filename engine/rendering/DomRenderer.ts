@@ -14,7 +14,7 @@ export class DomRenderer implements IRenderer {
     private domContainer: DomRenderContainer | null = null;
     private containerElement: HTMLElement | null = null;
 
-    constructor(private assets: AssetManager) {}
+    constructor(private readonly assets: AssetManager) {}
 
     init(container: DomRenderContainer): void {
         if (!isDomRenderContainer(container)) {
@@ -253,6 +253,13 @@ export class DomRenderer implements IRenderer {
         if (style.align) el.style.textAlign = style.align;
         if (style.bold) el.style.fontWeight = 'bold';
         if (style.italic) el.style.fontStyle = 'italic';
+
+        // Apply custom CSS properties
+        if (style.customCSS) {
+            for (const [key, value] of Object.entries(style.customCSS)) {
+                (el.style as any)[key] = value;
+            }
+        }
     }
 
     dispose(): void {

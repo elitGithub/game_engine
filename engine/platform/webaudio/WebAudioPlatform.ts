@@ -34,7 +34,7 @@ interface WindowWithWebkit extends Window {
 export class WebAudioPlatform implements IAudioPlatform {
     private context: WebAudioContext | null = null;
 
-    constructor(private logger: ILogger) {
+    constructor(private readonly logger: ILogger) {
     }
     
     getType(): AudioPlatformType {
