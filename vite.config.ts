@@ -2,6 +2,19 @@ import { defineConfig } from 'vite';
 import path from 'path';
 
 export default defineConfig({
+    build: {
+        // --- THIS IS THE FIX ---
+        // Configure Vite to build a library, not an application
+        lib: {
+            // The entry file we just created
+            entry: path.resolve(__dirname, 'engine/index.ts'),
+            // The name for the UMD global variable
+            name: 'GameEngine',
+            // The output filenames for different formats
+            fileName: (format) => `game-engine.${format}.js`
+        },
+        // --- END FIX ---
+    },
     resolve: {
         alias: {
             '@engine': path.resolve(__dirname, './engine')

@@ -3,7 +3,12 @@
 
 # IntelliJ project files
 .idea
+.idea/
 *.iml
 out
 gen
 node_modules
+/dist
+dist
+engine/dist
+engine/.idea/
