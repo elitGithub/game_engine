@@ -4,7 +4,8 @@
  * This is an EXAMPLE showing how to create a custom storage adapter.
  * Copy and modify this for your own backend implementation.
  */
-import type { StorageAdapter, SaveSlotMetadata } from '@engine/core/StorageAdapter';
+import type { StorageAdapter } from '@engine/core/StorageAdapter';
+import type { SaveSlotMetadata } from '@engine/core/SaveSlotMetadata';
 import {ILogger, INetworkProvider} from "@engine/interfaces";
 
 export interface BackendConfig {
