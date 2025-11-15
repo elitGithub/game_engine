@@ -62,7 +62,7 @@ export interface PlatformSystemConfig {
 // SYSTEM DEFINITION CREATORS (Extracted for modularity and testability)
 // ============================================================================
 
-function createAssetManagerDefinition(platform: IPlatformAdapter): SystemDefinition {
+function createAssetManagerDefinition(platform: IPlatformAdapter): SystemDefinition<unknown> { // <-- 1. Change return type
     return {
         key: PLATFORM_SYSTEMS.AssetManager,
         dependencies: [CORE_SYSTEMS.EventBus, PLATFORM_SYSTEMS.Logger],
@@ -71,8 +71,11 @@ function createAssetManagerDefinition(platform: IPlatformAdapter): SystemDefinit
             const logger = c.get<ILogger>(PLATFORM_SYSTEMS.Logger);
             return new AssetManager(eventBus, logger);
         },
-        initialize: (assetManager) => {
-            // Let platform register its own asset loaders
+        initialize: (system: unknown) => { // <-- 2. Change param to unknown
+            // 3. Add the safe cast
+            const assetManager = system as AssetManager;
+
+            // 4. Use the casted variable
             platform.registerAssetLoaders?.(assetManager);
         },
         lazy: false
@@ -201,7 +204,7 @@ function createRenderManagerDefinition(
     };
 }
 
-function createInputManagerDefinition(platform: IPlatformAdapter): SystemDefinition<InputManager> {
+function createInputManagerDefinition(platform: IPlatformAdapter): SystemDefinition<unknown>{
     return {
         key: PLATFORM_SYSTEMS.InputManager,
         dependencies: [CORE_SYSTEMS.StateManager, CORE_SYSTEMS.EventBus, PLATFORM_SYSTEMS.Logger],
@@ -211,7 +214,8 @@ function createInputManagerDefinition(platform: IPlatformAdapter): SystemDefinit
             const logger = c.get<ILogger>(PLATFORM_SYSTEMS.Logger);
             return new InputManager(stateManager, eventBus, logger);
         },
-        initialize: (inputManager, c) => {
+       initialize: (system: unknown, c) => {
+            const inputManager = system as InputManager;
             const logger = c.get<ILogger>(PLATFORM_SYSTEMS.Logger);
 
             const inputAdapter = platform.getInputAdapter?.();

@@ -64,7 +64,7 @@ export interface ISystemFactoryContext {
 /**
  * System definition - describes how to create and configure a system
  */
-export interface SystemDefinition<T = any> {
+export interface SystemDefinition<T = unknown> {
     /** Unique key for this system */
     key: SystemKey;
 
@@ -87,7 +87,7 @@ export interface SystemDefinition<T = any> {
 /**
  * System instance metadata
  */
-interface SystemEntry<T = any> {
+interface SystemEntry<T = unknown> {
     definition: SystemDefinition<T>;
     instance?: T;
     lifecycle: SystemLifecycle;
@@ -109,28 +109,25 @@ export class SystemContainer implements ISystemFactoryContext {
         this.logger = logger;
     }
 
-    /**
-     * Register a system definition in the container.
-     * If a system with the same key is already registered, it will be overwritten with a warning.
-     *
-     * @template T - The type of the system instance
-     * @param definition - The system definition describing how to create and configure the system
-     */
-    register<T>(definition: SystemDefinition<T>): void {
+    public register<T>(definition: SystemDefinition<T>): void {
         if (this.systems.has(definition.key)) {
             this.logger.warn(`[SystemContainer] System '${String(definition.key)}' already registered. Overwriting.`);
         }
 
-        this.systems.set(definition.key, {
+        // Create the specific entry
+        const entry: SystemEntry<T> = {
             definition,
             lifecycle: SystemLifecycle.REGISTERED
-        });
+        };
+
+        // Cast the specific entry to the map's general <unknown> type
+        this.systems.set(definition.key, entry as SystemEntry<unknown>);
     }
 
     /**
      * Register an already-instantiated system (for backward compatibility)
      */
-    registerInstance<T>(key: SystemKey, instance: T): void {
+    public registerInstance<T>(key: SystemKey, instance: T): void {
         this.systems.set(key, {
             definition: {
                 key,
@@ -144,7 +141,7 @@ export class SystemContainer implements ISystemFactoryContext {
     /**
      * Check if a system is registered
      */
-    has(key: SystemKey): boolean {
+    public has(key: SystemKey): boolean {
         return this.systems.has(key);
     }
 
@@ -159,7 +156,7 @@ export class SystemContainer implements ISystemFactoryContext {
      * @throws Error if the system is not registered, if a circular dependency is detected,
      *         or if the system is currently initializing asynchronously
      */
-    get<T>(key: SystemKey): T {
+    public get<T>(key: SystemKey): T {
         const entry = this.systems.get(key);
 
         if (!entry) {
@@ -185,7 +182,7 @@ export class SystemContainer implements ISystemFactoryContext {
     /**
      * Get an optional system (returns undefined if not registered)
      */
-    getOptional<T>(key: SystemKey): T | undefined {
+    public getOptional<T>(key: SystemKey): T | undefined {
         if (!this.has(key)) {
             return undefined;
         }
@@ -209,7 +206,7 @@ export class SystemContainer implements ISystemFactoryContext {
      * const audioManager = await container.waitForReady<AudioManager>(PLATFORM_SYSTEMS.AudioManager);
      * ```
      */
-    async waitForReady<T>(key: SystemKey): Promise<T> {
+    public async waitForReady<T>(key: SystemKey): Promise<T> {
         const entry = this.systems.get(key);
 
         if (!entry) {
@@ -240,8 +237,8 @@ export class SystemContainer implements ISystemFactoryContext {
     /**
      * Create a system instance and resolve its dependencies
      */
-    private createSystem<T>(entry: SystemEntry<T>): T {
-        const { definition } = entry;
+    private createSystem<T>(entry: SystemEntry<unknown>): T {
+        const {definition} = entry;
 
         // Check for circular dependencies
         if (this.initializing.has(definition.key)) {
@@ -300,7 +297,7 @@ export class SystemContainer implements ISystemFactoryContext {
                 entry.lifecycle = SystemLifecycle.READY;
             }
 
-            return instance;
+           return instance as T;
         } finally {
             this.initializing.delete(definition.key);
         }
@@ -309,7 +306,7 @@ export class SystemContainer implements ISystemFactoryContext {
     /**
      * Initialize all registered non-lazy systems
      */
-    async initializeAll(): Promise<void> {
+    public async initializeAll(): Promise<void> {
         const promises: Promise<void>[] = [];
 
         for (const [key, entry] of this.systems.entries()) {
@@ -338,7 +335,7 @@ export class SystemContainer implements ISystemFactoryContext {
      *
      * @param key - The unique key identifying the system to dispose
      */
-    async dispose(key: SystemKey): Promise<void> {
+    public async dispose(key: SystemKey): Promise<void> {
         const entry = this.systems.get(key);
 
         if (!entry || !entry.instance) {
@@ -356,7 +353,7 @@ export class SystemContainer implements ISystemFactoryContext {
     /**
      * Dispose of all systems
      */
-    async disposeAll(): Promise<void> {
+    public async disposeAll(): Promise<void> {
         const promises: Promise<void>[] = [];
 
         for (const key of this.systems.keys()) {
@@ -369,7 +366,7 @@ export class SystemContainer implements ISystemFactoryContext {
     /**
      * Clear all system registrations
      */
-    clear(): void {
+    public clear(): void {
         this.systems.clear();
         this.initializing.clear();
     }
@@ -377,14 +374,14 @@ export class SystemContainer implements ISystemFactoryContext {
     /**
      * Get lifecycle state of a system
      */
-    getLifecycleState(key: SystemKey): SystemLifecycle | undefined {
+    public getLifecycleState(key: SystemKey): SystemLifecycle | undefined {
         return this.systems.get(key)?.lifecycle;
     }
 
     /**
      * Get all registered system keys
      */
-    getRegisteredKeys(): SystemKey[] {
+    public getRegisteredKeys(): SystemKey[] {
         return Array.from(this.systems.keys());
     }
 }

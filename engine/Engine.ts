@@ -432,7 +432,7 @@ export class Engine {
             this.logger.warn('[Engine] SerializationRegistry not registered. Cannot unregister serializable system.');
             return;
         }
-        this.serializationRegistry.unregisterSerializable(key);  // ✅ Use proper method
+        this.serializationRegistry.unregisterSerializable(key);
     }
 
     /**

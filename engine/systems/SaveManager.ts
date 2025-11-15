@@ -1,9 +1,9 @@
 // engine/systems/SaveManager.ts
-import type { StorageAdapter, SaveSlotMetadata } from '../core/StorageAdapter';
-import type { EventBus } from '../core/EventBus';
-import type { ISerializationRegistry } from '../types';
-import { MigrationManager } from "./MigrationManager";
-import type { ILogger, ITimerProvider } from "@engine/interfaces";
+import type {SaveSlotMetadata, StorageAdapter} from '../core/StorageAdapter';
+import type {EventBus} from '../core/EventBus';
+import type {ISerializationRegistry} from '../types';
+import {MigrationManager} from "./MigrationManager";
+import type {ILogger, ITimerProvider} from "@engine/interfaces";
 
 export interface SaveData {
     version: string;
@@ -35,10 +35,8 @@ export class SaveManager {
      * Save the current game state.
      * Uses a custom replacer to serialize Map and Set objects natively.
      */
-    async saveGame(slotId: string, metadata?: Record<string, unknown>): Promise<boolean> {
+    async saveGame(slotId: string, saveData: SaveData): Promise<boolean> {
         try {
-            const saveData = this.serializeGameState(metadata);
-
             // MAGIC HAPPENS HERE: The replacer handles complex types automatically
             const json = JSON.stringify(saveData, this.replacer);
 
@@ -54,7 +52,7 @@ export class SaveManager {
             return success;
         } catch (error) {
             this.logger.error('[SaveManager] Save failed:', error);
-            this.eventBus.emit('save.failed', { slotId, error });
+            this.eventBus.emit('save.failed', {slotId, error});
             return false;
         }
     }
@@ -76,13 +74,13 @@ export class SaveManager {
             json = await this.adapter.load(slotId);
         } catch (ioError) {
             this.logger.error('[SaveManager] IO Failed', ioError);
-            this.eventBus.emit('save.loadFailed', { slotId, error: ioError });
+            this.eventBus.emit('save.loadFailed', {slotId, error: ioError});
             return false;
         }
 
         if (!json) {
             this.logger.warn('[SaveManager] Save slot not found:', slotId);
-            this.eventBus.emit('save.loadFailed', { slotId, error: new Error('Slot not found') });
+            this.eventBus.emit('save.loadFailed', {slotId, error: new Error('Slot not found')});
             return false;
         }
 
@@ -93,7 +91,7 @@ export class SaveManager {
             saveData = this.migrationManager.migrate(saveData, this.registry.gameVersion);
         } catch (parseError) {
             this.logger.error('[SaveManager] Failed to parse save data:', parseError);
-            this.eventBus.emit('save.loadFailed', { slotId, error: parseError });
+            this.eventBus.emit('save.loadFailed', {slotId, error: parseError});
             return false;
         }
 
@@ -168,7 +166,7 @@ export class SaveManager {
                 }
 
                 this.eventBus.resumeEvents();
-                this.eventBus.emit('save.loadFailed', { slotId, error: deserializeError });
+                this.eventBus.emit('save.loadFailed', {slotId, error: deserializeError});
                 return false;
 
             } catch (restoreError) {
@@ -198,7 +196,7 @@ export class SaveManager {
     /**
      * JSON Replacer: Converts Map/Set to serializable objects with type tags
      */
-    private replacer(_key: string, value: unknown): unknown {
+    public replacer(_key: string, value: unknown): unknown {
         if (value instanceof Map) {
             return {
                 $type: 'Map',
@@ -218,15 +216,28 @@ export class SaveManager {
      * JSON Reviver: Restores Map/Set from tagged objects
      */
     private reviver(_key: string, value: unknown): unknown {
+        // 1. We start with the type guard we already have.
         if (typeof value === 'object' && value !== null) {
-            // Cast to any to check for our special properties safely
-            const typedValue = value as { $type?: string; value: any };
 
-            if (typedValue.$type === 'Map') {
-                return new Map(typedValue.value);
-            }
-            if (typedValue.$type === 'Set') {
-                return new Set(typedValue.value);
+            // 2. Safely check for the existence of our tag properties.
+            //    This avoids "property does not exist on type object" errors.
+            if (Object.prototype.hasOwnProperty.call(value, '$type') &&
+                Object.prototype.hasOwnProperty.call(value, 'value')) {
+                // 3. Now that we know the keys exist, we can cast to a
+                //    more specific (but still safe) unknown shape.
+                const taggedValue = value as { $type: unknown; value: unknown };
+
+                // 4. Check the type tag and validate the inner 'value' is an array.
+                if (taggedValue.$type === 'Map' && Array.isArray(taggedValue.value)) {
+                    // 5. We can now confidently construct the Map.
+                    //    We cast the inner value to the expected tuple array.
+                    return new Map(taggedValue.value as [unknown, unknown][]);
+                }
+
+                if (taggedValue.$type === 'Set' && Array.isArray(taggedValue.value)) {
+                    // 6. We can now confidently construct the Set.
+                    return new Set(taggedValue.value as unknown[]);
+                }
             }
         }
         return value;
@@ -239,7 +250,7 @@ export class SaveManager {
     async deleteSave(slotId: string): Promise<boolean> {
         const success = await this.adapter.delete(slotId);
         if (success) {
-            this.eventBus.emit('save.deleted', { slotId });
+            this.eventBus.emit('save.deleted', {slotId});
         }
         return success;
     }
@@ -248,7 +259,7 @@ export class SaveManager {
         return await this.adapter.list();
     }
 
-    private serializeGameState(metadata?: Record<string, unknown>): SaveData {
+    public serializeGameState(metadata?: Record<string, unknown>): SaveData {
         const systemsData: Record<string, unknown> = {};
 
         for (const [key, system] of this.registry.getAllSerializables().entries()) {

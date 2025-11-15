@@ -1,12 +1,12 @@
 // engine/tests/SaveManager.test.ts
 
-import {describe, it, expect, beforeEach, vi} from 'vitest';
-import {SaveManager} from '@engine/systems/SaveManager';
+import {beforeEach, describe, expect, it, vi} from 'vitest';
 import type {SaveData} from '@engine/systems/SaveManager';
+import {SaveManager} from '@engine/systems/SaveManager';
 import {EventBus} from '@engine/core/EventBus';
-import type {ISerializationRegistry, ISerializable, MigrationFunction} from '@engine/types';
+import type {ISerializable, ISerializationRegistry, MigrationFunction} from '@engine/types';
 import type {StorageAdapter} from '@engine/core/StorageAdapter';
-import { createMockLogger } from './helpers/loggerMocks';
+import {createMockLogger} from './helpers/loggerMocks';
 // Mock dependencies
 vi.mock('@engine/core/EventBus');
 vi.mock('@engine/systems/LocalStorageAdapter'); // Mock the default adapter
@@ -84,17 +84,22 @@ describe('SaveManager', () => {
 
     describe('saveGame', () => {
         it('should call serialize on all registered systems', async () => {
-            await saveManager.saveGame('slot1');
+            // Step 1: Manually serialize (this is what we're testing)
+            const saveData = saveManager.serializeGameState();
             expect(mockPlayer.serialize).toHaveBeenCalledOnce();
+
+            // Step 2: Pass the data to the save method
+            await saveManager.saveGame('slot1', saveData);
         });
 
         it('should call storageAdapter.save with correctly structured JSON', async () => {
-            const mockDate = new Date(2025, 0, 1, 12, 0, 0); // 1st Jan 2025, 12:00
-            vi.setSystemTime(mockDate); // <-- ADD THIS: Set a specific time
+            const mockDate = new Date(2025, 0, 1, 12, 0, 0);
+            vi.setSystemTime(mockDate);
 
+            // 1. Define what we expect the serialized data to look like
             const expectedSaveData = {
                 version: '1.0.0',
-                timestamp: mockDate.getTime(), // <-- CHANGE THIS: Use the exact time
+                timestamp: mockDate.getTime(),
                 currentSceneId: 'scene_start',
                 systems: {
                     player: {health: 100}
@@ -102,8 +107,18 @@ describe('SaveManager', () => {
                 metadata: {}
             };
 
-            await saveManager.saveGame('slot1');
+            // 2. (NEW) Explicitly call the serialize method
+            // This is the "fast, synchronous" part.
+            const saveData = saveManager.serializeGameState();
 
+            // 3. (NEW) We can now test the serialization *directly*
+            expect(saveData).toEqual(expectedSaveData);
+
+            // 4. (NEW) Pass the generated data to the refactored saveGame method
+            // This is the "slow, async" part (stringify + I/O).
+            await saveManager.saveGame('slot1', saveData);
+
+            // 5. The final assertion is unchanged and now *only* tests the save I/O
             expect(mockStorageAdapter.save).toHaveBeenCalledWith(
                 'slot1',
                 JSON.stringify(expectedSaveData)
@@ -112,14 +127,28 @@ describe('SaveManager', () => {
 
         it('should emit "save.completed" on success', async () => {
             vi.mocked(mockStorageAdapter.save).mockResolvedValue(true);
-            await saveManager.saveGame('slot1');
+
+            // (NEW) Step 1: Get a valid SaveData object
+            const saveData = saveManager.serializeGameState();
+
+            // (MODIFIED) Step 2: Pass it to the refactored method
+            await saveManager.saveGame('slot1', saveData);
+
+            // The assertion remains the same
             expect(mockEventBus.emit).toHaveBeenCalledWith('save.completed', expect.any(Object));
         });
 
         it('should emit "save.failed" on failure', async () => {
             const error = new Error('Storage full');
             vi.mocked(mockStorageAdapter.save).mockRejectedValue(error);
-            await saveManager.saveGame('slot1');
+
+            // (NEW) Step 1: Get a valid SaveData object
+            const saveData = saveManager.serializeGameState();
+
+            // (MODIFIED) Step 2: Pass it to the refactored method
+            await saveManager.saveGame('slot1', saveData);
+
+            // The assertion remains the same
             expect(mockEventBus.emit).toHaveBeenCalledWith('save.failed', {slotId: 'slot1', error});
         });
     });
@@ -208,7 +237,7 @@ describe('SaveManager', () => {
             ]);
 
             const mockInventorySystem: ISerializable = {
-                serialize: vi.fn(() => ({ items: inventoryMap })),
+                serialize: vi.fn(() => ({items: inventoryMap})),
                 deserialize: vi.fn(),
             };
 
@@ -216,7 +245,11 @@ describe('SaveManager', () => {
 
             // Save
             vi.mocked(mockStorageAdapter.save).mockResolvedValue(true);
-            await saveManager.saveGame('slot1');
+            // (NEW) Step 1: Get a valid SaveData object
+            const saveData = saveManager.serializeGameState();
+
+            // (MODIFIED) Step 2: Pass it to the refactored method
+            await saveManager.saveGame('slot1', saveData);
 
             // Get the JSON that was saved
             const savedJson = vi.mocked(mockStorageAdapter.save).mock.calls[0][1];
@@ -243,7 +276,7 @@ describe('SaveManager', () => {
             const flagsSet = new Set(['tutorial_complete', 'boss_defeated']);
 
             const mockFlagsSystem: ISerializable = {
-                serialize: vi.fn(() => ({ flags: flagsSet })),
+                serialize: vi.fn(() => ({flags: flagsSet})),
                 deserialize: vi.fn(),
             };
 
@@ -251,7 +284,8 @@ describe('SaveManager', () => {
 
             // Save
             vi.mocked(mockStorageAdapter.save).mockResolvedValue(true);
-            await saveManager.saveGame('slot1');
+            const saveData = saveManager.serializeGameState();
+            await saveManager.saveGame('slot1', saveData);
 
             // Get the JSON that was saved
             const savedJson = vi.mocked(mockStorageAdapter.save).mock.calls[0][1];
@@ -295,7 +329,9 @@ describe('SaveManager', () => {
 
             // Save and load
             vi.mocked(mockStorageAdapter.save).mockResolvedValue(true);
-            await saveManager.saveGame('slot1');
+            const saveData = saveManager.serializeGameState();
+
+            await saveManager.saveGame('slot1', saveData);
 
             const savedJson = vi.mocked(mockStorageAdapter.save).mock.calls[0][1];
             vi.mocked(mockStorageAdapter.load).mockResolvedValue(savedJson);
@@ -316,7 +352,7 @@ describe('SaveManager', () => {
                 name: 'Player',
                 score: 1000,
                 items: ['sword', 'shield'],
-                config: { difficulty: 'hard' }
+                config: {difficulty: 'hard'}
             };
 
             const mockPlainSystem: ISerializable = {
@@ -328,7 +364,9 @@ describe('SaveManager', () => {
 
             // Save and load
             vi.mocked(mockStorageAdapter.save).mockResolvedValue(true);
-            await saveManager.saveGame('slot1');
+            const saveData = saveManager.serializeGameState();
+
+            await saveManager.saveGame('slot1', saveData);
 
             const savedJson = vi.mocked(mockStorageAdapter.save).mock.calls[0][1];
             vi.mocked(mockStorageAdapter.load).mockResolvedValue(savedJson);
