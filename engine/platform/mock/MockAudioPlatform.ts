@@ -65,7 +65,7 @@ export class MockAudioPlatform implements IAudioPlatform {
                     disconnect: () => {}
                 }),
                 destination: { maxChannelCount: 2 }
-            } as any;
+            } as unknown as AudioContext;
         }
         return this.nativeContext as AudioContext;
     }
