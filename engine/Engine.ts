@@ -22,24 +22,6 @@ import {ConsoleLogger} from '@engine/platform/ConsoleLogger';
 import type {ILogger} from "@engine/interfaces/ILogger";
 
 /**
- * System configuration (kept for backward compatibility)
- */
-export interface SystemConfig {
-    audio?: boolean | {
-        volume?: number;
-        musicVolume?: number;
-        sfxVolume?: number;
-    };
-    assets?: boolean;
-    save?: boolean | {
-        adapter?: unknown;
-    };
-    effects?: boolean;
-    input?: boolean;
-    renderer?: { type: 'canvas' | 'dom' | 'svelte' };
-}
-
-/**
  * Engine configuration
  *
  * The gameState can be any object - the engine doesn't need to know its type.
@@ -56,13 +38,6 @@ export interface EngineConfig {
      * Default: 0.1 (100ms / minimum 10fps)
      */
     maxDeltaTime?: number;
-
-    /**
-     * System configuration (optional for new DI-based approach)
-     * When using the new DI approach, register systems manually via engine.container.register()
-     * This field is kept for backward compatibility with legacy config-driven setup
-     */
-    systems?: SystemConfig;
     gameState: Record<string, unknown>;
     gameData?: GameData;
     platform?: IPlatformAdapter;
@@ -140,10 +115,6 @@ export class Engine {
         this.lastFrameTime = 0;
         this.frameCount = 0;
 
-        // NOTE: Systems are NOT auto-registered.
-        // The developer must explicitly register systems using:
-        //   engine.container.register(definition)
-        // Then call engine.initializeSystems()
     }
 
     /**

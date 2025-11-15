@@ -69,7 +69,6 @@ describe('Engine', () => {
             debug: false,
             gameVersion: '1.0.0',
             platform, // Provide platform adapter
-            systems: { audio: false, save: true, assets: true }, // Headless platform doesn't support audio
             gameState: { player: mockPlayer },
         };
     });
@@ -86,8 +85,6 @@ describe('Engine', () => {
     });
 
     it('should NOT unlock audio if AudioManager is disabled', async () => {
-        config.systems = config.systems ?? {};
-        config.systems.audio = false;
         const engine = new Engine(config);
 
         // audio getter should throw or return undefined when disabled
