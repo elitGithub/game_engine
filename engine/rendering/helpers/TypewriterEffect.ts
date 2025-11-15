@@ -1,6 +1,7 @@
 import type {TypedGameContext} from '@engine/types';
 import type {IDynamicEffect, IEffectTarget} from '@engine/types/EffectTypes';
 import type {ILogger} from "@engine/interfaces/ILogger";
+import {DEFAULT_TYPEWRITER_SPEED, MILLISECONDS_PER_SECOND} from '@engine/constants/TypewriterConstants';
 
 /**
  * TypewriterEffect - Time-based text reveal animation effect.
@@ -46,7 +47,7 @@ export class TypewriterEffect implements IDynamicEffect {
      * @throws Error if charsPerSecond is NaN, negative, or an invalid non-finite value
      */
     constructor(config: { charsPerSecond?: number, punctuationDelay?: number } = {}) {
-        const cps = config.charsPerSecond ?? 30; // Default to 30 chars/second
+        const cps = config.charsPerSecond ?? DEFAULT_TYPEWRITER_SPEED;
 
         // Validation: Ensure finite positive number or Infinity
         if (Number.isNaN(cps)) {
@@ -147,7 +148,7 @@ export class TypewriterEffect implements IDynamicEffect {
             if (this.charIndex < this.fullText.length) {
                 const nextChar = this.fullText[this.charIndex];
                 if (this.isPunctuation(nextChar)) {
-                    this.currentDelay = this.timePerChar + (this.punctuationDelay / 1000);
+                    this.currentDelay = this.timePerChar + (this.punctuationDelay / MILLISECONDS_PER_SECOND);
                 } else {
                     this.currentDelay = this.timePerChar;
                 }
