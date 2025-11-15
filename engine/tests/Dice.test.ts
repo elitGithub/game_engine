@@ -1,18 +1,11 @@
 // engine/tests/Dice.test.ts
 
-import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
-import {Dice} from '@engine/utils/Dice';
+// 'afterEach' and 'beforeEach' are no longer needed
+import { describe, expect, it, vi } from 'vitest';
+import { Dice } from '@engine/utils/Dice';
 
 describe('Dice', () => {
-
-    beforeEach(() => {
-        // Mock Math.random() to return predictable values
-        vi.spyOn(Math, 'random');
-    });
-
-    afterEach(() => {
-        vi.restoreAllMocks();
-    });
+    // The beforeEach and afterEach hooks have been removed.
 
     it('should roll a single d6', () => {
         const mockRng = vi.fn().mockReturnValue(0);
@@ -21,44 +14,27 @@ describe('Dice', () => {
     });
 
     it('should roll a 1', () => {
-        // Create a local mock function. No global state is touched.
         const mockRng = vi.fn().mockReturnValue(0);
-
-        // Pass the mock RNG directly into the method.
         const result = Dice.roll(6, mockRng);
-
         expect(result).toBe(1);
         expect(mockRng).toHaveBeenCalledOnce();
     });
 
     it('should roll a 20', () => {
-        // 1. Create a local mock RNG. No global state is touched.
         const mockRng = vi.fn().mockReturnValue(0.99);
-
-        // 2. Pass the mock RNG directly into the method.
         const result = Dice.roll(20, mockRng);
-
-        // 3. The assertion remains the same.
         expect(result).toBe(20);
-
-        // 4. (Optional but good) You can also assert the mock was called.
         expect(mockRng).toHaveBeenCalledOnce();
     });
 
     it('should roll multiple dice and return the sum', () => {
-        // 1. Create a LOCAL mock function. It's just a variable.
         const mockRng = vi.fn()
             .mockReturnValueOnce(0.5) // 4
             .mockReturnValueOnce(0.1) // 1
             .mockReturnValueOnce(0.8); // 5
 
-        // 2. Pass your local mock IN as an argument.
         const result = Dice.rollSum(3, 6, mockRng); // 4 + 1 + 5
-
-        // 3. The result is the same.
         expect(result).toBe(10);
-
-        // 4. You check your LOCAL mock, not the global one.
         expect(mockRng).toHaveBeenCalledTimes(3);
     });
 
@@ -66,7 +42,6 @@ describe('Dice', () => {
         const mockRng = vi.fn()
             .mockReturnValueOnce(0.5) // 4
             .mockReturnValueOnce(0.1); // 1
-
 
         const result = Dice.rollMultiple(2, 6, mockRng);
         expect(result).toEqual([4, 1]);
@@ -88,5 +63,18 @@ describe('Dice', () => {
 
         const result = Dice.rollDisadvantage(20, mockRng);
         expect(result).toBe(3);
+    });
+
+    // BONUS TEST:
+    // This test verifies the default behavior (when no mock is passed)
+    // without actually mocking Math.random.
+    it('should use Math.random by default and return a valid number', () => {
+        // No mock RNG is passed, so it uses the default Math.random
+        const result = Dice.roll(100);
+
+        // We can't know the exact value, but we can validate its properties
+        expect(result).toBeGreaterThanOrEqual(1);
+        expect(result).toBeLessThanOrEqual(100);
+        expect(Number.isInteger(result)).toBe(true);
     });
 });

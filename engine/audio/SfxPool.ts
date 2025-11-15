@@ -92,6 +92,8 @@ export class SfxPool {
 
         const [oldestChain, soundId] = firstEntry.value;
 
+        oldestChain.source.onEnded(() => {});
+
         // Stop the chain
         oldestChain.source.stop();
 
