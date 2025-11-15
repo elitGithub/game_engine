@@ -47,6 +47,10 @@ export interface EngineConfig {
     };
 }
 
+const DEFAULT_MAX_DELTA_TIME = 0.1; // Default max frame time, 100ms (10fps min)
+const DEFAULT_GAME_VERSION = '1.0.0';
+const DEFAULT_TARGET_FPS = 60;
+
 /**
  * Engine - Clean, unopinionated, config-driven game engine
  *
@@ -82,9 +86,9 @@ export class Engine {
 
         this.config = {
             debug: userConfig.debug ?? false,
-            targetFPS: userConfig.targetFPS ?? 60,
-            gameVersion: userConfig.gameVersion ?? '1.0.0',
-            maxDeltaTime: userConfig.maxDeltaTime ?? 0.1
+            targetFPS: userConfig.targetFPS ?? DEFAULT_TARGET_FPS,
+            gameVersion: userConfig.gameVersion ?? DEFAULT_GAME_VERSION,
+            maxDeltaTime: userConfig.maxDeltaTime ?? DEFAULT_MAX_DELTA_TIME
         };
 
         // Get or create platform adapter

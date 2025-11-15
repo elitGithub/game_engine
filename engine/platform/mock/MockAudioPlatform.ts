@@ -22,7 +22,7 @@ import { MockAudioContext } from './MockAudioContext';
  */
 export class MockAudioPlatform implements IAudioPlatform {
     private context: MockAudioContext | null = null;
-    private nativeContext: any = null;
+    private nativeContext: unknown = null;
 
     getType(): AudioPlatformType {
         return 'mock';
@@ -67,7 +67,7 @@ export class MockAudioPlatform implements IAudioPlatform {
                 destination: { maxChannelCount: 2 }
             } as any;
         }
-        return this.nativeContext;
+        return this.nativeContext as AudioContext;
     }
 
     getCapabilities(): AudioCapabilities {

@@ -2,14 +2,19 @@
  * Headless Container Implementation
  */
 
-import type { IHeadlessRenderContainer } from '@engine/interfaces/IRenderContainer';
+import type {IHeadlessRenderContainer} from '@engine/interfaces/IRenderContainer';
+
+const DEFAULT_HEADLESS_WIDTH = 800;
+const DEFAULT_HEADLESS_HEIGHT = 600;
+const DEFAULT_HEADLESS_PIXEL_RATIO = 1.0;
 
 export class HeadlessRenderContainer implements IHeadlessRenderContainer {
     constructor(
-        private width: number = 800,
-        private height: number = 600,
-        private pixelRatio: number = 1.0
-    ) {}
+        private width: number = DEFAULT_HEADLESS_WIDTH,
+        private height: number = DEFAULT_HEADLESS_HEIGHT,
+        private pixelRatio: number = DEFAULT_HEADLESS_PIXEL_RATIO
+    ) {
+    }
 
     getType(): 'headless' {
         return 'headless';
