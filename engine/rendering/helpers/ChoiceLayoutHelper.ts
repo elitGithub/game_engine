@@ -1,7 +1,6 @@
 // engine/rendering/helpers/ChoiceLayoutHelper.ts
 
-import type { RenderCommand, TextStyleData } from '../../types/RenderingTypes';
-import type { PositionedChoice } from '../../types/RenderingTypes';
+import type { RenderCommand, PositionedChoice } from '../../types/RenderingTypes';
 import { DEFAULT_Z_INDEX } from '@engine/constants/RenderingConstants';
 
 /**
@@ -44,7 +43,6 @@ export class ChoiceLayoutHelper {
      */
     buildCommands(choices: PositionedChoice[]): RenderCommand[] {
         const commands: RenderCommand[] = [];
-        const defaultStyle: TextStyleData = { color: '#34d399', fontSize: '18px', fontFamily: 'Arial' };
 
         choices.forEach(choice => {
             // Text for the choice (uses pre-calculated positions)
@@ -54,7 +52,7 @@ export class ChoiceLayoutHelper {
                 text: choice.text,
                 x: choice.textPos.x, // <-- Use provided data
                 y: choice.textPos.y, // <-- Use provided data
-                style: { ...defaultStyle, ...(choice.style || {}) },
+                style: choice.style,
                 zIndex: DEFAULT_Z_INDEX.UI_DIALOGUE + 1
             });
 

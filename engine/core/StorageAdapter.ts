@@ -1,3 +1,5 @@
+import type {SaveSlotMetadata} from './SaveSlotMetadata';
+
 /**
  * StorageAdapter - Interface for save data storage backends
  */
@@ -21,10 +23,4 @@ export interface StorageAdapter {
      * List all available save slots with metadata
      */
     list(): Promise<SaveSlotMetadata[]>;
-}
-
-export interface SaveSlotMetadata {
-    slotId: string;
-    timestamp: number;
-    [key: string]: unknown; // Allow custom metadata
 }

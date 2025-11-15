@@ -5,7 +5,8 @@
  * Useful for unit tests, CI/CD pipelines, and headless game simulation.
  */
 
-import type { StorageAdapter, SaveSlotMetadata } from '../core/StorageAdapter';
+import type { StorageAdapter } from '../core/StorageAdapter';
+import type { SaveSlotMetadata } from '../core/SaveSlotMetadata';
 
 /**
  * InMemoryStorageAdapter - Non-persistent storage implementation

@@ -49,7 +49,7 @@ export class GameClockPlugin implements IEnginePlugin, ISerializable {
         engine.unregisterSerializableSystem(CLOCK_SERIALIZATION_KEY);
     }
 
-    update(_deltaTime: number, _context: TypedGameContext<any>): void {
+    update(_deltaTime: number, _context: TypedGameContext<unknown>): void {
         // Clock doesn't auto-advance - game calls advance() explicitly
         // This is here in case you want real-time mode in the future
     }

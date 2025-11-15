@@ -17,7 +17,8 @@ describe('ChoiceLayoutHelper', () => {
             text: 'Go North',
             textPos: { x: 100, y: 150 },
             hotspot: { x: 90, y: 130, width: 200, height: 40 },
-            data: { target: 'scene_2' }
+            data: { target: 'scene_2' },
+            style: { color: '#ffffff', fontSize: '16px', fontFamily: 'sans-serif' }
         };
 
         const commands = helper.buildCommands([mockChoice]);
@@ -56,14 +57,16 @@ describe('ChoiceLayoutHelper', () => {
                 text: 'Go North',
                 textPos: { x: 100, y: 150 },
                 hotspot: { x: 90, y: 130, width: 200, height: 40 },
-                data: { target: 'scene_2' }
+                data: { target: 'scene_2' },
+                style: { color: '#ffffff', fontSize: '16px', fontFamily: 'sans-serif' }
             },
             {
                 id: 'choice_2',
                 text: 'Go South',
                 textPos: { x: 100, y: 200 },
                 hotspot: { x: 90, y: 180, width: 200, height: 40 },
-                data: { target: 'scene_3' }
+                data: { target: 'scene_3' },
+                style: { color: '#ffffff', fontSize: '16px', fontFamily: 'sans-serif' }
             }
         ];
 

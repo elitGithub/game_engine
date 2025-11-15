@@ -11,7 +11,28 @@ import {InputActionMapper} from "@engine/input/InputActionMapper";
 import {InputComboTracker} from "@engine/input/InputComboTracker";
 import type { ILogger } from '@engine/interfaces';
 
+/**
+ * InputManager configuration options
+ */
+export interface InputManagerOptions {
+    /**
+     * Size of combo input buffer for detecting input sequences.
+     * Default: 10
+     */
+    comboBufferSize?: number;
 
+    /**
+     * Default time window in milliseconds for combo detection.
+     * Default: 1000ms
+     */
+    comboTimeWindowMs?: number;
+
+    /**
+     * Default gamepad index to use.
+     * Default: 0
+     */
+    gamepadIndex?: number;
+}
 
 /**
  * InputManager - Platform-agnostic input handling
@@ -38,14 +59,24 @@ export class InputManager {
     private readonly actionMapper: InputActionMapper;
     private readonly comboTracker: InputComboTracker;
 
+    private readonly comboBufferSize: number;
+    private readonly comboTimeWindowMs: number;
+    private readonly gamepadIndex: number;
+
     constructor(
         stateManager: GameStateManager,
         eventBus: EventBus,
-        logger: ILogger
+        logger: ILogger,
+        options: InputManagerOptions = {}
     ) {
         this.stateManager = stateManager;
         this.eventBus = eventBus;
         this.logger = logger;
+
+        // Apply options with defaults
+        this.comboBufferSize = options.comboBufferSize ?? InputManager.DEFAULT_COMBO_BUFFER_SIZE;
+        this.comboTimeWindowMs = options.comboTimeWindowMs ?? InputManager.DEFAULT_COMBO_TIME_WINDOW_MS;
+        this.gamepadIndex = options.gamepadIndex ?? InputManager.DEFAULT_GAMEPAD_INDEX;
 
         this.state = {
             keysDown: new Set(),
@@ -58,9 +89,9 @@ export class InputManager {
         this.enabled = true;
         this.currentMode = 'gameplay';
 
-        // Instantiate helper classes
+        // Instantiate helper classes with configured values
         this.actionMapper = new InputActionMapper(eventBus);
-        this.comboTracker = new InputComboTracker(eventBus, InputManager.DEFAULT_COMBO_BUFFER_SIZE);
+        this.comboTracker = new InputComboTracker(eventBus, this.comboBufferSize);
 
         this.logger.log('[InputManager] Initialized with action mapper and combo tracker');
     }
@@ -370,7 +401,7 @@ export class InputManager {
             } else if (binding.type === 'mouse') {
                 return this.isMouseButtonDown(binding.input as number);
             } else if (binding.type === 'gamepad') {
-                return this.isGamepadButtonPressed(InputManager.DEFAULT_GAMEPAD_INDEX, binding.input as number);
+                return this.isGamepadButtonPressed(this.gamepadIndex, binding.input as number);
             }
 
             return false;
@@ -389,8 +420,8 @@ export class InputManager {
      * @param inputs - Array of input strings in sequence (e.g., ['ArrowDown', 'ArrowRight', 'a'])
      * @param timeWindow - Maximum time in milliseconds for the full sequence (default: 1000ms)
      */
-    public registerCombo(name: string, inputs: string[], timeWindow: number = InputManager.DEFAULT_COMBO_TIME_WINDOW_MS): void {
-        this.comboTracker.registerCombo(name, inputs, timeWindow);
+    public registerCombo(name: string, inputs: string[], timeWindow?: number): void {
+        this.comboTracker.registerCombo(name, inputs, timeWindow ?? this.comboTimeWindowMs);
     }
 
     /**

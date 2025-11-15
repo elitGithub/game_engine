@@ -50,17 +50,7 @@ export type {
     InputCapabilities
 } from '@engine/interfaces/IInputAdapter';
 
-export interface AudioManagerOptions {
-    sfxPoolSize: number;
-    maxSources: number;
-    volumes?: {
-        master?: number;
-        music?: number;
-        sfx?: number;
-        voice?: number;
-    };
-}
-
+export type { AudioManagerOptions } from '@engine/interfaces/AudioManagerOptions';
 
 export type { ITimerProvider } from '@engine/interfaces/ITimerProvider';
 export type { ILogger } from '@engine/interfaces/ILogger';

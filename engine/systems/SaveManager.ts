@@ -1,5 +1,6 @@
 // engine/systems/SaveManager.ts
-import type {SaveSlotMetadata, StorageAdapter} from '../core/StorageAdapter';
+import type {StorageAdapter} from '../core/StorageAdapter';
+import type {SaveSlotMetadata} from '../core/SaveSlotMetadata';
 import type {EventBus} from '../core/EventBus';
 import type {ISerializationRegistry} from '../types';
 import {MigrationManager} from "./MigrationManager";

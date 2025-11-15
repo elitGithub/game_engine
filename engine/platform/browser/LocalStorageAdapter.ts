@@ -3,7 +3,8 @@
  *
  * Platform-specific storage adapter for browsers using localStorage API.
  */
-import type { StorageAdapter, SaveSlotMetadata } from '@engine/core/StorageAdapter';
+import type { StorageAdapter } from '@engine/core/StorageAdapter';
+import type { SaveSlotMetadata } from '@engine/core/SaveSlotMetadata';
 import type {ILogger} from "@engine/interfaces";
 
 export class LocalStorageAdapter implements StorageAdapter {

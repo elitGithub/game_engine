@@ -134,7 +134,7 @@ export interface PositionedChoice {
     hotspot: { x: number; y: number; width: number; height: number };
     /** Generic data for click handlers */
     data: Record<string, unknown>;
-    style?: TextStyleData; // Allow custom styling
+    style: TextStyleData; // Required: engine makes no assumptions about visual styling
 }
 
 export interface PositionedDialogue {
