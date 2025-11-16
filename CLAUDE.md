@@ -193,15 +193,19 @@ Following a comprehensive architectural review, 5 medium-priority issues were id
 Minor code quality tasks for future consideration:
 
 1. Review and remove any unused utility files
-2. Consider migrating to NX monorepo structure (see vision below)
 
 ## **Common Tasks**
 
-* Build: npm run build
-* Test: npm test
-* Type check: npm run check:types
-* Test with UI: npm run test:ui
-* Dev server: npm run dev
+* Build all: `npm run build`
+* Build core: `npm run build:core`
+* Test all: `npm test`
+* Test core: `npm run test:core`
+* Type check all: `npm run check:types`
+* Type check core: `npm run check:types:core`
+* Test with UI: `npm run test:ui`
+* Dev server: `npm run dev`
+
+See the NX Monorepo Structure section below for more NX commands.
 * Never use emojis 
 * avoid having unused variables or imports in typescript files  
 * always stick to the strictest TS guidelines and best practices  
@@ -217,23 +221,59 @@ Minor code quality tasks for future consideration:
 <!-- nx configuration start-->
 <!-- Leave the start & end comments to automatically receive updates. -->
 
-# Note: NX Monorepo Migration (Future Consideration)
+# NX Monorepo Structure
 
-**Current Reality:** This project is NOT currently an NX monorepo. It's a single-package TypeScript project using Vite and Vitest.
+**Status:** This project is now an NX monorepo supporting the three-layer architecture vision.
 
-**Vision:** The long-term architectural goal includes potentially migrating to an NX monorepo structure with separate publishable packages (e.g., @engine/core, @engine/dom-renderer, @engine/canvas-renderer, @engine/web-audio).
+## Monorepo Structure
 
-**Benefits of NX Migration:**
+```
+packages/
+  core/                    # @game-engine/core (Layer 1: Engine Library)
+    src/                   # Engine source code
+    package.json
+    project.json          # NX project configuration
+    tsconfig.json
+    vite.config.ts
+```
+
+## NX Commands
+
+**Build:**
+- Build all packages: `npm run build`
+- Build core only: `npm run build:core`
+
+**Test:**
+- Test all packages: `npm test`
+- Test core only: `npm run test:core`
+- Test UI: `npm run test:ui`
+
+**Type Check:**
+- Check all packages: `npm run check:types`
+- Check core only: `npm run check:types:core`
+
+**Development:**
+- Dev server: `npm run dev`
+
+**NX Utilities:**
+- Run NX commands: `npm run nx <command>`
+- View project graph: `npm run nx graph`
+- Run affected tests: `npm run nx affected -t test`
+
+## Package Information
+
+**@game-engine/core** - Platform-agnostic game engine library
+- Location: `packages/core/`
+- Entry: `packages/core/src/index.ts`
+- Import: `import { Engine } from '@game-engine/core'`
+
+## Benefits Achieved
+
 - Clear package boundaries and dependency management
-- Independent versioning and publishing
-- Build caching and task orchestration
-- Better scalability for a multi-package library
-
-**When to Consider Migration:**
-- When the codebase stabilizes architecturally
-- When there's a clear need for independent package publishing
-- When the current single-package structure becomes limiting
-
-Until then, continue using npm scripts: `npm run build`, `npm test`, `npm run check:types`.
+- NX build caching for faster builds
+- Task orchestration and parallelization
+- Ready for Layer 2 framework packages
+- Independent versioning per package
+- Workspace-wide type checking
 
 <!-- nx configuration end-->

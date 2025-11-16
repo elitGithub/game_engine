@@ -42,14 +42,14 @@ This example shows the "Assembler" pattern. You are responsible for creating the
 
 This is the "Assembler" file. You "plug in" the parts you need.
 
-import { Engine, type EngineConfig } from '@engine/Engine';  
-import { BrowserPlatformAdapter, type BrowserPlatformConfig } from '@engine/platform/BrowserPlatformAdapter';  
-import { GameState } from '@engine/core/GameState';  
-import { GameStateManager } from '@engine/core/GameStateManager';  
-import { SystemContainer } from '@engine/core/SystemContainer';  
-import { createCoreSystemDefinitions, CORE\_SYSTEMS } from '@engine/core/CoreSystemDefs';  
-import { createPlatformSystemDefinitions, PLATFORM\_SYSTEMS, type PlatformSystemConfig } from '@engine/core/PlatformSystemDefs';  
-import type { TypedGameContext } from '@engine/types';
+import { Engine, type EngineConfig } from '@game-engine/core/Engine';  
+import { BrowserPlatformAdapter, type BrowserPlatformConfig } from '@game-engine/core/platform/BrowserPlatformAdapter';  
+import { GameState } from '@game-engine/core/core/GameState';  
+import { GameStateManager } from '@game-engine/core/core/GameStateManager';  
+import { SystemContainer } from '@game-engine/core/core/SystemContainer';  
+import { createCoreSystemDefinitions, CORE\_SYSTEMS } from '@game-engine/core/core/CoreSystemDefs';  
+import { createPlatformSystemDefinitions, PLATFORM\_SYSTEMS, type PlatformSystemConfig } from '@game-engine/core/core/PlatformSystemDefs';  
+import type { TypedGameContext } from '@game-engine/core/types';
 
 // \--- Your Game's Specific Types \---
 
@@ -200,8 +200,8 @@ These require an IPlatformAdapter to function.
 You can also register optional systems, like the SaveManager, or your own custom plugins.
 
 // Example: Adding the SaveManager  
-import { SaveManager } from '@engine/systems/SaveManager';  
-import { MigrationManager } from '@engine/systems/MigrationManager';
+import { SaveManager } from '@game-engine/core/systems/SaveManager';  
+import { MigrationManager } from '@game-engine/core/systems/MigrationManager';
 
 // ... in your assembly function ...  
 engine.container.register({  
