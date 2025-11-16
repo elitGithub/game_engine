@@ -204,59 +204,13 @@ See the NX Monorepo Structure section below for more NX commands.
 <!-- nx configuration start-->
 <!-- Leave the start & end comments to automatically receive updates. -->
 
-# NX Monorepo Structure
+# General Guidelines for working with Nx
 
-**Status:** This project is now an NX monorepo supporting the three-layer architecture vision.
-
-## Monorepo Structure
-
-```
-packages/
-  core/                    # @game-engine/core (Layer 1: Engine Library)
-    src/                   # Engine source code
-    package.json
-    project.json          # NX project configuration
-    tsconfig.json
-    vite.config.ts
-```
-
-## NX Commands
-
-**Build:**
-- Build all packages: `npm run build`
-- Build core only: `npm run build:core`
-
-**Test:**
-- Test all packages: `npm test`
-- Test core only: `npm run test:core`
-- Test UI: `npm run test:ui`
-
-**Type Check:**
-- Check all packages: `npm run check:types`
-- Check core only: `npm run check:types:core`
-
-**Development:**
-- Dev server: `npm run dev`
-
-**NX Utilities:**
-- Run NX commands: `npm run nx <command>`
-- View project graph: `npm run nx graph`
-- Run affected tests: `npm run nx affected -t test`
-
-## Package Information
-
-**@game-engine/core** - Platform-agnostic game engine library
-- Location: `packages/core/`
-- Entry: `packages/core/src/index.ts`
-- Import: `import { Engine } from '@game-engine/core'`
-
-## Benefits Achieved
-
-- Clear package boundaries and dependency management
-- NX build caching for faster builds
-- Task orchestration and parallelization
-- Ready for Layer 2 framework packages
-- Independent versioning per package
-- Workspace-wide type checking
+- When running tasks (for example build, lint, test, e2e, etc.), always prefer running the task through `nx` (i.e. `nx run`, `nx run-many`, `nx affected`) instead of using the underlying tooling directly
+- You have access to the Nx MCP server and its tools, use them to help the user
+- When answering questions about the repository, use the `nx_workspace` tool first to gain an understanding of the workspace architecture where applicable.
+- When working in individual projects, use the `nx_project_details` mcp tool to analyze and understand the specific project structure and dependencies
+- For questions around nx configuration, best practices or if you're unsure, use the `nx_docs` tool to get relevant, up-to-date docs. Always use this instead of assuming things about nx configuration
+- If the user needs help with an Nx configuration or project graph error, use the `nx_workspace` tool to get any errors
 
 <!-- nx configuration end-->
