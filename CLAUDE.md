@@ -18,23 +18,6 @@ This project uses:
 
 This document defines the **strict architectural rules** for this project.
 
-Its purpose is to guide the **"refactor-of-the-refactor,"** correcting the failures of the v2.0 (9e19a6f) release. It enforces the **"Step 1: Engine Library"** vision and serves as the "law" for all future code.
-
-This project is **Step 1** and *only* Step 1\.
-
-* **Step 1: The Engine Library (This Repository's Goal)**
-  * **Goal:** A 100% **agnostic, decoupled, clear, and unopinionated set of tools** (a **Library**), with the long-term vision of structuring as an **NX monorepo** (e.g., @engine/core, @engine/dom-renderer).
-  * **Core Ideal:** V1 Forever. Build once, never have to re-build. The engine MUST be ready for the future. Patches are not acceptable solutions. Consider bulletproof, clean, robust solutions.
-  * **Current State:** Single-package TypeScript project using Vite + Vitest. NX migration is a future consideration.
-  * **Philosophy:** "Plug-and-Develop." The developer is an **Assembler** who must explicitly register *every* system they use.
-  * **Audience:** Engine programmers (including our future selves) building a "Step 2" framework.  
-* **Step 2: The Game Framework (A Future Project)**  
-  * **Goal:** **OPINIONATED, CONFIGURABLE** "batteries-included" **Frameworks** for specific genres (e.g., "VisualNovelFramework").  
-  * **Philosophy:** "Plug-and-Play." The developer is a **Creator** who just provides game data.  
-  * **Audience:** Game developers who do not want to "think about the engine."
-
-This repository *must not* contain *any* "Step 2" logic. All "batteries-included" and "non-negotiable" system assemblies belong in Step 2\.
-
 ## **Architectural Rules (The "A-Grade" Standard)**
 
 These are the non-negotiable rules for the "Refactor-of-the-Refactor."

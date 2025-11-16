@@ -1,1 +1,0 @@
-<!-- This project is NOT an NX monorepo. See CLAUDE.md for architecture details. -->
