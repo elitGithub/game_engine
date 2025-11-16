@@ -1,0 +1,98 @@
+// engine/tests/ActionRegistry.test.ts
+
+import {beforeEach, describe, expect, it, vi} from 'vitest';
+import {ActionRegistry} from '@game-engine/core/systems/ActionRegistry';
+import {Action} from '@game-engine/core/systems/Action';
+import type {ActionContext} from '@game-engine/core/types';
+import { createMockLogger } from './helpers/loggerMocks';
+
+const mockLogger = createMockLogger();
+
+// Create mock actions
+class MockAction extends Action {
+    canExecuteResult = true;
+    executeResult: any = null;
+
+    canExecute(_context: ActionContext): boolean {
+        return this.canExecuteResult;
+    }
+
+    execute(_context: ActionContext): any {
+        return this.executeResult;
+    }
+}
+
+describe('ActionRegistry', () => {
+    let registry: ActionRegistry;
+    let mockContext: ActionContext;
+    let actionA: MockAction;
+    let actionB: MockAction;
+
+    beforeEach(() => {
+        registry = new ActionRegistry(mockLogger);
+        mockContext = {} as ActionContext;
+
+        actionA = new MockAction('actionA', 'Action A');
+        actionB = new MockAction('actionB', 'Action B');
+
+        vi.spyOn(actionA, 'execute');
+        vi.spyOn(actionA, 'canExecute');
+        vi.spyOn(actionB, 'execute');
+    });
+
+    it('should register an action', () => {
+        registry.register(actionA, 'default');
+        expect(registry.get('actionA')).toBe(actionA);
+    });
+
+    it('should get actions by type', () => {
+        registry.register(actionA, 'default');
+        registry.register(actionB, 'combat');
+
+        expect(registry.getByType('default')).toEqual([actionA]);
+        expect(registry.getByType('combat')).toEqual([actionB]);
+        expect(registry.getByType('unknown')).toEqual([]);
+    });
+
+    it('should execute an action by ID', () => {
+        actionA.executeResult = 'Success';
+        registry.register(actionA);
+
+        const result = registry.execute('actionA', mockContext);
+
+        expect(result).toBe('Success');
+        expect(actionA.execute).toHaveBeenCalledWith(mockContext);
+    });
+
+    it('should not execute an action if canExecute is false', () => {
+        actionA.canExecuteResult = false;
+        registry.register(actionA);
+
+        const result = registry.execute('actionA', mockContext);
+
+        expect(result).toBe(null);
+        expect(actionA.execute).not.toHaveBeenCalled();
+        expect(mockLogger.warn).toHaveBeenCalledWith( // <-- FIX: use mockLogger
+            expect.stringContaining('cannot be executed'),
+            expect.any(String)
+        );
+    });
+
+    it('should log an error if action is not found', () => {
+        registry.execute('unknown', mockContext);
+        expect(mockLogger.error).toHaveBeenCalledWith("[ActionRegistry] Action 'unknown' not found"); // <-- FIX: use mockLogger
+    });
+
+    it('should get available actions for a context', () => {
+        actionA.canExecuteResult = true;
+        actionB.canExecuteResult = false;
+        registry.register(actionA, 'default');
+        registry.register(actionB, 'default');
+
+        const available = registry.getAvailableActions('default', mockContext);
+
+        expect(available).toHaveLength(1);
+        expect(available[0]).toBe(actionA);
+        expect(actionA.canExecute).toHaveBeenCalledWith(mockContext);
+    });
+});

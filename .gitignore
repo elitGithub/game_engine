@@ -7,8 +7,14 @@
 *.iml
 out
 gen
+
+# Dependencies
 node_modules
+
+# Build outputs
 /dist
 dist
-engine/dist
-engine/.idea/
+
+# NX
+.nx/
+.nx/cache
