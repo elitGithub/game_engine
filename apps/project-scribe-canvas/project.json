@@ -1,0 +1,26 @@
+{
+  "name": "project-scribe-canvas",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "sourceRoot": "apps/project-scribe-canvas/src",
+  "targets": {
+    "build": {
+      "executor": "@nx/vite:build",
+      "options": {
+        "outputPath": "dist/apps/project-scribe-canvas"
+      }
+    },
+    "serve": {
+      "executor": "@nx/vite:dev-server",
+      "options": {
+        "buildTarget": "project-scribe-canvas:build"
+      }
+    },
+    "check:types": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "tsc --noEmit -p apps/project-scribe-canvas/tsconfig.json"
+      }
+    }
+  }
+}

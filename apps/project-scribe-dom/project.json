@@ -1,0 +1,26 @@
+{
+  "name": "project-scribe-dom",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "projectType": "application",
+  "sourceRoot": "apps/project-scribe-dom/src",
+  "targets": {
+    "build": {
+      "executor": "@nx/vite:build",
+      "options": {
+        "outputPath": "dist/apps/project-scribe-dom"
+      }
+    },
+    "serve": {
+      "executor": "@nx/vite:dev-server",
+      "options": {
+        "buildTarget": "project-scribe-dom:build"
+      }
+    },
+    "check:types": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "tsc --noEmit -p apps/project-scribe-dom/tsconfig.json"
+      }
+    }
+  }
+}

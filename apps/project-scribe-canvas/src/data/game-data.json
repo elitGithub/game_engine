@@ -1,0 +1,45 @@
+{
+  "scenes": {
+    "scene_1": {
+      "sceneType": "story",
+      "dialogue": {
+        "id": "scene1_dialogue",
+        "background": { "x": 50, "y": 450, "width": 700, "height": 150, "fill": "rgba(0,0,0,0.7)" },
+        "portrait": { "assetId": "char1_portrait", "x": 540, "y": 240, "width": 200, "height": 200 },
+        "speaker": { "text": "Character 1", "x": 60, "y": 465, "style": { "color": "red", "fontSize": "20px", "fontFamily": "Arial" } },
+        "text": { "text": "This is the first scene. Do you want to go to scene 2?", "x": 60, "y": 500, "style": { "color": "white", "fontSize": "18px", "fontFamily": "Arial" } },
+        "zIndex": 10000
+      },
+      "choices": [
+        {
+          "id": "s1_c1",
+          "text": "Yes, go to Scene 2",
+          "textPos": { "x": 60, "y": 550 },
+          "hotspot": { "x": 50, "y": 540, "width": 200, "height": 30 },
+          "data": { "targetScene": "scene_2" },
+          "style": { "color": "#00ff00", "fontSize": "16px", "fontFamily": "Arial" }
+        }
+      ]
+    },
+    "scene_2": {
+      "sceneType": "story",
+      "dialogue": {
+        "id": "scene2_dialogue",
+        "background": { "x": 50, "y": 450, "width": 700, "height": 150, "fill": "rgba(0,0,0,0.7)" },
+        "speaker": { "text": "Narrator", "x": 60, "y": 465, "style": { "color": "white", "fontSize": "20px", "fontFamily": "Arial" } },
+        "text": { "text": "This is the second scene. There is no escape.", "x": 60, "y": 500, "style": { "color": "white", "fontSize": "18px", "fontFamily": "Arial" } },
+        "zIndex": 10000
+      },
+      "choices": [
+        {
+          "id": "s2_c1",
+          "text": "Go back to Scene 1",
+          "textPos": { "x": 60, "y": 550 },
+          "hotspot": { "x": 50, "y": 540, "width": 200, "height": 30 },
+          "data": { "targetScene": "scene_1" },
+          "style": { "color": "#ffaa00", "fontSize": "16px", "fontFamily": "Arial" }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,8 @@
+{
+  "name": "@game-engine/project-scribe-canvas",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "@game-engine/core": "workspace:^"
+  }
+}
